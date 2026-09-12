@@ -12,10 +12,13 @@ kts = pathlib.Path('android/app/build.gradle.kts')
 groovy = pathlib.Path('android/app/build.gradle')
 marker = 'photo-atlas:configured'
 
-LOADER = '''val keystoreProperties = java.util.Properties()
+LOADER = '''import java.io.FileInputStream
+import java.util.Properties
+
+val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 '''
 
