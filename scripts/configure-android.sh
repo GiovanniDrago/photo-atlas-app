@@ -35,25 +35,6 @@ KTS_BLOCKS = '''
     }
 '''
 
-KTS_ABI = '''
-androidComponents {
-    onVariants { variant ->
-        variant.outputs.forEach { output ->
-            val abi = output.filters.find { it.filterType == "ABI" }?.identifier
-            val suffix = when (abi) {
-                "armeabi-v7a" -> 1
-                "arm64-v8a" -> 2
-                "x86_64" -> 3
-                else -> null
-            }
-            if (suffix != null) {
-                output.versionCode?.let { code -> code.set(code.get() * 10 + suffix) }
-            }
-        }
-    }
-}
-'''
-
 GROOVY_BLOCKS = '''
     signingConfigs {
         release {
@@ -70,20 +51,6 @@ GROOVY_BLOCKS = '''
     }
 '''
 
-GROOVY_ABI = '''
-import com.android.build.gradle.internal.api.ApkVariantOutputImpl
-
-def abiCodes = ['armeabi-v7a': 1, 'arm64-v8a': 2, 'x86_64': 3]
-android.applicationVariants.configureEach { variant ->
-    variant.outputs.each { output ->
-        def abiFilter = output.filters.find { it.filterType == "ABI" }
-        def abiVersionCode = abiCodes[abiFilter?.identifier]
-        if (abiVersionCode != null) {
-            ((ApkVariantOutputImpl) output).versionCodeOverride = variant.versionCode * 10 + abiVersionCode
-        }
-    }
-}
-'''
 
 if kts.exists():
     text = kts.read_text()
@@ -98,7 +65,7 @@ if kts.exists():
             'signingConfig = signingConfigs.getByName("debug")',
             'signingConfig = if (keystorePropertiesFile.exists()) signingConfigs.getByName("release") else signingConfigs.getByName("debug")',
         )
-        text = text.rstrip() + '\n' + KTS_ABI + '// ' + marker + '\n'
+        text = text.rstrip() + '\n// ' + marker + '\n'
         kts.write_text(text)
         print('configured build.gradle.kts')
     else:
@@ -118,7 +85,7 @@ elif groovy.exists():
             'signingConfig signingConfigs.debug',
             "signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug",
         )
-        text = text.rstrip() + '\n' + GROOVY_ABI + '// ' + marker + '\n'
+        text = text.rstrip() + '\n// ' + marker + '\n'
         groovy.write_text(text)
         print('configured build.gradle')
     else:

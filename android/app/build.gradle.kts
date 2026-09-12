@@ -69,20 +69,4 @@ flutter {
     source = "../.."
 }
 
-androidComponents {
-    onVariants { variant ->
-        variant.outputs.forEach { output ->
-            val abi = output.filters.find { it.filterType == "ABI" }?.identifier
-            val suffix = when (abi) {
-                "armeabi-v7a" -> 1
-                "arm64-v8a" -> 2
-                "x86_64" -> 3
-                else -> null
-            }
-            if (suffix != null) {
-                output.versionCode?.let { code -> code.set(code.get() * 10 + suffix) }
-            }
-        }
-    }
-}
 // photo-atlas:configured

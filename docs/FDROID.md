@@ -30,13 +30,18 @@ The draft still contains `TODO` values:
 
    Copy the SHA256 fingerprint into `AllowedAPKSigningKeys`.
 
-3. **Screenshots**: at least one phone screenshot per locale in the fastlane folder.
+3. **Version codes**: Flutter 3.47 applies ABI version codes to split APKs itself
+   (`ABI_VERSION * 1000 + build number`). The `VercodeOperation` values in the draft follow the
+   older `base*10 + ABI` scheme, so recompute them (or pass Flutter's
+   `force-version-code-ignoring-abi` property) and validate with `fdroid build` before submitting.
+   The F-Droid draft header documents this.
+4. **Screenshots**: at least one phone screenshot per locale in the fastlane folder.
 
 ## Prepare the upstream repository
 
 The Android release workflow already implements the F-Droid requirements:
 
-- ABI split with `--split-per-abi` and version codes `base*10 + 1/2/3`.
+- ABI split with `--split-per-abi` (Flutter 3.47 assigns the per-ABI version codes itself).
 - `dependenciesInfo { includeInApk = false; includeInBundle = false }`.
 - Reproducible build workspace and `SOURCE_DATE_EPOCH`.
 - Flutter version pinned in `.github/workflows/android-release-build.yml` (read by the F-Droid

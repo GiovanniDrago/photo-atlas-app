@@ -1,3 +1,11 @@
+# DRAFT metadata for fdroiddata. Do not submit before validating with `fdroid build`.
+#
+# Flutter 3.47 applies its own ABI version codes to split APKs
+# (ABI_VERSION * 1000 + build number, for example 2100 for arm64-v8a with build 100).
+# The VercodeOperation values below follow the older base*10+ABI scheme; recompute them
+# (or use force-version-code-ignoring-abi) and verify with fdroid lint/rewritemeta/build,
+# then replace the TODO placeholders before opening a merge request.
+
 Categories:
   - Multimedia
 License: GPL-3.0-only
