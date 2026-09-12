@@ -32,12 +32,12 @@ class ExtractedMetadata {
   bool get isEmpty => takenAt == null && lat == null && lon == null;
 }
 
-Map<String, dynamic> parseExifBytes(Uint8List bytes) {
+Future<Map<String, dynamic>> parseExifBytes(Uint8List bytes) async {
   final result = <String, dynamic>{};
   if (bytes.isEmpty) return result;
   Map<String, IfdTag> tags;
   try {
-    tags = readExifFromBytes(bytes);
+    tags = await readExifFromBytes(bytes);
   } catch (_) {
     return result;
   }

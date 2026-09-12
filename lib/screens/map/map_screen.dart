@@ -126,7 +126,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final scheme = Theme.of(context).colorScheme;
     final query = _globeMode ? _globeQuery : _mapQuery;
     final clustersAsync = ref.watch(clustersProvider(query));
-    final clusters = clustersAsync.valueOrNull ?? const <MediaCluster>[];
+    final clusters = clustersAsync.value ?? const <MediaCluster>[];
     final selected = _selected;
 
     return Scaffold(
@@ -285,7 +285,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
           ],
         ),
-        RichAttributionWidget(
+        const RichAttributionWidget(
           attributions: [
             TextSourceAttribution('OpenStreetMap contributors'),
             TextSourceAttribution('CARTO'),

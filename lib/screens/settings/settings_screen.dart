@@ -64,10 +64,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final status = await ref.read(apiClientProvider).kdriveStatus();
       if (mounted) setState(() => _kdriveStatus = status);
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(
           () => _kdriveStatus = const KDriveAccountStatus(connected: false),
         );
+      }
     }
   }
 
@@ -84,7 +85,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _snack(l10n.scanUnsupportedWeb);
       return;
     }
-    final path = await FilePicker.platform.getDirectoryPath(
+    final path = await FilePicker.getDirectoryPath(
       dialogTitle: l10n.scanFolder,
     );
     if (path == null) return;

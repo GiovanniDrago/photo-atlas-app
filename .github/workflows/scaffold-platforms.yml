@@ -43,5 +43,6 @@ jobs:
             echo "nothing to commit"
           else
             git commit -m "Scaffold Android, Linux and web platform folders"
+            git pull --rebase origin "${GITHUB_REF_NAME:-main}"
             git push
           fi
