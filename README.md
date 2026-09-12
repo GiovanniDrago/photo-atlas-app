@@ -68,7 +68,7 @@ Set the API URL in **Settings → API server** (default `http://localhost:8787`)
 |---|---|
 | Web | built and deployed by GitHub Actions to GitHub Pages |
 | Android | APKs and AAB built by GitHub Actions on tags; F-Droid metadata prepared |
-| Linux desktop | bundles built by GitHub Actions for x86_64 and arm64 |
+| Linux desktop | x86_64 bundles built by GitHub Actions (Flutter has no arm64 Linux SDK) |
 
 ## License
 

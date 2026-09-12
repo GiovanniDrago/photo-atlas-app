@@ -11,7 +11,7 @@ from the aarch64 device.
 | `scaffold-platforms.yml` | manual | runs `flutter create` and commits `android/`, `linux/`, `web/` |
 | `web-deploy.yml` | push to `main`, manual | builds the web app and deploys to GitHub Pages |
 | `android-release-build.yml` | tag `v*`, manual | 3 ABI APKs + AAB; publishes a GitHub release on tags |
-| `linux-build.yml` | tag `v*`, manual | Linux bundles for x86_64 and arm64 |
+| `linux-build.yml` | tag `v*`, manual | Linux bundle for x86_64 |
 
 Run the scaffold workflow once after the first push, before any other build.
 
@@ -42,7 +42,10 @@ GitHub Actions then builds and publishes:
 - `app-arm64-v8a-release.apk`
 - `app-x86_64-release.apk`
 - `app-release.aab`
-- `photoatlas-linux-x86_64.tar.gz` and `photoatlas-linux-arm64.tar.gz`
+- `photoatlas-linux-x86_64.tar.gz`
+
+Linux arm64 bundles are not built because Flutter ships an x86_64-only Linux SDK; building them
+requires a community arm64 Flutter SDK on an arm64 machine.
 
 ## Android signing secrets
 

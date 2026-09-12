@@ -8,15 +8,7 @@ on:
 
 jobs:
   build-linux:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: ubuntu-latest
-            suffix: x86_64
-          - runner: ubuntu-24.04-arm
-            suffix: arm64
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -37,15 +29,15 @@ jobs:
       - name: Package bundle
         run: |
           mkdir -p dist
-          tar czf "dist/photoatlas-linux-${{ matrix.suffix }}.tar.gz" -C build/linux/*/release .
+          tar czf "dist/photoatlas-linux-x86_64.tar.gz" -C build/linux/*/release .
 
       - uses: actions/upload-artifact@v4
         with:
-          name: photoatlas-linux-${{ matrix.suffix }}
-          path: dist/photoatlas-linux-${{ matrix.suffix }}.tar.gz
+          name: photoatlas-linux-x86_64
+          path: dist/photoatlas-linux-x86_64.tar.gz
 
       - name: Attach to GitHub release
         if: ${{ github.ref_type == 'tag' }}
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/photoatlas-linux-${{ matrix.suffix }}.tar.gz
+          files: dist/photoatlas-linux-x86_64.tar.gz
