@@ -14,6 +14,7 @@ jobs:
     env:
       REPRO_BUILD_DIR: /home/vagrant/build/dev.giovannidrago.photoatlas
       FLUTTER_VERSION: '3.47.4'
+      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,12 +50,12 @@ jobs:
           echo "SOURCE_DATE_EPOCH=$source_date_epoch" >> $GITHUB_ENV
 
       - name: Decode keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
 
       - name: Create key.properties
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
         run: |
           echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
@@ -62,7 +63,7 @@ jobs:
           echo "storeFile=release.keystore" >> android/key.properties
 
       - name: Warn when signing secrets are missing
-        if: ${{ secrets.KEYSTORE_BASE64 == '' }}
+        if: ${{ env.HAS_KEYSTORE != 'true' }}
         run: |
           echo "::warning::KEYSTORE_BASE64 is not set: the release APKs will be signed with debug keys."
 
