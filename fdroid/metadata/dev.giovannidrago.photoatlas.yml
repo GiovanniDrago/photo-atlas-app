@@ -1,0 +1,107 @@
+Categories:
+  - Multimedia
+License: GPL-3.0-only
+AuthorName: Giovanni Drago
+SourceCode: https://github.com/GiovanniDrago/photo-atlas-app
+IssueTracker: https://github.com/GiovanniDrago/photo-atlas-app/issues
+Changelog: https://github.com/GiovanniDrago/photo-atlas-app/releases
+
+AutoName: Photo Atlas
+
+RepoType: git
+Repo: https://github.com/GiovanniDrago/photo-atlas-app.git
+
+Builds:
+  - versionName: 0.1.0
+    versionCode: 1001
+    commit: TODO-RELEASE-COMMIT
+    output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+    binary:
+      https://github.com/GiovanniDrago/photo-atlas-app/releases/download/v%v/app-armeabi-v7a-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+      - macos
+      - windows
+    prebuild:
+      - "flutterVersion=$(sed -n -E \"s/.*flutter-version: '(.*)'/\\1/p\" .github/workflows/android-release-build.yml)"
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-arm" --build-name $$VERSION$$ --build-number $(( $$VERCODE$$ / 10 ))
+
+  - versionName: 0.1.0
+    versionCode: 1002
+    commit: TODO-RELEASE-COMMIT
+    output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+    binary:
+      https://github.com/GiovanniDrago/photo-atlas-app/releases/download/v%v/app-arm64-v8a-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+      - macos
+      - windows
+    prebuild:
+      - "flutterVersion=$(sed -n -E \"s/.*flutter-version: '(.*)'/\\1/p\" .github/workflows/android-release-build.yml)"
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi
+        --target-platform="android-arm64" --build-name $$VERSION$$ --build-number
+        $(( $$VERCODE$$ / 10 ))
+
+  - versionName: 0.1.0
+    versionCode: 1003
+    commit: TODO-RELEASE-COMMIT
+    output: build/app/outputs/flutter-apk/app-x86_64-release.apk
+    binary:
+      https://github.com/GiovanniDrago/photo-atlas-app/releases/download/v%v/app-x86_64-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+      - macos
+      - windows
+    prebuild:
+      - "flutterVersion=$(sed -n -E \"s/.*flutter-version: '(.*)'/\\1/p\" .github/workflows/android-release-build.yml)"
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi
+        --target-platform="android-x64" --build-name $$VERSION$$ --build-number
+        $(( $$VERCODE$$ / 10 ))
+
+AllowedAPKSigningKeys: TODO-SHA256-OF-RELEASE-CERTIFICATE
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[\d.]+$
+VercodeOperation:
+  - '%c * 10 + 1'
+  - '%c * 10 + 2'
+  - '%c * 10 + 3'
+UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
+CurrentVersion: 0.1.0
+CurrentVersionCode: 1003

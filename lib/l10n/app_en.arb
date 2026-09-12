@@ -1,0 +1,229 @@
+{
+  "@@locale": "en",
+  "appTitle": "Photo Atlas",
+  "@appTitle": {
+    "description": "Application title"
+  },
+  "mapTab": "Planet",
+  "@mapTab": {
+    "description": "Bottom navigation label for the map section"
+  },
+  "timelineTab": "Timeline",
+  "@timelineTab": {
+    "description": "Bottom navigation label for the timeline section"
+  },
+  "galleryTab": "Gallery",
+  "@galleryTab": {
+    "description": "Bottom navigation label for the full gallery section"
+  },
+  "settingsTab": "Settings",
+  "@settingsTab": {
+    "description": "Bottom navigation label for settings"
+  },
+  "planetHint": "Drag to rotate, pinch to zoom in",
+  "@planetHint": {
+    "description": "Hint shown on the planet globe"
+  },
+  "loading": "Loading...",
+  "@loading": {
+    "description": "Generic loading label"
+  },
+  "errorLoading": "Could not load data",
+  "@errorLoading": {
+    "description": "Generic error label"
+  },
+  "retry": "Retry",
+  "@retry": {
+    "description": "Retry button"
+  },
+  "itemCount": "{count} items",
+  "@itemCount": {
+    "description": "Number of media items in a section",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noMetadata": "No metadata",
+  "@noMetadata": {
+    "description": "Badge for items without metadata"
+  },
+  "partialMetadata": "Partial metadata",
+  "@partialMetadata": {
+    "description": "Badge for items with partial metadata"
+  },
+  "allImages": "All",
+  "@allImages": {
+    "description": "Gallery filter: all media"
+  },
+  "photosOnly": "Photos",
+  "@photosOnly": {
+    "description": "Gallery filter: images only"
+  },
+  "videosOnly": "Videos",
+  "@videosOnly": {
+    "description": "Gallery filter: videos only"
+  },
+  "missingMetadataOnly": "No metadata",
+  "@missingMetadataOnly": {
+    "description": "Gallery filter: items without full metadata"
+  },
+  "galleryEmpty": "No media indexed yet. Scan a folder or connect kDrive in Settings.",
+  "@galleryEmpty": {
+    "description": "Empty gallery message"
+  },
+  "timelineEmpty": "The timeline will appear once media with dates are indexed.",
+  "@timelineEmpty": {
+    "description": "Empty timeline message"
+  },
+  "sectionSelected": "Photos in this section",
+  "@sectionSelected": {
+    "description": "Title of the list shown below the map when a section is selected"
+  },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Settings screen title"
+  },
+  "apiSection": "API server",
+  "@apiSection": {
+    "description": "Settings section for the API server"
+  },
+  "apiBaseUrl": "API base URL",
+  "@apiBaseUrl": {
+    "description": "Label for the API base URL field"
+  },
+  "apiBaseUrlHint": "http://localhost:8787",
+  "@apiBaseUrlHint": {
+    "description": "Hint for the API base URL field"
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Save button"
+  },
+  "saved": "Saved",
+  "@saved": {
+    "description": "Confirmation after saving"
+  },
+  "serverStatus": "Server status",
+  "@serverStatus": {
+    "description": "Label for server status"
+  },
+  "serverOnline": "Online",
+  "@serverOnline": {
+    "description": "Server status: online"
+  },
+  "serverOffline": "Offline",
+  "@serverOffline": {
+    "description": "Server status: offline"
+  },
+  "localScanSection": "Local folder scan",
+  "@localScanSection": {
+    "description": "Settings section for scanning a local folder"
+  },
+  "scanFolder": "Scan a folder",
+  "@scanFolder": {
+    "description": "Button to pick and scan a local folder"
+  },
+  "scanFolderDescription": "Index name, size, date and GPS of every image or video in a folder.",
+  "@scanFolderDescription": {
+    "description": "Description of the local folder scan feature"
+  },
+  "scanning": "Scanning...",
+  "@scanning": {
+    "description": "Scan in progress"
+  },
+  "scanComplete": "Scan complete",
+  "@scanComplete": {
+    "description": "Scan finished successfully"
+  },
+  "scanUnsupportedWeb": "Local folder scanning is not available on the web. Use kDrive or the Android/Linux app.",
+  "@scanUnsupportedWeb": {
+    "description": "Web limitation for local scan"
+  },
+  "kdriveSection": "kDrive",
+  "@kdriveSection": {
+    "description": "Settings section for kDrive"
+  },
+  "kdriveToken": "API token",
+  "@kdriveToken": {
+    "description": "kDrive API token field"
+  },
+  "kdriveDriveId": "Drive ID",
+  "@kdriveDriveId": {
+    "description": "kDrive drive id field"
+  },
+  "kdriveConnect": "Connect",
+  "@kdriveConnect": {
+    "description": "Connect kDrive button"
+  },
+  "kdriveConnected": "Connected to drive {driveId}",
+  "@kdriveConnected": {
+    "description": "kDrive connection status",
+    "placeholders": {
+      "driveId": {
+        "type": "String"
+      }
+    }
+  },
+  "kdriveNotConnected": "Not connected",
+  "@kdriveNotConnected": {
+    "description": "kDrive status when not connected"
+  },
+  "kdriveScan": "Scan kDrive folder",
+  "@kdriveScan": {
+    "description": "Button to scan a kDrive folder"
+  },
+  "kdriveEnrich": "Enrich metadata (dates and GPS)",
+  "@kdriveEnrich": {
+    "description": "Button to enrich kDrive metadata"
+  },
+  "kdriveEnrichRunning": "Enrichment running...",
+  "@kdriveEnrichRunning": {
+    "description": "Enrichment in progress"
+  },
+  "kdriveEnrichDone": "Enrichment finished",
+  "@kdriveEnrichDone": {
+    "description": "Enrichment finished"
+  },
+  "kdriveFolderId": "Folder ID (1 = root)",
+  "@kdriveFolderId": {
+    "description": "kDrive folder id field"
+  },
+  "kdriveHowTo": "Create a token with the drive scope in the Infomaniak manager, then paste it here.",
+  "@kdriveHowTo": {
+    "description": "Short instructions for kDrive token"
+  },
+  "themeSection": "Appearance",
+  "@themeSection": {
+    "description": "Theme settings section"
+  },
+  "themeLabel": "Theme",
+  "@themeLabel": {
+    "description": "Theme setting label"
+  },
+  "languageLabel": "Language",
+  "@languageLabel": {
+    "description": "Language setting label"
+  },
+  "aboutSection": "About",
+  "@aboutSection": {
+    "description": "About section"
+  },
+  "aboutText": "Photo Atlas is free and open source. Images stay on your device or in your cloud; only metadata is indexed.",
+  "@aboutText": {
+    "description": "About text"
+  },
+  "daySection": "Day",
+  "@daySection": {
+    "description": "Timeline section header for days"
+  },
+  "weekSection": "Week",
+  "@weekSection": {
+    "description": "Timeline section header for weeks"
+  },
+  "monthSection": "Month",
+  "@monthSection": {
+    "description": "Timeline section header for months"
+  }
+}

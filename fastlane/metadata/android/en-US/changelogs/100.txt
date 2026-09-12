@@ -1,0 +1,1 @@
+First release: planet map, timeline, gallery, local folder scan and kDrive integration.

@@ -1,0 +1,106 @@
+name: Android Publish Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-android-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      REPRO_BUILD_DIR: /home/vagrant/build/dev.giovannidrago.photoatlas
+      FLUTTER_VERSION: '3.47.4'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Set release metadata
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="0.1.0"
+          fi
+          IFS='.' read -r major minor patch <<< "$version"
+          build_number=$((10#$major * 10000 + 10#$minor * 100 + 10#$patch))
+          source_date_epoch=$(git log -1 --format=%ct "$GITHUB_SHA")
+          echo "APP_VERSION=$version" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=$build_number" >> $GITHUB_ENV
+          echo "SOURCE_DATE_EPOCH=$source_date_epoch" >> $GITHUB_ENV
+
+      - name: Decode keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
+
+      - name: Create key.properties
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "storeFile=release.keystore" >> android/key.properties
+
+      - name: Warn when signing secrets are missing
+        if: ${{ secrets.KEYSTORE_BASE64 == '' }}
+        run: |
+          echo "::warning::KEYSTORE_BASE64 is not set: the release APKs will be signed with debug keys."
+
+      - name: Prepare reproducible workspace
+        run: |
+          sudo mkdir -p /home/vagrant/build
+          sudo chown -R "$USER":"$USER" /home/vagrant
+          rsync -a --delete --exclude .git ./ "$REPRO_BUILD_DIR/"
+
+      - name: Build release APKs
+        working-directory: ${{ env.REPRO_BUILD_DIR }}
+        run: |
+          export SOURCE_DATE_EPOCH=${{ env.SOURCE_DATE_EPOCH }}
+          flutter build apk --release --split-per-abi \
+            --build-name "$APP_VERSION" --build-number "$BUILD_NUMBER"
+
+      - name: Build release AAB
+        working-directory: ${{ env.REPRO_BUILD_DIR }}
+        run: |
+          export SOURCE_DATE_EPOCH=${{ env.SOURCE_DATE_EPOCH }}
+          flutter build appbundle --release \
+            --build-name "$APP_VERSION" --build-number "$BUILD_NUMBER"
+
+      - name: Upload release artifacts
+        if: ${{ github.ref_type == 'tag' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.REPRO_BUILD_DIR }}/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+            ${{ env.REPRO_BUILD_DIR }}/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            ${{ env.REPRO_BUILD_DIR }}/build/app/outputs/flutter-apk/app-x86_64-release.apk
+            ${{ env.REPRO_BUILD_DIR }}/build/app/outputs/bundle/release/app-release.aab
+
+      - name: Upload APKs as workflow artifacts
+        if: ${{ github.ref_type != 'tag' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: photoatlas-apks
+          path: |
+            ${{ env.REPRO_BUILD_DIR }}/build/app/outputs/flutter-apk/app-*.apk
+            ${{ env.REPRO_BUILD_DIR }}/build/app/outputs/bundle/release/app-release.aab

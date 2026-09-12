@@ -1,0 +1,47 @@
+name: Scaffold platform folders
+
+on:
+  workflow_dispatch:
+    inputs:
+      flutter_version:
+        description: Flutter version used to generate the platform folders
+        required: true
+        default: '3.47.4'
+
+permissions:
+  contents: write
+
+jobs:
+  scaffold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ inputs.flutter_version }}
+          channel: stable
+          cache: true
+      - name: Generate platform folders in a temporary project
+        run: |
+          flutter create --platforms=android,linux,web \
+            --org dev.giovannidrago --project-name photoatlas /tmp/scaffold
+      - name: Copy platform folders into the repository
+        run: |
+          mkdir -p android linux web
+          rsync -a /tmp/scaffold/android/ android/
+          rsync -a /tmp/scaffold/linux/ linux/
+          rsync -a /tmp/scaffold/web/ web/
+          cp /tmp/scaffold/.metadata .metadata
+      - name: Configure Android signing, permissions and ABI version codes
+        run: bash scripts/configure-android.sh
+      - name: Commit platform folders
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android linux web .metadata
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+          else
+            git commit -m "Scaffold Android, Linux and web platform folders"
+            git push
+          fi

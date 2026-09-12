@@ -1,0 +1,4 @@
+storePassword=<password-from-keystore-creation>
+keyPassword=<password-from-keystore-creation>
+keyAlias=upload
+storeFile=<keystore-file-location-outside-the-repository>

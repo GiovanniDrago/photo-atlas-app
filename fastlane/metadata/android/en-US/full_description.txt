@@ -1,0 +1,17 @@
+Photo Atlas aggregates and organizes your images and videos by time and space using their metadata.
+
+Features:
+- A planet map: every location with media becomes a highlighted section sized by the number of
+  items. Sections merge when you zoom out and split when you zoom in, so two cities in the same
+  country appear as one area far away and as two areas when you get closer.
+- Tap a section to see the photos and videos it contains in a list right below the map.
+- A vertical timeline: the last 2 months grouped by day, the previous 3 months grouped by week,
+  everything older grouped by month.
+- A full gallery that also shows items without metadata or with partial metadata.
+- Scan local folders (Android and Linux) and index name, size, date, dimensions and GPS location.
+- Connect your Infomaniak kDrive: choose a folder, scan it recursively and enrich dates and GPS
+  from EXIF data. Images stay in your cloud; only metadata is indexed.
+- Light and dark themes with a minimal color palette, English and Italian.
+
+Photo Atlas is free and open source, with no ads and no tracking. The API can run on your own
+machine with a local PostgreSQL database, and the same schema works on a Supabase free plan.
