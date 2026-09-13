@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +9,7 @@ import '../../providers/library_providers.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../services/api_client.dart';
 import '../../services/scan_service.dart';
 import '../../theme/app_theme.dart';
 
@@ -30,6 +32,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _scanStatus = '';
   int _scanSeen = 0;
   int _scanIndexed = 0;
+  bool _detecting = false;
 
   KDriveAccountStatus? _kdriveStatus;
   bool _kdriveConnecting = false;
@@ -77,6 +80,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await ref.read(apiBaseUrlProvider.notifier).setBaseUrl(_apiController.text);
     ref.invalidate(healthProvider);
     _snack(l10n.saved);
+  }
+
+  Future<void> _detectServer() async {
+    final l10n = AppLocalizations.of(context)!;
+    final candidates = <String>{};
+    final typed = _apiController.text.trim().replaceAll(RegExp(r'/+$'), '');
+    if (typed.isNotEmpty) candidates.add(typed);
+    if (kIsWeb && Uri.base.host.isNotEmpty) {
+      candidates.add('http://${Uri.base.host}:8787');
+    }
+    candidates.add(fallbackApiBaseUrl);
+
+    setState(() => _detecting = true);
+    try {
+      for (final candidate in candidates) {
+        final online = await ApiClient(
+          candidate,
+        ).health(timeout: const Duration(seconds: 3));
+        if (!online) continue;
+        await ref.read(apiBaseUrlProvider.notifier).setBaseUrl(candidate);
+        _apiController.text = candidate;
+        ref.invalidate(healthProvider);
+        _snack(l10n.serverFound(candidate));
+        return;
+      }
+      _snack(l10n.serverNotFound);
+    } finally {
+      if (mounted) setState(() => _detecting = false);
+    }
   }
 
   Future<void> _scanLocalFolder() async {
@@ -293,6 +325,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       FilledButton(
                         onPressed: _saveApiBaseUrl,
                         child: Text(l10n.save),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        onPressed: _detecting ? null : _detectServer,
+                        icon: _detecting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.search),
+                        label: Text(l10n.detectServer),
                       ),
                       const SizedBox(width: 12),
                       health.when(

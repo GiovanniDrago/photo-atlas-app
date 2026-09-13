@@ -101,6 +101,23 @@
   "@save": {
     "description": "Save button"
   },
+  "detectServer": "Detect",
+  "@detectServer": {
+    "description": "Button that finds a reachable API server automatically"
+  },
+  "serverFound": "Server found: {url}",
+  "@serverFound": {
+    "description": "Confirmation after automatic server detection",
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "serverNotFound": "No reachable server found",
+  "@serverNotFound": {
+    "description": "Message when automatic server detection fails"
+  },
   "saved": "Saved",
   "@saved": {
     "description": "Confirmation after saving"

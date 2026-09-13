@@ -96,9 +96,12 @@ class ApiClient {
         .replace(queryParameters: params.isEmpty ? null : params);
   }
 
-  Future<Map<String, dynamic>> _getJson(Uri uri) async {
+  Future<Map<String, dynamic>> _getJson(
+    Uri uri, {
+    Duration timeout = const Duration(seconds: 25),
+  }) async {
     try {
-      final response = await http.get(uri).timeout(const Duration(seconds: 25));
+      final response = await http.get(uri).timeout(timeout);
       return _decode(response);
     } on TimeoutException {
       throw ApiException(408, 'Request timed out: $uri');
@@ -144,9 +147,9 @@ class ApiClient {
   String thumbnailUrl(String mediaId) =>
       '$baseUrl/api/media/$mediaId/thumbnail';
 
-  Future<bool> health() async {
+  Future<bool> health({Duration timeout = const Duration(seconds: 25)}) async {
     try {
-      final body = await _getJson(_uri('/health'));
+      final body = await _getJson(_uri('/health'), timeout: timeout);
       return body['status'] == 'ok';
     } catch (_) {
       return false;

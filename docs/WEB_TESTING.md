@@ -1,21 +1,38 @@
 # Test the app on the web
 
-Flutter's x64 Linux SDK cannot run on the aarch64 Debian-on-phone environment, so the app is built
-and tested through GitHub instead of locally.
+Flutter's x64 Linux SDK cannot run on the aarch64 Debian machine, so the web app is built by
+GitHub Actions and downloaded here. This is the recommended local test flow.
 
-## Option A: GitHub Pages (easiest)
+## Option A: local HTTP preview (recommended)
 
-A workflow deploys the web build on every push to `main`.
+The app is served over plain HTTP on the VM IP, and the web build detects its own host, so it
+automatically uses `http://<same-host>:8787` as the API. No manual URL typing, no tunnels, nothing
+public.
 
-1. Enable Pages once in the repository: **Settings → Pages → Source: GitHub Actions**
-   (or let the first workflow run do it when Pages is configured with the workflow builder).
-2. Push to `main` or run the `Web preview deploy` workflow manually.
-3. Open `https://giovannidrago.github.io/photo-atlas-app/` from any browser, including the phone.
+```bash
+# one-time (and after every web change merged to main): fetch the CI build
+photo-atlas-app/scripts/fetch-web-build.sh
 
-The API URL defaults to `http://localhost:8787`. If the API runs on the same device you are
-browsing from, localhost usually works; otherwise open **Settings → API server** and set the LAN
-address of the machine running the API (`http://192.168.1.x:8787`). The API already allows CORS from
-any origin by default.
+# combined with the API + database:
+photo-atlas-api/scripts/dev-up.sh
+
+# or only the web server:
+photo-atlas-app/scripts/serve-web.sh            # foreground
+photo-atlas-app/scripts/serve-web.sh --background
+photo-atlas-app/scripts/serve-web.sh --stop
+```
+
+The scripts print the URL to open on the phone, for example:
+
+```
+http://10.30.127.225:8080/photo-atlas-app/
+```
+
+The web app then calls `http://10.30.127.225:8787` automatically because `Uri.base.host` is the
+machine serving the app. If an old value is stored, tap **Settings → Detect** once.
+
+The VM IP changes across restarts; always use the URL printed by the scripts
+(`photo-atlas-api/scripts/dev-urls.sh` shows it too).
 
 ## Option B: Codespaces (live development)
 
@@ -30,14 +47,18 @@ is free for public repositories within the monthly quota.
    flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080
    ```
 
-3. Open the forwarded port 8080 from the **Ports** panel (or the popup) on the phone browser.
-   Hot reload (`r`) and hot restart (`R`) work as usual.
+3. Open the forwarded port 8080 from the **Ports** panel on the phone browser.
 
-The API still runs on your machine: make it reachable from the browser context (same network or a
-tunnel). The Codespace itself cannot reach your home network unless you expose it, but the browser
-that opens the app can.
+The API still runs on your machine; set its address in Settings if it is reachable from the browser.
 
 ## Option C: another x64 machine
 
 Follow [SETUP_DEBIAN.md](SETUP_DEBIAN.md) and [RUN.md](RUN.md); `flutter run -d chrome` or
-`-d web-server` gives the same result with local hot reload.
+`-d web-server` gives local hot reload.
+
+## GitHub Pages
+
+The Pages deployment at `https://giovannidrago.github.io/photo-atlas-app/` is kept up to date by CI.
+Because it is served over HTTPS, it can only call an **HTTPS** API: a plain-HTTP LAN API is blocked
+as mixed content. Use it for UI review, and use Option A for full local testing. Public tunnels are
+never started automatically; see `AGENTS.md`.

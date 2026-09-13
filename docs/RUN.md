@@ -42,6 +42,16 @@ flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080
 
 Then open `http://<computer-ip>:8080`.
 
+On this machine the Flutter tool cannot run; use the CI-built preview instead:
+
+```bash
+scripts/fetch-web-build.sh   # downloads the latest GitHub Pages artifact
+scripts/serve-web.sh         # prints http://<vm-ip>:8080/photo-atlas-app/
+```
+
+The web build defaults its API to `http://<same host>:8787`, so opening the printed URL is enough;
+**Settings → Detect** finds a reachable server if a different one is stored.
+
 The production web build deployed by CI uses:
 
 ```bash

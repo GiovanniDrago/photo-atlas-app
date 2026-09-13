@@ -64,6 +64,7 @@ lib/l10n/app_localizations*.dart
 # Environment
 .env
 .env.local
+.run/
 
 # Coverage
 coverage/
