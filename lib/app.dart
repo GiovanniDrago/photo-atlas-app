@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'l10n/app_localizations.dart';
+import 'providers/auth_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/theme_provider.dart';
+import 'screens/auth/login_screen.dart';
 import 'screens/shell.dart';
 import 'theme/app_theme.dart';
 
@@ -14,6 +16,7 @@ class PhotoAtlasApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeOption = ref.watch(themeProvider);
     final locale = ref.watch(localeProvider);
+    final auth = ref.watch(authProvider);
 
     return MaterialApp(
       onGenerateTitle: (context) =>
@@ -23,7 +26,20 @@ class PhotoAtlasApp extends ConsumerWidget {
       locale: locale,
       supportedLocales: const [Locale('en'), Locale('it')],
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      home: const AppShell(),
+      home: switch (auth.status) {
+        AuthStatus.unknown => const _SplashScreen(),
+        AuthStatus.loggedOut => const LoginScreen(),
+        AuthStatus.loggedIn => const AppShell(),
+      },
     );
+  }
+}
+
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

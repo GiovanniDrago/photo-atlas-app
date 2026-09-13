@@ -1,15 +1,15 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../models/source.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/locale_provider.dart';
-import '../../services/api_client.dart';
 import '../../services/scan_service.dart';
 import '../../theme/app_theme.dart';
 
@@ -84,31 +84,67 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _detectServer() async {
     final l10n = AppLocalizations.of(context)!;
-    final candidates = <String>{};
-    final typed = _apiController.text.trim().replaceAll(RegExp(r'/+$'), '');
-    if (typed.isNotEmpty) candidates.add(typed);
-    if (kIsWeb && Uri.base.host.isNotEmpty) {
-      candidates.add('http://${Uri.base.host}:8787');
-    }
-    candidates.add(fallbackApiBaseUrl);
-
     setState(() => _detecting = true);
     try {
-      for (final candidate in candidates) {
-        final online = await ApiClient(
-          candidate,
-        ).health(timeout: const Duration(seconds: 3));
-        if (!online) continue;
-        await ref.read(apiBaseUrlProvider.notifier).setBaseUrl(candidate);
-        _apiController.text = candidate;
+      final found = await ref
+          .read(apiBaseUrlProvider.notifier)
+          .detectAndSave(prefer: _apiController.text);
+      if (!mounted) return;
+      if (found != null) {
+        _apiController.text = found;
         ref.invalidate(healthProvider);
-        _snack(l10n.serverFound(candidate));
-        return;
+        _snack(l10n.serverFound(found));
+      } else {
+        _snack(l10n.serverNotFound);
       }
-      _snack(l10n.serverNotFound);
     } finally {
       if (mounted) setState(() => _detecting = false);
     }
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri != null) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _showKDriveInfo() async {
+    final l10n = AppLocalizations.of(context)!;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.kdriveInfoTitle),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.kdriveInfoBody),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () => _openUrl(
+                  'https://manager.infomaniak.com/v3/ng/accounts/token/list',
+                ),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: Text(l10n.kdriveInfoTokenPage),
+              ),
+              TextButton.icon(
+                onPressed: () =>
+                    _openUrl('https://ksuite.infomaniak.com/all/kdrive/app'),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: Text(l10n.kdriveInfoWebApp),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _scanLocalFolder() async {
@@ -297,12 +333,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final scheme = Theme.of(context).colorScheme;
     final health = ref.watch(healthProvider);
     final kdrive = _kdriveStatus;
+    final user = ref.watch(authProvider).user;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Text(
+            l10n.authAccountSection,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: Text(user?.username ?? ''),
+              subtitle: user != null
+                  ? Text(l10n.authLoggedInAs(user.username))
+                  : null,
+              trailing: TextButton.icon(
+                onPressed: () => ref.read(authProvider.notifier).logout(),
+                icon: const Icon(Icons.logout, size: 18),
+                label: Text(l10n.authLogout),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
           Text(l10n.apiSection, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Card(
@@ -333,7 +390,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.search),
                         label: Text(l10n.detectServer),
@@ -410,9 +469,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          Text(
-            l10n.kdriveSection,
-            style: Theme.of(context).textTheme.titleMedium,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.kdriveSection,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              IconButton(
+                tooltip: l10n.kdriveInfoTitle,
+                onPressed: _showKDriveInfo,
+                icon: const Icon(Icons.info_outline),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Card(

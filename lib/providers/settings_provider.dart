@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/api_client.dart';
+
 const _compileTimeApiBaseUrl = String.fromEnvironment('API_BASE_URL');
 
 const fallbackApiBaseUrl = 'http://localhost:8787';
@@ -47,6 +49,25 @@ class ApiBaseUrlNotifier extends Notifier<String> {
     state = normalized;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, normalized);
+  }
+
+  Future<String?> detectAndSave({String? prefer}) async {
+    final candidates = <String>{};
+    final preferred = (prefer ?? '').trim().replaceAll(RegExp(r'/+$'), '');
+    if (preferred.isNotEmpty) candidates.add(preferred);
+    if (state.isNotEmpty) candidates.add(state);
+    if (kIsWeb && Uri.base.host.isNotEmpty) {
+      candidates.add('http://${Uri.base.host}:8787');
+    }
+    candidates.add(fallbackApiBaseUrl);
+    for (final candidate in candidates) {
+      final online = await ApiClient(candidate)
+          .health(timeout: const Duration(seconds: 3));
+      if (!online) continue;
+      await setBaseUrl(candidate);
+      return candidate;
+    }
+    return null;
   }
 }
 

@@ -4,11 +4,17 @@ import '../models/media_cluster.dart';
 import '../models/media_item.dart';
 import '../models/timeline_bucket.dart';
 import '../services/api_client.dart';
+import 'auth_provider.dart';
 import 'settings_provider.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final baseUrl = ref.watch(apiBaseUrlProvider);
-  return ApiClient(baseUrl);
+  final auth = ref.watch(authProvider);
+  return ApiClient(
+    baseUrl,
+    token: auth.token,
+    onUnauthorized: () => ref.read(authProvider.notifier).handleUnauthorized(),
+  );
 });
 
 final healthProvider = FutureProvider<bool>((ref) {

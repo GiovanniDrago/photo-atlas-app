@@ -118,6 +118,79 @@
   "@serverNotFound": {
     "description": "Message when automatic server detection fails"
   },
+  "authWelcome": "Sign in to keep your folders and kDrive connected to your account.",
+  "@authWelcome": {
+    "description": "Login screen subtitle"
+  },
+  "authAccountSection": "Account",
+  "@authAccountSection": {
+    "description": "Settings section for the account"
+  },
+  "authLoggedInAs": "Signed in as {username}",
+  "@authLoggedInAs": {
+    "description": "Account card subtitle",
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "authLogout": "Log out",
+  "@authLogout": {
+    "description": "Logout button"
+  },
+  "authSignIn": "Sign in",
+  "@authSignIn": {
+    "description": "Login button"
+  },
+  "authCreateAccount": "Create account",
+  "@authCreateAccount": {
+    "description": "Registration button"
+  },
+  "authSwitchToLogin": "I already have an account",
+  "@authSwitchToLogin": {
+    "description": "Switch from registration to login"
+  },
+  "authSwitchToRegister": "Create a new account",
+  "@authSwitchToRegister": {
+    "description": "Switch from login to registration"
+  },
+  "authUsername": "Username",
+  "@authUsername": {
+    "description": "Username field label"
+  },
+  "authPassword": "Password",
+  "@authPassword": {
+    "description": "Password field label"
+  },
+  "authFieldsRequired": "Username and password are required",
+  "@authFieldsRequired": {
+    "description": "Validation message on the login form"
+  },
+  "authServerSettings": "Server settings",
+  "@authServerSettings": {
+    "description": "Collapsible server settings on the login screen"
+  },
+  "kdriveInfoTitle": "kDrive token and Drive ID",
+  "@kdriveInfoTitle": {
+    "description": "Title of the kDrive help dialog"
+  },
+  "kdriveInfoBody": "1. Open the Infomaniak API token page (link below) and create a token with the drive scope.\n\n2. Open the kDrive web app and copy the number at the end of the URL: .../kdrive/app/drive/<number>. That number is the Drive ID.\n\n3. Paste the token and the Drive ID in this section and tap Connect. The token is stored encrypted on your server and is never shown to clients.\n\nNotes: the kDrive API allows about 60 requests per minute; metadata enrichment downloads only the first part of each image.",
+  "@kdriveInfoBody": {
+    "description": "Instructions shown in the kDrive help dialog"
+  },
+  "kdriveInfoTokenPage": "Open the API token page",
+  "@kdriveInfoTokenPage": {
+    "description": "Link to the Infomaniak token page"
+  },
+  "kdriveInfoWebApp": "Open the kDrive web app",
+  "@kdriveInfoWebApp": {
+    "description": "Link to the kDrive web app"
+  },
+  "close": "Close",
+  "@close": {
+    "description": "Close dialog button"
+  },
   "saved": "Saved",
   "@saved": {
     "description": "Confirmation after saving"

@@ -3,6 +3,13 @@
 The API must be reachable first (see photo-atlas-api docs): `http://localhost:8787` by default.
 Change it in **Settings → API server** when needed.
 
+## First start
+
+Login is mandatory. On the development database use **demo / demo**, or create a new account
+(open registration, username and password only). Folders, media and the kDrive connection are tied
+to the signed-in user. The server address can be set before login under **Server settings** on the
+login screen (with a **Detect** button), and later in Settings.
+
 ## Android
 
 ```bash

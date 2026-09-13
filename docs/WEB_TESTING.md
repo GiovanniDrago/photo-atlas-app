@@ -29,7 +29,8 @@ http://10.30.127.225:8080/photo-atlas-app/
 ```
 
 The web app then calls `http://10.30.127.225:8787` automatically because `Uri.base.host` is the
-machine serving the app. If an old value is stored, tap **Settings → Detect** once.
+machine serving the app. Sign in with **demo / demo** (or create an account; data is per user). If
+an old server value is stored, use **Detect** on the login screen or in Settings.
 
 The VM IP changes across restarts; always use the URL printed by the scripts
 (`photo-atlas-api/scripts/dev-urls.sh` shows it too).

@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../models/auth_user.dart';
 import '../models/media_cluster.dart';
 import '../models/media_item.dart';
 import '../models/source.dart';
@@ -84,8 +85,17 @@ class MediaFilter {
 
 class ApiClient {
   final String baseUrl;
+  final String? token;
+  final void Function()? onUnauthorized;
 
-  ApiClient(String baseUrl) : baseUrl = baseUrl.replaceAll(RegExp(r'/+$'), '');
+  ApiClient(String baseUrl, {this.token, this.onUnauthorized})
+    : baseUrl = baseUrl.replaceAll(RegExp(r'/+$'), '');
+
+  Map<String, String> get _authHeaders {
+    final value = token;
+    if (value == null || value.isEmpty) return const {};
+    return {'Authorization': 'Bearer $value'};
+  }
 
   Uri _uri(String path, [Map<String, dynamic>? query]) {
     final params = <String, String>{};
@@ -101,7 +111,9 @@ class ApiClient {
     Duration timeout = const Duration(seconds: 25),
   }) async {
     try {
-      final response = await http.get(uri).timeout(timeout);
+      final response = await http
+          .get(uri, headers: _authHeaders)
+          .timeout(timeout);
       return _decode(response);
     } on TimeoutException {
       throw ApiException(408, 'Request timed out: $uri');
@@ -118,6 +130,7 @@ class ApiClient {
     try {
       final request = http.Request(method, uri)
         ..headers['Content-Type'] = 'application/json'
+        ..headers.addAll(_authHeaders)
         ..body = body == null ? '' : jsonEncode(body);
       final streamed = await request.send().timeout(
         const Duration(seconds: 60),
@@ -135,6 +148,9 @@ class ApiClient {
     final body = response.body.isEmpty
         ? const <String, dynamic>{}
         : (jsonDecode(response.body) as Map<String, dynamic>);
+    if (response.statusCode == 401) {
+      onUnauthorized?.call();
+    }
     if (response.statusCode >= 400) {
       throw ApiException(
         response.statusCode,
@@ -146,6 +162,39 @@ class ApiClient {
 
   String thumbnailUrl(String mediaId) =>
       '$baseUrl/api/media/$mediaId/thumbnail';
+
+  Future<AuthResult> register({
+    required String username,
+    required String password,
+  }) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/auth/register'),
+      body: {'username': username, 'password': password},
+    );
+    return AuthResult.fromJson(body);
+  }
+
+  Future<AuthResult> login({
+    required String username,
+    required String password,
+  }) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/auth/login'),
+      body: {'username': username, 'password': password},
+    );
+    return AuthResult.fromJson(body);
+  }
+
+  Future<AuthUser> me() async {
+    final body = await _getJson(_uri('/api/auth/me'));
+    return AuthUser.fromJson(body['user'] as Map<String, dynamic>);
+  }
+
+  Future<void> logout() async {
+    await _sendJson('POST', _uri('/api/auth/logout'));
+  }
 
   Future<bool> health({Duration timeout = const Duration(seconds: 25)}) async {
     try {
