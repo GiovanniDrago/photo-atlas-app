@@ -7,14 +7,14 @@ DEST="$ROOT_DIR/build/web-serve"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-run_id="$(gh run list --repo "$REPO" --workflow web-deploy.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
+run_id="$(gh run list --repo "$REPO" --workflow web-build.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
 if [ -z "$run_id" ]; then
-  echo "[fetch-web-build] no successful web-deploy run found" >&2
+  echo "[fetch-web-build] no successful web-build run found" >&2
   exit 1
 fi
 
-echo "[fetch-web-build] downloading github-pages artifact from run $run_id"
-gh run download "$run_id" --repo "$REPO" --name github-pages --dir "$TMP"
+echo "[fetch-web-build] downloading web-build artifact from run $run_id"
+gh run download "$run_id" --repo "$REPO" --name web-build --dir "$TMP"
 
 target="$DEST/photo-atlas-app"
 rm -rf "$target"

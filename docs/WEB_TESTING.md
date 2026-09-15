@@ -25,10 +25,10 @@ photo-atlas-app/scripts/serve-web.sh --stop
 The scripts print the URL to open on the phone, for example:
 
 ```
-http://10.30.127.225:8080/photo-atlas-app/
+http://<vm-ip>:8080/photo-atlas-app/
 ```
 
-The web app then calls `http://10.30.127.225:8787` automatically because `Uri.base.host` is the
+The web app then calls `http://<vm-ip>:8787` automatically because `Uri.base.host` is the
 machine serving the app. Sign in with **demo / demo** (or create an account; data is per user). If
 an old server value is stored, use **Detect** on the login screen or in Settings.
 
@@ -59,7 +59,6 @@ Follow [SETUP_DEBIAN.md](SETUP_DEBIAN.md) and [RUN.md](RUN.md); `flutter run -d 
 
 ## GitHub Pages
 
-The Pages deployment at `https://giovannidrago.github.io/photo-atlas-app/` is kept up to date by CI.
-Because it is served over HTTPS, it can only call an **HTTPS** API: a plain-HTTP LAN API is blocked
-as mixed content. Use it for UI review, and use Option A for full local testing. Public tunnels are
-never started automatically; see `AGENTS.md`.
+GitHub Pages is disabled for this repository: the web app is tested from the local bundle (Option A)
+and is never published. CI still builds the bundle so it can be downloaded with
+`scripts/fetch-web-build.sh`.

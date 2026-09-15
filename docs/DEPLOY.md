@@ -9,11 +9,15 @@ from the aarch64 device.
 |---|---|---|
 | `ci.yml` | push / PR to `main` | `flutter pub get`, `gen-l10n`, `analyze` |
 | `scaffold-platforms.yml` | manual | runs `flutter create` and commits `android/`, `linux/`, `web/` |
-| `web-deploy.yml` | push to `main`, manual | builds the web app and deploys to GitHub Pages |
+| `web-build.yml` | push to `main`, manual | builds the web app and uploads the `web-build` artifact (no deployment) |
 | `android-release-build.yml` | tag `v*`, manual | 3 ABI APKs + AAB; publishes a GitHub release on tags |
 | `linux-build.yml` | tag `v*`, manual | Linux bundle for x86_64 |
 
 Run the scaffold workflow once after the first push, before any other build.
+
+GitHub Pages is **disabled**: the web app is tested from the local bundle downloaded with
+`scripts/fetch-web-build.sh` and served by `scripts/serve-web.sh` (see
+[WEB_TESTING.md](WEB_TESTING.md)). Nothing is published from the web build.
 
 ## First-time setup
 
@@ -71,8 +75,11 @@ for testing, not for store or F-Droid distribution.
 
 ## Web
 
-The deployed URL is `https://giovannidrago.github.io/photo-atlas-app/`. The API base URL can be set
-in Settings at runtime, or baked in with a `--dart-define` in the workflow.
+The web bundle is built by the `web-build` workflow and downloaded with
+`scripts/fetch-web-build.sh`; `scripts/serve-web.sh` serves it on `0.0.0.0:8080` under
+`/photo-atlas-app/`. GitHub Pages is disabled, so the bundle never leaves the local machine except
+as a CI artifact. The API base URL is derived from the page host at runtime, or can be set with a
+`--dart-define` in the workflow.
 
 ## Manual runs
 

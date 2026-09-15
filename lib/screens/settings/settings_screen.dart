@@ -11,6 +11,7 @@ import '../../providers/library_providers.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../services/api_client.dart';
 import '../../services/scan_service.dart';
 import '../../theme/app_theme.dart';
 import 'kdrive_folder_picker.dart';
@@ -37,7 +38,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _detecting = false;
 
   KDriveAccountStatus? _kdriveStatus;
-  bool _kdriveStatusError = false;
+  String? _kdriveStatusError;
+  bool _kdriveChecking = false;
   bool _kdriveConnecting = false;
   bool _kdriveScanning = false;
   bool _kdriveEnriching = false;
@@ -66,20 +68,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _refreshKDrive() async {
+  Future<void> _refreshKDrive({bool userInitiated = false}) async {
+    if (mounted) setState(() => _kdriveChecking = true);
     try {
       final status = await ref.read(apiClientProvider).kdriveStatus();
       if (!mounted) return;
       setState(() {
         _kdriveStatus = status;
-        _kdriveStatusError = false;
+        _kdriveStatusError = null;
       });
-    } catch (_) {
+      if (userInitiated) {
+        final l10n = AppLocalizations.of(context)!;
+        _snack(
+          status.connected
+              ? l10n.kdriveConnected('${status.driveId}')
+              : l10n.kdriveNotConnected,
+        );
+      }
+    } catch (error) {
       if (!mounted) return;
       setState(() {
-        _kdriveStatus = null;
-        _kdriveStatusError = true;
+        _kdriveStatusError = error is ApiException ? error.message : '$error';
       });
+      if (userInitiated) _snack(_kdriveStatusError!);
+    } finally {
+      if (mounted) setState(() => _kdriveChecking = false);
     }
   }
 
@@ -652,30 +665,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (kdrive == null && !_kdriveStatusError) ...[
-                    Row(
-                      children: [
-                        const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(l10n.kdriveChecking),
-                      ],
-                    ),
-                  ] else if (_kdriveStatusError) ...[
-                    Row(
-                      children: [
-                        Expanded(child: Text(l10n.kdriveStatusUnknown)),
-                        TextButton(
-                          onPressed: _refreshKDrive,
-                          child: Text(l10n.retry),
-                        ),
-                      ],
-                    ),
-                  ] else if (kdrive?.connected == true &&
-                      !_replaceTokenMode) ...[
+                  if (kdrive?.connected == true && !_replaceTokenMode) ...[
                     Row(
                       children: [
                         Expanded(
@@ -700,7 +690,70 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       l10n.kdriveTokenSaved,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
+                    if (_kdriveStatusError != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.warning_amber_outlined,
+                            size: 16,
+                            color: scheme.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.kdriveStatusUnknown,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _kdriveChecking
+                                ? null
+                                : () => _refreshKDrive(userInitiated: true),
+                            child: Text(l10n.retry),
+                          ),
+                        ],
+                      ),
+                    ],
                   ] else ...[
+                    if (_kdriveChecking)
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(l10n.kdriveChecking),
+                        ],
+                      )
+                    else if (_kdriveStatusError != null) ...[
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 16,
+                            color: scheme.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(l10n.kdriveStatusUnknown)),
+                          TextButton(
+                            onPressed: () =>
+                                _refreshKDrive(userInitiated: true),
+                            child: Text(l10n.retry),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        '${ref.watch(apiBaseUrlProvider)} — $_kdriveStatusError',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
+                    ] else if (kdrive != null && !kdrive.connected) ...[
+                      Chip(label: Text(l10n.kdriveNotConnected)),
+                      const SizedBox(height: 12),
+                    ],
                     Text(
                       l10n.kdriveHowTo,
                       style: Theme.of(context).textTheme.bodySmall,
@@ -726,9 +779,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           onPressed: _kdriveConnecting ? null : _connectKDrive,
                           child: Text(l10n.kdriveConnect),
                         ),
-                        const SizedBox(width: 12),
-                        if (kdrive != null && !kdrive.connected)
-                          Chip(label: Text(l10n.kdriveNotConnected)),
+                        if (_replaceTokenMode) ...[
+                          const SizedBox(width: 8),
+                          TextButton(
+                            onPressed: () =>
+                                setState(() => _replaceTokenMode = false),
+                            child: Text(l10n.kdriveCancel),
+                          ),
+                        ],
                       ],
                     ),
                   ],

@@ -16,8 +16,10 @@ and uses it for every kDrive call. See the API documentation for endpoint detail
    server: the status chip shows the connected drive and you do not need to paste it again. Use
    **Replace token** if you ever want to change it.
 5. If the status check cannot reach the API (for example while the server restarts), the section
-   shows "Could not check the connection" with a **Retry** button instead of pretending the token
-   is missing.
+   shows "Could not check the connection" with the error detail and the API address in use, plus a
+   **Retry** button that shows progress. The token and drive ID form stays available in every state
+   that is not "connected" (and via **Replace token** when it is), so credentials can always be
+   fixed.
 
 ## Scan folders one by one
 
