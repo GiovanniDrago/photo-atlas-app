@@ -59,7 +59,7 @@ Set these repository secrets before tagging (Settings → Secrets and variables 
 |---|---|
 | `KEYSTORE_BASE64` | `base64 -w0 release.keystore` |
 | `KEYSTORE_PASSWORD` | keystore password |
-| `KEY_PASSWORD` | key password |
+| `KEY_PASSWORD` | key password; **omit this secret for PKCS12 keystores** (the workflow falls back to the store password, which PKCS12 requires anyway) |
 | `KEY_ALIAS` | key alias (`upload`) |
 
 Create the keystore on a machine with a JDK:
