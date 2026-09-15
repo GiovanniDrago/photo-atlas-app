@@ -63,9 +63,13 @@ jobs:
           KEY_PASSWORD_VALUE: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS_VALUE: ${{ secrets.KEY_ALIAS }}
         run: |
+          key_password="$KEY_PASSWORD_VALUE"
+          if [ -z "$key_password" ]; then
+            key_password="$STORE_PASSWORD_VALUE"
+          fi
           {
             printf 'storePassword=%s\n' "$STORE_PASSWORD_VALUE"
-            printf 'keyPassword=%s\n' "$KEY_PASSWORD_VALUE"
+            printf 'keyPassword=%s\n' "$key_password"
             printf 'keyAlias=%s\n' "$KEY_ALIAS_VALUE"
             printf 'storeFile=release.keystore\n'
           } > android/key.properties
@@ -78,7 +82,7 @@ jobs:
           alias_value="$(sed -n 's/^keyAlias=//p' android/key.properties)"
           keystore_type="$(keytool -list -keystore android/app/release.keystore -storepass "$store_password" 2>/dev/null | sed -n 's/^Keystore type: //p')"
           if [ "$keystore_type" = "PKCS12" ] && [ "$key_password" != "$store_password" ]; then
-            echo "::error::This is a PKCS12 keystore: keyPassword must equal storePassword. Update the KEY_PASSWORD secret or delete it."
+            echo "::error::This is a PKCS12 keystore: keyPassword must equal storePassword. Set KEY_PASSWORD to the same value or delete the KEY_PASSWORD secret (the workflow then falls back to the store password)."
             exit 1
           fi
           keytool -importkeystore \
