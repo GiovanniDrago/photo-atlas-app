@@ -129,10 +129,11 @@ class ApiClient {
     Map<String, dynamic>? body,
   }) async {
     try {
-      final request = http.Request(method, uri)
-        ..headers['Content-Type'] = 'application/json'
-        ..headers.addAll(_authHeaders)
-        ..body = body == null ? '' : jsonEncode(body);
+      final request = http.Request(method, uri)..headers.addAll(_authHeaders);
+      if (body != null) {
+        request.headers['Content-Type'] = 'application/json';
+        request.body = jsonEncode(body);
+      }
       final streamed = await request.send().timeout(
         const Duration(seconds: 60),
       );
