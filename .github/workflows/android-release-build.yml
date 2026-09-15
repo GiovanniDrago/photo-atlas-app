@@ -62,6 +62,25 @@ jobs:
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "storeFile=release.keystore" >> android/key.properties
 
+      - name: Verify signing files
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
+        env:
+          STORE_PASSWORD_VALUE: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD_VALUE: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS_VALUE: ${{ secrets.KEY_ALIAS }}
+        run: |
+          keytool -importkeystore \
+            -srckeystore android/app/release.keystore \
+            -srcstorepass "$STORE_PASSWORD_VALUE" \
+            -srckeypass "$KEY_PASSWORD_VALUE" \
+            -srcalias "$KEY_ALIAS_VALUE" \
+            -destkeystore /tmp/verify.p12 \
+            -deststoretype PKCS12 \
+            -deststorepass verify \
+            -destkeypass verify \
+            -noprompt >/dev/null
+          echo "keystore, alias and passwords verified"
+
       - name: Warn when signing secrets are missing
         if: ${{ env.HAS_KEYSTORE != 'true' }}
         run: |
