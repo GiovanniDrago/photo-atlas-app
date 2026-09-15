@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -12,6 +13,7 @@ import '../../providers/theme_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../services/scan_service.dart';
 import '../../theme/app_theme.dart';
+import 'kdrive_folder_picker.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -38,6 +40,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _kdriveConnecting = false;
   bool _kdriveScanning = false;
   bool _kdriveEnriching = false;
+  bool _replaceTokenMode = false;
   String _kdriveMessage = '';
 
   @override
@@ -242,11 +245,137 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           .kdriveConnect(token: token, driveId: driveId);
       _tokenController.clear();
       await _refreshKDrive();
+      if (mounted) setState(() => _replaceTokenMode = false);
       _snack(l10n.kdriveConnected('$driveId'));
     } catch (error) {
       _snack('$error');
     } finally {
       if (mounted) setState(() => _kdriveConnecting = false);
+    }
+  }
+
+  void _invalidateLibrary() {
+    ref.invalidate(galleryProvider);
+    ref.invalidate(timelineProvider);
+    ref.invalidate(clustersProvider);
+  }
+
+  Future<void> _pollScanRun(String scanRunId) async {
+    final l10n = AppLocalizations.of(context)!;
+    final client = ref.read(apiClientProvider);
+    while (mounted) {
+      await Future<void>.delayed(const Duration(seconds: 2));
+      final run = await client.scanRun(scanRunId);
+      final seen = (run['files_seen'] as num?)?.toInt() ?? 0;
+      final indexed = (run['files_indexed'] as num?)?.toInt() ?? 0;
+      final status = (run['status'] ?? 'running') as String;
+      if (!mounted) return;
+      setState(() => _kdriveMessage = '${l10n.scanning} $seen / $indexed');
+      if (status != 'running') {
+        setState(() {
+          _kdriveScanning = false;
+          _kdriveMessage = status == 'completed' ? l10n.scanComplete : status;
+        });
+        return;
+      }
+    }
+  }
+
+  Future<void> _addKDriveFolder() async {
+    final l10n = AppLocalizations.of(context)!;
+    final selection = await showKDriveFolderPicker(context);
+    if (selection == null || !mounted) return;
+    setState(() {
+      _kdriveScanning = true;
+      _kdriveMessage = l10n.scanning;
+    });
+    try {
+      final scanRunId = await ref
+          .read(apiClientProvider)
+          .kdriveScan(
+            folderId: selection.folderId,
+            includeSubfolders: selection.includeSubfolders,
+            label: 'kDrive: ${selection.path}',
+          );
+      await _pollScanRun(scanRunId);
+      ref.invalidate(sourcesProvider);
+      _invalidateLibrary();
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _kdriveScanning = false;
+          _kdriveMessage = '$error';
+        });
+      }
+    }
+  }
+
+  Future<void> _rescanSource(MediaSource source) async {
+    final folderId = source.kdriveFolderId;
+    if (folderId == null) return;
+    final l10n = AppLocalizations.of(context)!;
+    setState(() {
+      _kdriveScanning = true;
+      _kdriveMessage = l10n.scanning;
+    });
+    try {
+      final scanRunId = await ref
+          .read(apiClientProvider)
+          .kdriveScan(
+            folderId: folderId,
+            includeSubfolders: source.includeSubfolders,
+            label: source.label,
+          );
+      await _pollScanRun(scanRunId);
+      ref.invalidate(sourcesProvider);
+      _invalidateLibrary();
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _kdriveScanning = false;
+          _kdriveMessage = '$error';
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleSubfolders(MediaSource source, bool value) async {
+    try {
+      await ref
+          .read(apiClientProvider)
+          .updateSource(source.id, includeSubfolders: value);
+      ref.invalidate(sourcesProvider);
+    } catch (error) {
+      _snack('$error');
+    }
+  }
+
+  Future<void> _deleteSource(MediaSource source) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.kdriveDeleteTitle(source.label)),
+        content: Text(l10n.kdriveDeleteBody(source.itemCount)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.kdriveCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.kdriveDeleteFolder),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(apiClientProvider).deleteSource(source.id);
+      ref.invalidate(sourcesProvider);
+      _invalidateLibrary();
+    } catch (error) {
+      _snack('$error');
     }
   }
 
@@ -258,27 +387,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _kdriveMessage = l10n.scanning;
     });
     try {
-      final client = ref.read(apiClientProvider);
-      final scanRunId = await client.kdriveScan(folderId: folderId);
-      while (mounted) {
-        await Future<void>.delayed(const Duration(seconds: 2));
-        final run = await client.scanRun(scanRunId);
-        final seen = (run['files_seen'] as num?)?.toInt() ?? 0;
-        final indexed = (run['files_indexed'] as num?)?.toInt() ?? 0;
-        final status = (run['status'] ?? 'running') as String;
-        if (!mounted) return;
-        setState(() => _kdriveMessage = '${l10n.scanning} $seen / $indexed');
-        if (status != 'running') {
-          setState(() {
-            _kdriveScanning = false;
-            _kdriveMessage = status == 'completed' ? l10n.scanComplete : status;
-          });
-          break;
-        }
-      }
-      ref.invalidate(galleryProvider);
-      ref.invalidate(timelineProvider);
-      ref.invalidate(clustersProvider);
+      final scanRunId = await ref
+          .read(apiClientProvider)
+          .kdriveScan(folderId: folderId);
+      await _pollScanRun(scanRunId);
+      ref.invalidate(sourcesProvider);
+      _invalidateLibrary();
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -287,6 +401,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         });
       }
     }
+  }
+
+  Widget _buildKDriveFolderTile(MediaSource source, AppLocalizations l10n) {
+    final parts = <String>[
+      l10n.itemCount(source.itemCount),
+      source.includeSubfolders
+          ? l10n.kdriveSubfoldersOn
+          : l10n.kdriveSubfoldersOff,
+    ];
+    final lastScan = source.lastScanAt;
+    if (lastScan != null) {
+      parts.add(l10n.kdriveLastScan(DateFormat.yMd().format(lastScan)));
+    }
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.folder_outlined),
+      title: Text(source.label),
+      subtitle: Text(
+        parts.join(' · '),
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      trailing: PopupMenuButton<String>(
+        onSelected: (value) async {
+          if (value == 'scan') {
+            await _rescanSource(source);
+          } else if (value == 'subfolders') {
+            await _toggleSubfolders(source, !source.includeSubfolders);
+          } else if (value == 'delete') {
+            await _deleteSource(source);
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(value: 'scan', child: Text(l10n.kdriveScanAgain)),
+          PopupMenuItem(
+            value: 'subfolders',
+            child: Text(l10n.kdriveSubfolders),
+          ),
+          PopupMenuItem(value: 'delete', child: Text(l10n.kdriveDeleteFolder)),
+        ],
+      ),
+    );
   }
 
   Future<void> _enrichKDrive() async {
@@ -334,6 +489,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final health = ref.watch(healthProvider);
     final kdrive = _kdriveStatus;
     final user = ref.watch(authProvider).user;
+    final sourcesAsync = ref.watch(sourcesProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
@@ -491,67 +647,137 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    l10n.kdriveHowTo,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _tokenController,
-                    obscureText: true,
-                    decoration: InputDecoration(labelText: l10n.kdriveToken),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _driveIdController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(labelText: l10n.kdriveDriveId),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      FilledButton(
-                        onPressed: _kdriveConnecting ? null : _connectKDrive,
-                        child: Text(l10n.kdriveConnect),
-                      ),
-                      const SizedBox(width: 12),
-                      if (kdrive != null)
-                        Chip(
-                          label: Text(
-                            kdrive.connected
-                                ? l10n.kdriveConnected('${kdrive.driveId}')
-                                : l10n.kdriveNotConnected,
+                  if (kdrive?.connected == true && !_replaceTokenMode) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Chip(
+                            avatar: const Icon(
+                              Icons.cloud_done_outlined,
+                              size: 16,
+                            ),
+                            label: Text(
+                              l10n.kdriveConnected('${kdrive?.driveId}'),
+                            ),
                           ),
                         ),
-                    ],
-                  ),
+                        TextButton(
+                          onPressed: () =>
+                              setState(() => _replaceTokenMode = true),
+                          child: Text(l10n.kdriveReplaceToken),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      l10n.kdriveTokenSaved,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ] else ...[
+                    Text(
+                      l10n.kdriveHowTo,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _tokenController,
+                      obscureText: true,
+                      decoration: InputDecoration(labelText: l10n.kdriveToken),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _driveIdController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: l10n.kdriveDriveId,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        FilledButton(
+                          onPressed: _kdriveConnecting ? null : _connectKDrive,
+                          child: Text(l10n.kdriveConnect),
+                        ),
+                        const SizedBox(width: 12),
+                        if (kdrive != null && !kdrive.connected)
+                          Chip(label: Text(l10n.kdriveNotConnected)),
+                      ],
+                    ),
+                  ],
                   const Divider(height: 32),
-                  TextField(
-                    controller: _folderIdController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(labelText: l10n.kdriveFolderId),
+                  Text(
+                    l10n.kdriveFoldersSection,
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 8,
-                    children: [
-                      FilledButton.tonalIcon(
-                        onPressed: _kdriveScanning ? null : _scanKDrive,
-                        icon: const Icon(Icons.cloud_download_outlined),
-                        label: Text(l10n.kdriveScan),
+                  const SizedBox(height: 8),
+                  FilledButton.tonalIcon(
+                    onPressed: _kdriveScanning ? null : _addKDriveFolder,
+                    icon: const Icon(Icons.create_new_folder_outlined),
+                    label: Text(l10n.kdriveAddFolder),
+                  ),
+                  const SizedBox(height: 8),
+                  sourcesAsync.when(
+                    data: (sources) {
+                      final folders = sources
+                          .where((source) => source.isKDrive)
+                          .toList();
+                      if (folders.isEmpty) {
+                        return Text(
+                          l10n.kdriveNoFolders,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        );
+                      }
+                      return Column(
+                        children: [
+                          for (final folder in folders)
+                            _buildKDriveFolderTile(folder, l10n),
+                        ],
+                      );
+                    },
+                    loading: () => const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
                       ),
-                      FilledButton.tonalIcon(
-                        onPressed: _kdriveEnriching ? null : _enrichKDrive,
-                        icon: const Icon(Icons.auto_awesome),
-                        label: Text(l10n.kdriveEnrich),
-                      ),
-                    ],
+                    ),
+                    error: (error, stackTrace) => Text(
+                      l10n.errorLoading,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ),
                   if (_kdriveMessage.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Text(_kdriveMessage),
                   ],
+                  const Divider(height: 32),
+                  FilledButton.tonalIcon(
+                    onPressed: _kdriveEnriching ? null : _enrichKDrive,
+                    icon: const Icon(Icons.auto_awesome),
+                    label: Text(l10n.kdriveEnrich),
+                  ),
+                  ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: Text(l10n.kdriveAdvanced),
+                    children: [
+                      TextField(
+                        controller: _folderIdController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: l10n.kdriveFolderId,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton.tonalIcon(
+                        onPressed: _kdriveScanning ? null : _scanKDrive,
+                        icon: const Icon(Icons.cloud_download_outlined),
+                        label: Text(l10n.kdriveScan),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

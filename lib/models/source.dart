@@ -4,6 +4,10 @@ class MediaSource {
   final String label;
   final String? rootPath;
   final int itemCount;
+  final int? kdriveDriveId;
+  final int? kdriveFolderId;
+  final bool includeSubfolders;
+  final DateTime? lastScanAt;
 
   const MediaSource({
     required this.id,
@@ -11,7 +15,13 @@ class MediaSource {
     required this.label,
     required this.itemCount,
     this.rootPath,
+    this.kdriveDriveId,
+    this.kdriveFolderId,
+    this.includeSubfolders = true,
+    this.lastScanAt,
   });
+
+  bool get isKDrive => kind == 'kdrive';
 
   factory MediaSource.fromJson(Map<String, dynamic> json) {
     return MediaSource(
@@ -20,6 +30,12 @@ class MediaSource {
       label: (json['label'] ?? '') as String,
       rootPath: json['root_path'] as String?,
       itemCount: ((json['item_count'] ?? 0) as num).toInt(),
+      kdriveDriveId: (json['kdrive_drive_id'] as num?)?.toInt(),
+      kdriveFolderId: (json['kdrive_folder_id'] as num?)?.toInt(),
+      includeSubfolders: (json['include_subfolders'] ?? true) as bool,
+      lastScanAt: json['last_scan_at'] == null
+          ? null
+          : DateTime.tryParse(json['last_scan_at'] as String)?.toLocal(),
     );
   }
 }

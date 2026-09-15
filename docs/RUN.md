@@ -10,6 +10,9 @@ Login is mandatory. On the development database use **demo / demo**, or create a
 to the signed-in user. The server address can be set before login under **Server settings** on the
 login screen (with a **Detect** button), and later in Settings.
 
+kDrive folders are added one by one from Settings → kDrive → **Add folder** (folder picker with an
+include-subfolders switch); the token is stored server-side, so it does not need to be re-entered.
+
 ## Android
 
 ```bash

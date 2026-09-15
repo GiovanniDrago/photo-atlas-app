@@ -395,14 +395,38 @@ class ApiClient {
 
   Future<String> kdriveScan({
     required int folderId,
-    bool recursive = true,
+    bool includeSubfolders = true,
+    String? label,
   }) async {
     final body = await _sendJson(
       'POST',
       _uri('/api/kdrive/scan'),
-      body: {'folder_id': folderId, 'recursive': recursive},
+      body: {
+        'folder_id': folderId,
+        'include_subfolders': includeSubfolders,
+        if (label != null) 'label': label,
+      },
     );
     return body['scan_run_id'] as String;
+  }
+
+  Future<void> updateSource(
+    String id, {
+    String? label,
+    bool? includeSubfolders,
+  }) async {
+    await _sendJson(
+      'PATCH',
+      _uri('/api/sources/$id'),
+      body: {
+        if (label != null) 'label': label,
+        if (includeSubfolders != null) 'include_subfolders': includeSubfolders,
+      },
+    );
+  }
+
+  Future<void> deleteSource(String id) async {
+    await _sendJson('DELETE', _uri('/api/sources/$id'));
   }
 
   Future<void> kdriveEnrich({int limit = 20}) async {

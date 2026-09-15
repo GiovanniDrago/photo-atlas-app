@@ -280,6 +280,97 @@
   "@kdriveFolderId": {
     "description": "kDrive folder id field"
   },
+  "kdriveTokenSaved": "Token saved (encrypted). Enter a new one only to replace it.",
+  "@kdriveTokenSaved": {
+    "description": "Hint shown when a kDrive token is already stored"
+  },
+  "kdriveReplaceToken": "Replace token",
+  "@kdriveReplaceToken": {
+    "description": "Button to show the token fields again"
+  },
+  "kdriveFoldersSection": "Folders in kDrive",
+  "@kdriveFoldersSection": {
+    "description": "Title of the added kDrive folders list"
+  },
+  "kdriveAddFolder": "Add a kDrive folder",
+  "@kdriveAddFolder": {
+    "description": "Title of the folder picker and button to add a folder"
+  },
+  "kdriveNoFolders": "No kDrive folders added yet.",
+  "@kdriveNoFolders": {
+    "description": "Empty state of the added kDrive folders list"
+  },
+  "kdriveNoSubfolders": "No subfolders here",
+  "@kdriveNoSubfolders": {
+    "description": "Folder picker: folder without children"
+  },
+  "kdriveScanAgain": "Scan again",
+  "@kdriveScanAgain": {
+    "description": "Rescan action for an added folder"
+  },
+  "kdriveDeleteFolder": "Delete",
+  "@kdriveDeleteFolder": {
+    "description": "Delete action for an added folder"
+  },
+  "kdriveDeleteTitle": "Delete {label}?",
+  "@kdriveDeleteTitle": {
+    "description": "Confirmation dialog title",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "kdriveDeleteBody": "Removes {count} indexed items from Photo Atlas. Files in kDrive are not touched.",
+  "@kdriveDeleteBody": {
+    "description": "Confirmation dialog body",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "kdriveSubfolders": "Include subfolders",
+  "@kdriveSubfolders": {
+    "description": "Switch label for recursive scans"
+  },
+  "kdriveSubfoldersOn": "Subfolders included",
+  "@kdriveSubfoldersOn": {
+    "description": "Folder list chip when subfolders are included"
+  },
+  "kdriveSubfoldersOff": "This folder only",
+  "@kdriveSubfoldersOff": {
+    "description": "Folder list chip when subfolders are excluded"
+  },
+  "kdriveRootWarning": "Root scans the entire drive.",
+  "@kdriveRootWarning": {
+    "description": "Warning shown when the picker is at the drive root"
+  },
+  "kdriveSelectFolder": "Select this folder",
+  "@kdriveSelectFolder": {
+    "description": "Confirm selection in the folder picker"
+  },
+  "kdriveCancel": "Cancel",
+  "@kdriveCancel": {
+    "description": "Cancel button"
+  },
+  "kdriveRoot": "Root",
+  "@kdriveRoot": {
+    "description": "Name of the kDrive root folder"
+  },
+  "kdriveAdvanced": "Advanced",
+  "@kdriveAdvanced": {
+    "description": "Advanced section with the manual folder id field"
+  },
+  "kdriveLastScan": "Last scan: {date}",
+  "@kdriveLastScan": {
+    "description": "Last scan date of an added folder",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "kdriveHowTo": "Create a token with the drive scope in the Infomaniak manager, then paste it here.",
   "@kdriveHowTo": {
     "description": "Short instructions for kDrive token"

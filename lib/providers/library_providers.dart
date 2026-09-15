@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/media_cluster.dart';
 import '../models/media_item.dart';
+import '../models/source.dart';
 import '../models/timeline_bucket.dart';
 import '../services/api_client.dart';
 import 'auth_provider.dart';
@@ -19,6 +20,10 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 
 final healthProvider = FutureProvider<bool>((ref) {
   return ref.watch(apiClientProvider).health();
+});
+
+final sourcesProvider = FutureProvider<List<MediaSource>>((ref) {
+  return ref.watch(apiClientProvider).sources();
 });
 
 final clustersProvider =
