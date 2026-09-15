@@ -37,8 +37,12 @@ sed -i.bak -E "s/^version: .*/version: ${full_version}/" pubspec.yaml
 rm -f pubspec.yaml.bak
 
 git add pubspec.yaml
-git commit -m "Bump version to ${full_version}"
-git push
+if ! git diff --cached --quiet; then
+  git commit -m "Bump version to ${full_version}"
+  git push
+else
+  echo "pubspec.yaml already at ${full_version}, no version commit needed"
+fi
 
 git tag -a "$tag" -m "Release $tag"
 git push origin "$tag"
