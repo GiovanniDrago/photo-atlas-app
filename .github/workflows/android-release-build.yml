@@ -51,35 +51,47 @@ jobs:
 
       - name: Decode keystore
         if: ${{ env.HAS_KEYSTORE == 'true' }}
+        env:
+          KEYSTORE_BASE64_VALUE: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
+          printf '%s' "$KEYSTORE_BASE64_VALUE" | base64 --decode > android/app/release.keystore
 
       - name: Create key.properties
-        if: ${{ env.HAS_KEYSTORE == 'true' }}
-        run: |
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          echo "storeFile=release.keystore" >> android/key.properties
-
-      - name: Verify signing files
         if: ${{ env.HAS_KEYSTORE == 'true' }}
         env:
           STORE_PASSWORD_VALUE: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD_VALUE: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS_VALUE: ${{ secrets.KEY_ALIAS }}
         run: |
+          {
+            printf 'storePassword=%s\n' "$STORE_PASSWORD_VALUE"
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD_VALUE"
+            printf 'keyAlias=%s\n' "$KEY_ALIAS_VALUE"
+            printf 'storeFile=release.keystore\n'
+          } > android/key.properties
+
+      - name: Verify signing files
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
+        run: |
+          store_password="$(sed -n 's/^storePassword=//p' android/key.properties)"
+          key_password="$(sed -n 's/^keyPassword=//p' android/key.properties)"
+          alias_value="$(sed -n 's/^keyAlias=//p' android/key.properties)"
+          keystore_type="$(keytool -list -keystore android/app/release.keystore -storepass "$store_password" 2>/dev/null | sed -n 's/^Keystore type: //p')"
+          if [ "$keystore_type" = "PKCS12" ] && [ "$key_password" != "$store_password" ]; then
+            echo "::error::This is a PKCS12 keystore: keyPassword must equal storePassword. Update the KEY_PASSWORD secret or delete it."
+            exit 1
+          fi
           keytool -importkeystore \
             -srckeystore android/app/release.keystore \
-            -srcstorepass "$STORE_PASSWORD_VALUE" \
-            -srckeypass "$KEY_PASSWORD_VALUE" \
-            -srcalias "$KEY_ALIAS_VALUE" \
+            -srcstorepass "$store_password" \
+            -srckeypass "$key_password" \
+            -srcalias "$alias_value" \
             -destkeystore /tmp/verify.p12 \
             -deststoretype PKCS12 \
             -deststorepass verify \
             -destkeypass verify \
             -noprompt >/dev/null
-          echo "keystore, alias and passwords verified"
+          echo "keystore ($keystore_type), alias and passwords verified from key.properties"
 
       - name: Warn when signing secrets are missing
         if: ${{ env.HAS_KEYSTORE != 'true' }}
