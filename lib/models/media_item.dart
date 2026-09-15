@@ -1,3 +1,5 @@
+import 'json_value.dart';
+
 class MediaItem {
   final String id;
   final String sourceId;
@@ -55,17 +57,17 @@ class MediaItem {
       name: (json['name'] ?? '') as String,
       mime: json['mime'] as String?,
       mediaType: (json['media_type'] ?? 'image') as String,
-      sizeBytes: (json['size_bytes'] as num?)?.toInt(),
+      sizeBytes: asInt(json['size_bytes']),
       takenAt: _parseDate(json['taken_at']),
       fileCreatedAt: _parseDate(json['file_created_at']),
       modifiedAt: _parseDate(json['modified_at']),
-      lat: (json['lat'] as num?)?.toDouble(),
-      lon: (json['lon'] as num?)?.toDouble(),
+      lat: asDouble(json['lat']),
+      lon: asDouble(json['lon']),
       hasGps: (json['has_gps'] ?? false) as bool,
       metadataStatus: (json['metadata_status'] ?? 'none') as String,
-      width: (json['width'] as num?)?.toInt(),
-      height: (json['height'] as num?)?.toInt(),
-      durationS: (json['duration_s'] as num?)?.toDouble(),
+      width: asInt(json['width']),
+      height: asInt(json['height']),
+      durationS: asDouble(json['duration_s']),
       sourceKind: json['source_kind'] as String?,
       sourceLabel: json['source_label'] as String?,
     );

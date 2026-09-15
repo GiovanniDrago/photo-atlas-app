@@ -1,3 +1,5 @@
+import 'json_value.dart';
+
 class MediaSource {
   final String id;
   final String kind;
@@ -29,9 +31,9 @@ class MediaSource {
       kind: (json['kind'] ?? 'local') as String,
       label: (json['label'] ?? '') as String,
       rootPath: json['root_path'] as String?,
-      itemCount: ((json['item_count'] ?? 0) as num).toInt(),
-      kdriveDriveId: (json['kdrive_drive_id'] as num?)?.toInt(),
-      kdriveFolderId: (json['kdrive_folder_id'] as num?)?.toInt(),
+      itemCount: asInt(json['item_count']) ?? 0,
+      kdriveDriveId: asInt(json['kdrive_drive_id']),
+      kdriveFolderId: asInt(json['kdrive_folder_id']),
       includeSubfolders: (json['include_subfolders'] ?? true) as bool,
       lastScanAt: json['last_scan_at'] == null
           ? null
@@ -56,7 +58,7 @@ class KDriveAccountStatus {
     return KDriveAccountStatus(
       connected: (json['connected'] ?? false) as bool,
       label: account?['label'] as String?,
-      driveId: (account?['drive_id'] as num?)?.toInt(),
+      driveId: asInt(account?['drive_id']),
     );
   }
 }
@@ -77,8 +79,8 @@ class KDriveEnrichState {
   factory KDriveEnrichState.fromJson(Map<String, dynamic> json) {
     return KDriveEnrichState(
       running: (json['running'] ?? false) as bool,
-      processed: ((json['processed'] ?? 0) as num).toInt(),
-      updated: ((json['updated'] ?? 0) as num).toInt(),
+      processed: asInt(json['processed']) ?? 0,
+      updated: asInt(json['updated']) ?? 0,
       errors: ((json['errors'] ?? const <dynamic>[]) as List<dynamic>)
           .map((e) => '$e')
           .toList(),
@@ -94,7 +96,7 @@ class KDriveFolder {
 
   factory KDriveFolder.fromJson(Map<String, dynamic> json) {
     return KDriveFolder(
-      id: ((json['id'] ?? 0) as num).toInt(),
+      id: asInt(json['id']) ?? 0,
       name: (json['name'] ?? '') as String,
     );
   }

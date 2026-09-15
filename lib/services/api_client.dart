@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/auth_user.dart';
+import '../models/json_value.dart';
 import '../models/media_cluster.dart';
 import '../models/media_item.dart';
 import '../models/source.dart';
@@ -243,9 +244,9 @@ class ApiClient {
       items: ((body['items'] ?? const <dynamic>[]) as List<dynamic>)
           .map((item) => MediaItem.fromJson(item as Map<String, dynamic>))
           .toList(),
-      total: ((body['total'] ?? 0) as num).toInt(),
-      limit: ((body['limit'] ?? limit) as num).toInt(),
-      offset: ((body['offset'] ?? offset) as num).toInt(),
+      total: asInt(body['total']) ?? 0,
+      limit: asInt(body['limit']) ?? limit,
+      offset: asInt(body['offset']) ?? offset,
     );
   }
 
@@ -297,9 +298,9 @@ class ApiClient {
       items: ((body['items'] ?? const <dynamic>[]) as List<dynamic>)
           .map((item) => MediaItem.fromJson(item as Map<String, dynamic>))
           .toList(),
-      total: ((body['total'] ?? 0) as num).toInt(),
-      limit: ((body['limit'] ?? limit) as num).toInt(),
-      offset: ((body['offset'] ?? offset) as num).toInt(),
+      total: asInt(body['total']) ?? 0,
+      limit: asInt(body['limit']) ?? limit,
+      offset: asInt(body['offset']) ?? offset,
     );
   }
 
@@ -333,7 +334,7 @@ class ApiClient {
       _uri('/api/media/batch'),
       body: {'source_id': sourceId, 'scan_run_id': scanRunId, 'items': items},
     );
-    return ((body['indexed'] ?? 0) as num).toInt();
+    return asInt(body['indexed']) ?? 0;
   }
 
   Future<String> createScanRun(String sourceId) async {

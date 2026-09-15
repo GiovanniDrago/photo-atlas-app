@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../models/json_value.dart';
 import '../../models/source.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/library_providers.dart';
@@ -284,8 +285,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     while (mounted) {
       await Future<void>.delayed(const Duration(seconds: 2));
       final run = await client.scanRun(scanRunId);
-      final seen = (run['files_seen'] as num?)?.toInt() ?? 0;
-      final indexed = (run['files_indexed'] as num?)?.toInt() ?? 0;
+      final seen = asInt(run['files_seen']) ?? 0;
+      final indexed = asInt(run['files_indexed']) ?? 0;
       final status = (run['status'] ?? 'running') as String;
       if (!mounted) return;
       setState(() => _kdriveMessage = '${l10n.scanning} $seen / $indexed');

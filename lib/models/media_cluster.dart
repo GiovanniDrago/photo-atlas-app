@@ -1,3 +1,5 @@
+import 'json_value.dart';
+
 class MediaCluster {
   final String key;
   final double lat;
@@ -25,13 +27,13 @@ class MediaCluster {
     final bounds = (json['bounds'] as Map<String, dynamic>?) ?? const {};
     return MediaCluster(
       key: (json['key'] ?? '') as String,
-      lat: ((json['lat'] ?? 0) as num).toDouble(),
-      lon: ((json['lon'] ?? 0) as num).toDouble(),
-      count: ((json['count'] ?? 0) as num).toInt(),
-      west: ((bounds['west'] ?? 0) as num).toDouble(),
-      south: ((bounds['south'] ?? 0) as num).toDouble(),
-      east: ((bounds['east'] ?? 0) as num).toDouble(),
-      north: ((bounds['north'] ?? 0) as num).toDouble(),
+      lat: asDouble(json['lat']) ?? 0,
+      lon: asDouble(json['lon']) ?? 0,
+      count: asInt(json['count']) ?? 0,
+      west: asDouble(bounds['west']) ?? 0,
+      south: asDouble(bounds['south']) ?? 0,
+      east: asDouble(bounds['east']) ?? 0,
+      north: asDouble(bounds['north']) ?? 0,
       representativeId: json['representative_id'] as String?,
     );
   }

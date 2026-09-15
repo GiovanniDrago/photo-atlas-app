@@ -1,3 +1,5 @@
+import 'json_value.dart';
+
 class TimelineBucket {
   final DateTime bucketStart;
   final DateTime bucketEnd;
@@ -33,7 +35,7 @@ class TimelineBucket {
       bucketStart: DateTime.parse(json['bucket_start'] as String).toLocal(),
       bucketEnd: DateTime.parse(json['bucket_end'] as String).toLocal(),
       granularity: (json['granularity'] ?? 'month') as String,
-      count: ((json['count'] ?? 0) as num).toInt(),
+      count: asInt(json['count']) ?? 0,
       representativeId: json['representative_id'] as String?,
     );
   }
