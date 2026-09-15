@@ -37,6 +37,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _detecting = false;
 
   KDriveAccountStatus? _kdriveStatus;
+  bool _kdriveStatusError = false;
   bool _kdriveConnecting = false;
   bool _kdriveScanning = false;
   bool _kdriveEnriching = false;
@@ -68,13 +69,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _refreshKDrive() async {
     try {
       final status = await ref.read(apiClientProvider).kdriveStatus();
-      if (mounted) setState(() => _kdriveStatus = status);
+      if (!mounted) return;
+      setState(() {
+        _kdriveStatus = status;
+        _kdriveStatusError = false;
+      });
     } catch (_) {
-      if (mounted) {
-        setState(
-          () => _kdriveStatus = const KDriveAccountStatus(connected: false),
-        );
-      }
+      if (!mounted) return;
+      setState(() {
+        _kdriveStatus = null;
+        _kdriveStatusError = true;
+      });
     }
   }
 
@@ -647,7 +652,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (kdrive?.connected == true && !_replaceTokenMode) ...[
+                  if (kdrive == null && !_kdriveStatusError) ...[
+                    Row(
+                      children: [
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(l10n.kdriveChecking),
+                      ],
+                    ),
+                  ] else if (_kdriveStatusError) ...[
+                    Row(
+                      children: [
+                        Expanded(child: Text(l10n.kdriveStatusUnknown)),
+                        TextButton(
+                          onPressed: _refreshKDrive,
+                          child: Text(l10n.retry),
+                        ),
+                      ],
+                    ),
+                  ] else if (kdrive?.connected == true &&
+                      !_replaceTokenMode) ...[
                     Row(
                       children: [
                         Expanded(

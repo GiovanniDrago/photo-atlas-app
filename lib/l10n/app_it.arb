@@ -66,6 +66,8 @@
   "kdriveEnrichDone": "Arricchimento completato",
   "kdriveFolderId": "ID cartella (1 = radice)",
   "kdriveTokenSaved": "Token salvato (cifrato). Inseriscine uno nuovo solo per sostituirlo.",
+  "kdriveChecking": "Verifica della connessione...",
+  "kdriveStatusUnknown": "Impossibile verificare la connessione",
   "kdriveReplaceToken": "Sostituisci token",
   "kdriveFoldersSection": "Cartelle in kDrive",
   "kdriveAddFolder": "Aggiungi una cartella kDrive",

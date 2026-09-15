@@ -284,6 +284,14 @@
   "@kdriveTokenSaved": {
     "description": "Hint shown when a kDrive token is already stored"
   },
+  "kdriveChecking": "Checking connection...",
+  "@kdriveChecking": {
+    "description": "kDrive status is being checked"
+  },
+  "kdriveStatusUnknown": "Could not check the connection",
+  "@kdriveStatusUnknown": {
+    "description": "kDrive status check failed"
+  },
   "kdriveReplaceToken": "Replace token",
   "@kdriveReplaceToken": {
     "description": "Button to show the token fields again"
