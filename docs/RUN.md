@@ -27,6 +27,19 @@ login screen (with a **Detect** button), and later in Settings.
 kDrive folders are added one by one from Settings → kDrive → **Add folder** (folder picker with an
 include-subfolders switch); the token is stored server-side, so it does not need to be re-entered.
 
+## Local folders
+
+- Settings → **Local folders** lists every added folder with its indexed count, last scan and a
+  menu (**Scan again**, **Delete** — index only, files are never touched)
+- **Android**: *Add folder* opens the system media **album picker** (Camera, Download, app albums…).
+  Albums are read through the MediaStore API, so capture date, GPS, dimensions and duration come
+  from the system library; the media-access permission is requested on first use. This is the only
+  reliable way to scan media under Android's scoped storage (a plain folder path returned by a file
+  picker cannot be read)
+- **Linux desktop**: *Add folder* uses the system folder dialog and reads EXIF (date, GPS) from the
+  image files
+- **Web**: local scanning is not available (explained in the UI); use kDrive or the Android/Linux app
+
 ## Android
 
 ```bash

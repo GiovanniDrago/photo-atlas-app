@@ -79,6 +79,7 @@ class ScannedMedia {
   final double? lon;
   final int? width;
   final int? height;
+  final double? durationS;
 
   const ScannedMedia({
     required this.externalKey,
@@ -93,6 +94,7 @@ class ScannedMedia {
     this.lon,
     this.width,
     this.height,
+    this.durationS,
   });
 
   Map<String, dynamic> toJson() => {
@@ -109,7 +111,16 @@ class ScannedMedia {
     'lon': lon,
     'width': width,
     'height': height,
+    'duration_s': durationS,
   };
+}
+
+class ScanFolder {
+  final String id;
+  final String name;
+  final int count;
+
+  const ScanFolder({required this.id, required this.name, required this.count});
 }
 
 class ScanResult {
@@ -121,3 +132,7 @@ class ScanResult {
 
 typedef ScanBatchCallback = Future<void> Function(List<ScannedMedia> batch);
 typedef ScanProgressCallback = void Function(int seen, int indexed);
+
+class ScanPermissionException implements Exception {
+  const ScanPermissionException();
+}

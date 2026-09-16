@@ -337,6 +337,56 @@
   "@kdrivePreviews": {
     "description": "Button and label for the previews cache job"
   },
+  "localFoldersSection": "Local folders",
+  "@localFoldersSection": {
+    "description": "Title of the local folders list"
+  },
+  "localAddFolder": "Add folder",
+  "@localAddFolder": {
+    "description": "Button to add a local folder or album"
+  },
+  "localNoFolders": "No local folders added yet.",
+  "@localNoFolders": {
+    "description": "Empty state of the local folders list"
+  },
+  "localScanAgain": "Scan again",
+  "@localScanAgain": {
+    "description": "Rescan action for a local folder"
+  },
+  "localDelete": "Delete",
+  "@localDelete": {
+    "description": "Delete action for a local folder"
+  },
+  "localDeleteTitle": "Delete {label}?",
+  "@localDeleteTitle": {
+    "description": "Local folder delete confirmation",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "localDeleteBody": "Removes {count} indexed items. Files on the device are not touched.",
+  "@localDeleteBody": {
+    "description": "Local folder delete confirmation body",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "localNoMedia": "No media found in this folder.",
+  "@localNoMedia": {
+    "description": "Shown when a local scan finds nothing"
+  },
+  "localPickAlbum": "Choose an album",
+  "@localPickAlbum": {
+    "description": "Title of the Android album picker"
+  },
+  "localPermissionDenied": "Media access permission is required to scan.",
+  "@localPermissionDenied": {
+    "description": "Shown when the media permission is denied"
+  },
   "saved": "Saved",
   "@saved": {
     "description": "Confirmation after saving"

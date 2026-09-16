@@ -18,6 +18,7 @@ import '../../services/api_client.dart';
 import '../../services/scan_service.dart';
 import '../../theme/app_theme.dart';
 import 'change_password_dialog.dart';
+import 'local_folder_picker.dart';
 import 'kdrive_folder_picker.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -183,58 +184,90 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _snack(l10n.scanUnsupportedWeb);
       return;
     }
+    if (ScanService.isAlbumBased) {
+      final selection = await showLocalFolderPicker(context);
+      if (selection == null || !mounted) return;
+      await _runLocalScan(
+        label: selection.name,
+        rootPath: 'album:${selection.id}',
+        albumId: selection.id,
+      );
+      return;
+    }
     final path = await FilePicker.getDirectoryPath(
       dialogTitle: l10n.scanFolder,
     );
-    if (path == null) return;
-    if (!mounted) return;
+    if (path == null || !mounted) return;
+    final folderName = path
+        .split(RegExp(r'[/\\]'))
+        .where((part) => part.isNotEmpty)
+        .last;
+    await _runLocalScan(label: 'Local: $folderName', rootPath: path);
+  }
+
+  Future<void> _runLocalScan({
+    required String label,
+    required String rootPath,
+    String? albumId,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _scanning = true;
       _scanSeen = 0;
       _scanIndexed = 0;
       _scanStatus = l10n.scanning;
     });
+    String? scanRunId;
     try {
       final client = ref.read(apiClientProvider);
-      final folderName = path
-          .split(RegExp(r'[/\\]'))
-          .where((part) => part.isNotEmpty)
-          .last;
       final sources = await client.sources();
       String? sourceId;
       for (final source in sources) {
-        if (source.kind == 'local' && source.rootPath == path) {
+        if (source.kind == 'local' && source.rootPath == rootPath) {
           sourceId = source.id;
           break;
         }
       }
       sourceId ??= await client.createSource(
         kind: 'local',
-        label: 'Local: $folderName',
-        rootPath: path,
+        label: label,
+        rootPath: rootPath,
       );
-      final scanRunId = await client.createScanRun(sourceId);
-      final result = await ScanService.scanDirectory(
-        directoryPath: path,
-        onBatch: (batch) async {
-          await client.batchMedia(
-            sourceId: sourceId!,
-            scanRunId: scanRunId,
-            items: batch.map((item) => item.toJson()).toList(),
-          );
-        },
-        onProgress: (seen, indexed) {
-          if (mounted) {
-            setState(() {
-              _scanSeen = seen;
-              _scanIndexed = indexed;
-              _scanStatus = '${l10n.scanning} $seen / $indexed';
-            });
-          }
-        },
-      );
+      scanRunId = await client.createScanRun(sourceId);
+      final currentSourceId = sourceId;
+      final currentScanRunId = scanRunId;
+
+      Future<void> onBatch(List<ScannedMedia> batch) async {
+        await client.batchMedia(
+          sourceId: currentSourceId,
+          scanRunId: currentScanRunId,
+          items: batch.map((item) => item.toJson()).toList(),
+        );
+      }
+
+      void onProgress(int seen, int indexed) {
+        if (mounted) {
+          setState(() {
+            _scanSeen = seen;
+            _scanIndexed = indexed;
+            _scanStatus = '${l10n.scanning} $seen / $indexed';
+          });
+        }
+      }
+
+      final result = albumId != null
+          ? await ScanService.scanAlbum(
+              albumId: albumId,
+              onBatch: onBatch,
+              onProgress: onProgress,
+            )
+          : await ScanService.scanDirectory(
+              directoryPath: rootPath,
+              onBatch: onBatch,
+              onProgress: onProgress,
+            );
       await client.patchScanRun(
-        scanRunId,
+        currentScanRunId,
         status: 'completed',
         filesSeen: result.filesSeen,
         filesIndexed: result.indexed,
@@ -242,18 +275,82 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         setState(() {
           _scanning = false;
-          _scanStatus = '${l10n.scanComplete}: ${result.indexed}';
+          _scanStatus = result.indexed == 0
+              ? l10n.localNoMedia
+              : '${l10n.scanComplete}: ${result.indexed}';
         });
       }
+      ref.invalidate(sourcesProvider);
       ref.invalidate(galleryProvider);
       ref.invalidate(timelineProvider);
+      ref.invalidate(clustersProvider);
+    } on ScanPermissionException {
+      await _failScanRun(scanRunId, 'media permission denied');
+      if (mounted) {
+        setState(() {
+          _scanning = false;
+          _scanStatus = l10n.localPermissionDenied;
+        });
+      }
     } catch (error) {
+      await _failScanRun(scanRunId, '$error');
       if (mounted) {
         setState(() {
           _scanning = false;
           _scanStatus = '$error';
         });
       }
+    }
+  }
+
+  Future<void> _failScanRun(String? scanRunId, String reason) async {
+    if (scanRunId == null) return;
+    try {
+      await ref
+          .read(apiClientProvider)
+          .patchScanRun(scanRunId, status: 'failed', errors: [reason]);
+    } catch (_) {}
+  }
+
+  Future<void> _rescanLocalSource(MediaSource source) async {
+    final rootPath = source.rootPath;
+    if (rootPath == null) return;
+    final albumId = rootPath.startsWith('album:')
+        ? rootPath.substring('album:'.length)
+        : null;
+    await _runLocalScan(
+      label: source.label,
+      rootPath: rootPath,
+      albumId: albumId,
+    );
+  }
+
+  Future<void> _deleteLocalSource(MediaSource source) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.localDeleteTitle(source.label)),
+        content: Text(l10n.localDeleteBody(source.itemCount)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.kdriveCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.localDelete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(apiClientProvider).deleteSource(source.id);
+      ref.invalidate(sourcesProvider);
+      _invalidateLibrary();
+    } catch (error) {
+      _snack('$error');
     }
   }
 
@@ -484,6 +581,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (mounted) ref.invalidate(sourcesProvider);
   }
 
+  Widget _buildLocalFolderTile(MediaSource source, AppLocalizations l10n) {
+    final parts = <String>[l10n.itemCount(source.itemCount)];
+    final rootPath = source.rootPath;
+    if (rootPath != null &&
+        rootPath.isNotEmpty &&
+        !rootPath.startsWith('album:')) {
+      parts.add(rootPath);
+    }
+    final lastScan = source.lastScanAt;
+    if (lastScan != null) {
+      parts.add(l10n.kdriveLastScan(DateFormat.yMd().format(lastScan)));
+    }
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.folder_outlined),
+      title: Text(source.label),
+      subtitle: Text(
+        parts.join(' · '),
+        style: Theme.of(context).textTheme.bodySmall,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: PopupMenuButton<String>(
+        onSelected: (value) async {
+          if (value == 'scan') {
+            await _rescanLocalSource(source);
+          } else if (value == 'delete') {
+            await _deleteLocalSource(source);
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(value: 'scan', child: Text(l10n.localScanAgain)),
+          PopupMenuItem(value: 'delete', child: Text(l10n.localDelete)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildKDriveFolderTile(MediaSource source, AppLocalizations l10n) {
     final parts = <String>[
       l10n.itemCount(source.itemCount),
@@ -701,7 +836,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   FilledButton.icon(
                     onPressed: _scanning ? null : _scanLocalFolder,
                     icon: const Icon(Icons.folder_open),
-                    label: Text(l10n.scanFolder),
+                    label: Text(l10n.localAddFolder),
                   ),
                   if (_scanStatus.isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -716,6 +851,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ),
                   ],
+                  const Divider(height: 32),
+                  Text(
+                    l10n.localFoldersSection,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  sourcesAsync.when(
+                    data: (sources) {
+                      final folders = sources
+                          .where((source) => source.kind == 'local')
+                          .toList();
+                      if (folders.isEmpty) {
+                        return Text(
+                          l10n.localNoFolders,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        );
+                      }
+                      return Column(
+                        children: [
+                          for (final folder in folders)
+                            _buildLocalFolderTile(folder, l10n),
+                        ],
+                      );
+                    },
+                    loading: () => const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    ),
+                    error: (error, stackTrace) => Text(
+                      l10n.errorLoading,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
                 ],
               ),
             ),

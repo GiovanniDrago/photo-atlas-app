@@ -368,6 +368,7 @@ class ApiClient {
     String? status,
     int? filesSeen,
     int? filesIndexed,
+    List<String>? errors,
   }) async {
     await _sendJson(
       'PATCH',
@@ -376,6 +377,7 @@ class ApiClient {
         'status': status,
         'files_seen': filesSeen,
         'files_indexed': filesIndexed,
+        if (errors != null) 'errors': errors,
       },
     );
   }
