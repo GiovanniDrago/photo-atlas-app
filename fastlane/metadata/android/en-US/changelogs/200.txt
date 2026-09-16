@@ -1,0 +1,5 @@
+Local folders: on Android you now pick a media album (Camera, Download, ...) and the capture date,
+GPS, size and duration come from the system media library; the local folder list supports rescan
+and delete (index only, files are never touched). Signed cached previews, media detail with full
+metadata and original-quality download, gallery multi-select with metadata export, and password
+change/reset without email.
