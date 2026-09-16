@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +17,7 @@ import '../../providers/locale_provider.dart';
 import '../../services/api_client.dart';
 import '../../services/scan_service.dart';
 import '../../theme/app_theme.dart';
+import 'change_password_dialog.dart';
 import 'kdrive_folder_picker.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -45,13 +48,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _kdriveScanning = false;
   bool _kdriveEnriching = false;
   bool _replaceTokenMode = false;
+  bool _kdrivePreviewsRunning = false;
+  String _kdrivePreviewsMessage = '';
   String _kdriveMessage = '';
 
   @override
   void initState() {
     super.initState();
     _apiController = TextEditingController(text: ref.read(apiBaseUrlProvider));
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshKDrive());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshKDrive();
+      _loadPreviewState();
+    });
   }
 
   @override
@@ -319,6 +327,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await _pollScanRun(scanRunId);
       ref.invalidate(sourcesProvider);
       _invalidateLibrary();
+      unawaited(_watchPreviews());
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -348,6 +357,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await _pollScanRun(scanRunId);
       ref.invalidate(sourcesProvider);
       _invalidateLibrary();
+      unawaited(_watchPreviews());
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -412,6 +422,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await _pollScanRun(scanRunId);
       ref.invalidate(sourcesProvider);
       _invalidateLibrary();
+      unawaited(_watchPreviews());
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -420,6 +431,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         });
       }
     }
+  }
+
+  Future<void> _loadPreviewState() async {
+    try {
+      final state = await ref.read(apiClientProvider).kdrivePreviewsState();
+      if (!mounted) return;
+      if (state.running || state.processed > 0) {
+        setState(() {
+          _kdrivePreviewsRunning = state.running;
+          _kdrivePreviewsMessage =
+              '${AppLocalizations.of(context)!.kdrivePreviews}: ${state.processed} (${state.updated})';
+        });
+      }
+      if (state.running) unawaited(_watchPreviews());
+    } catch (_) {}
+  }
+
+  Future<void> _generatePreviews() async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() {
+      _kdrivePreviewsRunning = true;
+      _kdrivePreviewsMessage = l10n.kdrivePreviews;
+    });
+    try {
+      await ref.read(apiClientProvider).kdrivePreviews();
+      await _watchPreviews();
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _kdrivePreviewsRunning = false;
+          _kdrivePreviewsMessage = '$error';
+        });
+      }
+    }
+  }
+
+  Future<void> _watchPreviews() async {
+    final l10n = AppLocalizations.of(context)!;
+    final client = ref.read(apiClientProvider);
+    while (mounted) {
+      await Future<void>.delayed(const Duration(seconds: 3));
+      final state = await client.kdrivePreviewsState();
+      if (!mounted) return;
+      setState(() {
+        _kdrivePreviewsRunning = state.running;
+        _kdrivePreviewsMessage =
+            '${l10n.kdrivePreviews}: ${state.processed} (${state.updated})';
+      });
+      if (!state.running) break;
+    }
+    if (mounted) ref.invalidate(sourcesProvider);
   }
 
   Widget _buildKDriveFolderTile(MediaSource source, AppLocalizations l10n) {
@@ -527,10 +589,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               subtitle: user != null
                   ? Text(l10n.authLoggedInAs(user.username))
                   : null,
-              trailing: TextButton.icon(
-                onPressed: () => ref.read(authProvider.notifier).logout(),
-                icon: const Icon(Icons.logout, size: 18),
-                label: Text(l10n.authLogout),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: l10n.changePassword,
+                    onPressed: () async {
+                      final changed = await ChangePasswordDialog.show(context);
+                      if (changed == true && mounted) {
+                        _snack(l10n.passwordChanged);
+                      }
+                    },
+                    icon: const Icon(Icons.password, size: 20),
+                  ),
+                  IconButton(
+                    tooltip: l10n.authLogout,
+                    onPressed: () => ref.read(authProvider.notifier).logout(),
+                    icon: const Icon(Icons.logout, size: 20),
+                  ),
+                ],
               ),
             ),
           ),
@@ -840,6 +917,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(height: 12),
                     Text(_kdriveMessage),
                   ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      FilledButton.tonalIcon(
+                        onPressed: _kdrivePreviewsRunning
+                            ? null
+                            : _generatePreviews,
+                        icon: const Icon(Icons.image_outlined),
+                        label: Text(l10n.kdrivePreviews),
+                      ),
+                      const SizedBox(width: 12),
+                      if (_kdrivePreviewsMessage.isNotEmpty)
+                        Expanded(
+                          child: Text(
+                            _kdrivePreviewsMessage,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                    ],
+                  ),
                   const Divider(height: 32),
                   FilledButton.tonalIcon(
                     onPressed: _kdriveEnriching ? null : _enrichKDrive,

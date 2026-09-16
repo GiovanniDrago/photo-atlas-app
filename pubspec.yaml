@@ -21,6 +21,8 @@ dependencies:
   path_provider: ^2.1.6
   exif: ^3.3.0
   url_launcher: ^6.3.2
+  cached_network_image: ^4.0.0
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:

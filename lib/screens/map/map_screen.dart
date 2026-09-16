@@ -12,6 +12,7 @@ import '../../providers/library_providers.dart';
 import '../../services/api_client.dart';
 import '../../widgets/media_thumbnail.dart';
 import '../../widgets/planet_globe.dart';
+import '../gallery/media_detail_screen.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -337,8 +338,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       itemCount: items.length,
                       separatorBuilder: (context, index) =>
                           const SizedBox(width: 10),
-                      itemBuilder: (context, index) =>
-                          MediaThumbnail(item: items[index], size: 110),
+                      itemBuilder: (context, index) => MediaThumbnail(
+                        item: items[index],
+                        size: 110,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                MediaDetailScreen(item: items[index]),
+                          ),
+                        ),
+                      ),
                     ),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stackTrace) =>

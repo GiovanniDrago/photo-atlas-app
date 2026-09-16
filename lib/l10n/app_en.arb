@@ -191,6 +191,152 @@
   "@close": {
     "description": "Close dialog button"
   },
+  "metadataTitle": "Metadata",
+  "@metadataTitle": {
+    "description": "Title of the metadata section in the detail screen"
+  },
+  "downloadOriginal": "Download original",
+  "@downloadOriginal": {
+    "description": "Button to download the original file at full quality"
+  },
+  "downloadUnavailable": "Download not available",
+  "@downloadUnavailable": {
+    "description": "Shown when a download cannot be started"
+  },
+  "notAvailable": "Not available",
+  "@notAvailable": {
+    "description": "Placeholder for missing metadata values"
+  },
+  "fullMetadata": "Complete metadata",
+  "@fullMetadata": {
+    "description": "Metadata status with date and GPS"
+  },
+  "fieldType": "Type",
+  "@fieldType": {
+    "description": "Metadata row label"
+  },
+  "fieldMime": "MIME type",
+  "@fieldMime": {
+    "description": "Metadata row label"
+  },
+  "fieldSize": "Size",
+  "@fieldSize": {
+    "description": "Metadata row label"
+  },
+  "fieldTakenAt": "Taken",
+  "@fieldTakenAt": {
+    "description": "Metadata row label for the capture date"
+  },
+  "fieldFileCreated": "File created",
+  "@fieldFileCreated": {
+    "description": "Metadata row label"
+  },
+  "fieldModified": "Modified",
+  "@fieldModified": {
+    "description": "Metadata row label"
+  },
+  "fieldGps": "GPS",
+  "@fieldGps": {
+    "description": "Metadata row label for coordinates"
+  },
+  "fieldDimensions": "Dimensions",
+  "@fieldDimensions": {
+    "description": "Metadata row label"
+  },
+  "fieldDuration": "Duration",
+  "@fieldDuration": {
+    "description": "Metadata row label"
+  },
+  "fieldMetadataStatus": "Metadata status",
+  "@fieldMetadataStatus": {
+    "description": "Metadata row label"
+  },
+  "fieldSource": "Source",
+  "@fieldSource": {
+    "description": "Metadata row label"
+  },
+  "fieldKdriveFileId": "kDrive file id",
+  "@fieldKdriveFileId": {
+    "description": "Metadata row label"
+  },
+  "fieldPath": "Local path",
+  "@fieldPath": {
+    "description": "Metadata row label"
+  },
+  "selectedCount": "{count} selected",
+  "@selectedCount": {
+    "description": "Gallery selection counter",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "selectAll": "Select all",
+  "@selectAll": {
+    "description": "Select all loaded items"
+  },
+  "exportMetadata": "Export metadata",
+  "@exportMetadata": {
+    "description": "Export metadata of the selected items"
+  },
+  "exportStarted": "Export started",
+  "@exportStarted": {
+    "description": "Web download of the metadata export started"
+  },
+  "exportSavedTo": "Saved to {path}",
+  "@exportSavedTo": {
+    "description": "Metadata export saved on disk",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFailed": "Export failed",
+  "@exportFailed": {
+    "description": "Metadata export error"
+  },
+  "changePassword": "Change password",
+  "@changePassword": {
+    "description": "Change password dialog title and tooltip"
+  },
+  "currentPassword": "Current password",
+  "@currentPassword": {
+    "description": "Current password field"
+  },
+  "newPassword": "New password",
+  "@newPassword": {
+    "description": "New password field"
+  },
+  "confirmPassword": "Confirm new password",
+  "@confirmPassword": {
+    "description": "Confirm password field"
+  },
+  "passwordMismatch": "The passwords do not match",
+  "@passwordMismatch": {
+    "description": "Validation message"
+  },
+  "passwordChanged": "Password changed",
+  "@passwordChanged": {
+    "description": "Confirmation message"
+  },
+  "forgotPassword": "Forgot password?",
+  "@forgotPassword": {
+    "description": "Forgot password link on the login screen"
+  },
+  "forgotPasswordTitle": "Reset a forgotten password",
+  "@forgotPasswordTitle": {
+    "description": "Forgot password dialog title"
+  },
+  "forgotPasswordBody": "There is no email reset in this development setup.\n\nOn the server, run:\n\nnpm run reset-password -- <username>\n\nThis prints a new password and signs out every session. You can also choose it: npm run reset-password -- <username> <new-password>",
+  "@forgotPasswordBody": {
+    "description": "Forgot password instructions"
+  },
+  "kdrivePreviews": "Previews",
+  "@kdrivePreviews": {
+    "description": "Button and label for the previews cache job"
+  },
   "saved": "Saved",
   "@saved": {
     "description": "Confirmation after saving"

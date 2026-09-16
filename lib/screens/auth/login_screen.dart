@@ -66,6 +66,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _showForgotPassword() async {
+    final l10n = AppLocalizations.of(context)!;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.forgotPasswordTitle),
+        content: SingleChildScrollView(child: Text(l10n.forgotPasswordBody)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _saveServer() async {
     final l10n = AppLocalizations.of(context)!;
     await ref
@@ -172,6 +189,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ? l10n.authSwitchToLogin
                             : l10n.authSwitchToRegister,
                       ),
+                    ),
+                    TextButton(
+                      onPressed: _loading ? null : _showForgotPassword,
+                      child: Text(l10n.forgotPassword),
                     ),
                     const Divider(height: 24),
                     ExpansionTile(

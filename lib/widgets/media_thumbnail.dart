@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,14 +10,20 @@ class MediaThumbnail extends ConsumerWidget {
   final MediaItem item;
   final double size;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final bool showName;
+  final bool selected;
+  final bool selectionMode;
 
   const MediaThumbnail({
     super.key,
     required this.item,
     this.size = 120,
     this.onTap,
+    this.onLongPress,
     this.showName = true,
+    this.selected = false,
+    this.selectionMode = false,
   });
 
   @override
@@ -24,10 +31,12 @@ class MediaThumbnail extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final client = ref.watch(apiClientProvider);
+    final imageUrl = item.thumbnailUrl ?? client.thumbnailUrl(item.id);
     final missingMetadata = !item.hasFullMetadata;
 
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       borderRadius: BorderRadius.circular(14),
       child: SizedBox(
         width: size,
@@ -43,10 +52,21 @@ class MediaThumbnail extends ConsumerWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(
-                      client.thumbnailUrl(item.id),
+                    CachedNetworkImage(
+                      imageUrl: imageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
+                      fadeInDuration: const Duration(milliseconds: 150),
+                      placeholder: (context, url) => Container(
+                        color: scheme.surfaceContainerHighest,
+                        child: const Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
                         color: scheme.surfaceContainerHighest,
                         child: Icon(
                           item.isVideo
@@ -55,20 +75,29 @@ class MediaThumbnail extends ConsumerWidget {
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return Container(
-                          color: scheme.surfaceContainerHighest,
-                          child: const Center(
-                            child: SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                        );
-                      },
                     ),
+                    if (selectionMode)
+                      Positioned(
+                        top: 6,
+                        left: 6,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: selected
+                                ? scheme.primary
+                                : scheme.surface.withValues(alpha: 0.85),
+                            border: Border.all(color: scheme.outline),
+                          ),
+                          padding: const EdgeInsets.all(3),
+                          child: Icon(
+                            Icons.check,
+                            size: 14,
+                            color: selected
+                                ? scheme.onPrimary
+                                : scheme.surfaceContainerHighest,
+                          ),
+                        ),
+                      ),
                     if (item.isVideo)
                       Positioned(
                         left: 6,
@@ -102,7 +131,7 @@ class MediaThumbnail extends ConsumerWidget {
                           ),
                         ),
                       ),
-                    if (missingMetadata)
+                    if (missingMetadata && !selectionMode)
                       Positioned(
                         right: 6,
                         top: 6,

@@ -39,6 +39,18 @@ and uses it for every kDrive call. See the API documentation for endpoint detail
 
 An **Advanced** section still allows scanning a numeric folder id manually.
 
+## Previews and downloads
+
+- After each scan the API generates previews **only for the newly indexed items** and caches them
+  on disk; progress shows in the kDrive section (`Previews: processed (updated)`) and with the
+  **Previews** button you can fill in anything still missing
+- Thumbnails are delivered through signed URLs (stable, so device/browser caches work); the API
+  never re-fetches a preview it already has
+- The media detail screen offers **Download original**: the API proxies the original file from
+  kDrive at full quality (no conversion). Note that no cloud API exposes camera EXIF/GPS: the app
+  reads them from the file bytes during enrichment (first ~256 KB), which is why dated/GPS
+  metadata can take a while to appear after a scan
+
 ## Enrich dates and GPS
 
 kDrive listings do not include capture date or GPS. Tap **Enrich metadata**:

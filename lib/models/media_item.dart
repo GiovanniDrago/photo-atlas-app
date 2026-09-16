@@ -21,6 +21,8 @@ class MediaItem {
   final double? durationS;
   final String? sourceKind;
   final String? sourceLabel;
+  final String? thumbnailUrl;
+  final String? downloadUrl;
 
   const MediaItem({
     required this.id,
@@ -43,6 +45,8 @@ class MediaItem {
     this.durationS,
     this.sourceKind,
     this.sourceLabel,
+    this.thumbnailUrl,
+    this.downloadUrl,
   });
 
   bool get isVideo => mediaType == 'video';
@@ -70,6 +74,8 @@ class MediaItem {
       durationS: asDouble(json['duration_s']),
       sourceKind: json['source_kind'] as String?,
       sourceLabel: json['source_label'] as String?,
+      thumbnailUrl: json['thumbnail_url'] as String?,
+      downloadUrl: json['download_url'] as String?,
     );
   }
 

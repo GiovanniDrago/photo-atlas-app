@@ -198,6 +198,17 @@ class ApiClient {
     await _sendJson('POST', _uri('/api/auth/logout'));
   }
 
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _sendJson(
+      'POST',
+      _uri('/api/auth/change-password'),
+      body: {'current_password': currentPassword, 'new_password': newPassword},
+    );
+  }
+
   Future<bool> health({Duration timeout = const Duration(seconds: 25)}) async {
     try {
       final body = await _getJson(_uri('/health'), timeout: timeout);
@@ -438,5 +449,14 @@ class ApiClient {
   Future<KDriveEnrichState> kdriveEnrichState() async {
     final body = await _getJson(_uri('/api/kdrive/enrich'));
     return KDriveEnrichState.fromJson(body);
+  }
+
+  Future<void> kdrivePreviews() async {
+    await _sendJson('POST', _uri('/api/kdrive/previews'));
+  }
+
+  Future<KDrivePreviewState> kdrivePreviewsState() async {
+    final body = await _getJson(_uri('/api/kdrive/previews'));
+    return KDrivePreviewState.fromJson(body);
   }
 }

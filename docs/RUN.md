@@ -10,6 +10,20 @@ Login is mandatory. On the development database use **demo / demo**, or create a
 to the signed-in user. The server address can be set before login under **Server settings** on the
 login screen (with a **Detect** button), and later in Settings.
 
+## Gallery, details and export
+
+- Tap any thumbnail (gallery, timeline, map list) to open the media detail: big preview, every
+  metadata field and **Download original** (full quality, straight from kDrive when available)
+- In the gallery, long-press to enter selection mode: tap to add/remove items, use **Select all**,
+  then **Export metadata** to download a JSON file with all fields of the selected items
+- Thumbnails are served through signed URLs and cached: the server stores kDrive previews on disk
+  and the app/browser keeps its own cache
+
+## Account
+
+- **Settings → Account**: change password (revokes the other sessions)
+- Lost password (dev setup, no email): `npm run reset-password -- <username>` on the server
+
 kDrive folders are added one by one from Settings → kDrive → **Add folder** (folder picker with an
 include-subfolders switch); the token is stored server-side, so it does not need to be re-entered.
 

@@ -101,3 +101,31 @@ class KDriveFolder {
     );
   }
 }
+
+class KDrivePreviewState {
+  final bool running;
+  final int processed;
+  final int updated;
+  final int skipped;
+  final List<String> errors;
+
+  const KDrivePreviewState({
+    required this.running,
+    required this.processed,
+    required this.updated,
+    required this.skipped,
+    required this.errors,
+  });
+
+  factory KDrivePreviewState.fromJson(Map<String, dynamic> json) {
+    return KDrivePreviewState(
+      running: (json['running'] ?? false) as bool,
+      processed: asInt(json['processed']) ?? 0,
+      updated: asInt(json['updated']) ?? 0,
+      skipped: asInt(json['skipped']) ?? 0,
+      errors: ((json['errors'] ?? const <dynamic>[]) as List<dynamic>)
+          .map((e) => '$e')
+          .toList(),
+    );
+  }
+}

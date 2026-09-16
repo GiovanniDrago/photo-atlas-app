@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/timeline_bucket.dart';
 import '../../providers/library_providers.dart';
 import '../../widgets/media_thumbnail.dart';
+import '../gallery/media_detail_screen.dart';
 
 class TimelineScreen extends ConsumerWidget {
   const TimelineScreen({super.key});
@@ -113,8 +114,16 @@ class _BucketCard extends ConsumerWidget {
                         itemCount: page.items.length,
                         separatorBuilder: (context, index) =>
                             const SizedBox(width: 8),
-                        itemBuilder: (context, index) =>
-                            MediaThumbnail(item: page.items[index], size: 110),
+                        itemBuilder: (context, index) => MediaThumbnail(
+                          item: page.items[index],
+                          size: 110,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  MediaDetailScreen(item: page.items[index]),
+                            ),
+                          ),
+                        ),
                       ),
                 loading: () => const Center(
                   child: SizedBox(
