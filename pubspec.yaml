@@ -1,7 +1,7 @@
 name: photoatlas
 description: "Photo Atlas: aggregate and organize images and videos by time and space."
 publish_to: 'none'
-version: 0.1.0+100
+version: 0.2.0+200
 
 environment:
   sdk: ^3.13.0
