@@ -1,6 +1,7 @@
 import 'scan_models.dart';
 
-export 'scan_models.dart' show ScannedMedia, ScanResult, ScanFolder;
+export 'scan_models.dart'
+    show ScannedMedia, ScanResult, ScanFolder, ScanPermissionException;
 
 import 'scan_service_stub.dart'
     if (dart.library.io) 'scan_service_io.dart'
