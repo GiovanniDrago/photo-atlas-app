@@ -123,7 +123,7 @@ class MediaDetailScreen extends ConsumerWidget {
             ? l10n.notAvailable
             : _formatDuration(item.durationS!),
       ),
-      (l10n.fieldMetadata, _statusLabel(l10n, item.metadataStatus)),
+      (l10n.fieldMetadataStatus, _statusLabel(l10n, item.metadataStatus)),
       (
         l10n.fieldSource,
         '${item.sourceLabel ?? l10n.notAvailable} (${item.sourceKind ?? '-'})',
