@@ -80,6 +80,7 @@ class ScannedMedia {
   final int? width;
   final int? height;
   final double? durationS;
+  final String? thumbnailB64;
 
   const ScannedMedia({
     required this.externalKey,
@@ -95,6 +96,7 @@ class ScannedMedia {
     this.width,
     this.height,
     this.durationS,
+    this.thumbnailB64,
   });
 
   Map<String, dynamic> toJson() => {
@@ -112,6 +114,7 @@ class ScannedMedia {
     'width': width,
     'height': height,
     'duration_s': durationS,
+    if (thumbnailB64 != null) 'thumbnail_b64': thumbnailB64,
   };
 }
 

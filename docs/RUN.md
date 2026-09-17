@@ -13,11 +13,12 @@ login screen (with a **Detect** button), and later in Settings.
 ## Gallery, details and export
 
 - Tap any thumbnail (gallery, timeline, map list) to open the media detail: big preview, every
-  metadata field and **Download original** (full quality, straight from kDrive when available)
+  metadata field and **Download original** (full quality, straight from kDrive when available; the
+  button is hidden for local items whose file is already on this device)
 - In the gallery, long-press to enter selection mode: tap to add/remove items, use **Select all**,
   then **Export metadata** to download a JSON file with all fields of the selected items
-- Thumbnails are served through signed URLs and cached: the server stores kDrive previews on disk
-  and the app/browser keeps its own cache
+- Thumbnails are served through signed URLs and cached: the server stores kDrive previews and
+  phone-uploaded previews on disk and the app/browser keeps its own cache
 
 ## Account
 
@@ -33,7 +34,9 @@ include-subfolders switch); the token is stored server-side, so it does not need
   menu (**Scan again**, **Delete** — index only, files are never touched)
 - **Android**: *Add folder* opens the system media **album picker** (Camera, Download, app albums…).
   Albums are read through the MediaStore API, so capture date, GPS, dimensions and duration come
-  from the system library; the media-access permission is requested on first use. This is the only
+  from the system library; grant the media permission and the photo **location** permission when
+  asked (without the location grant Android hides EXIF GPS). Preview thumbnails are generated on
+  the phone and uploaded to the API, so the app, web and map show the same pictures. This is the only
   reliable way to scan media under Android's scoped storage (a plain folder path returned by a file
   picker cannot be read)
 - **Linux desktop**: *Add folder* uses the system folder dialog and reads EXIF (date, GPS) from the

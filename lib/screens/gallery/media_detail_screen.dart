@@ -45,14 +45,15 @@ class MediaDetailScreen extends ConsumerWidget {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: FilledButton.icon(
-              onPressed: () => _download(context, l10n),
-              icon: const Icon(Icons.download),
-              label: Text(l10n.downloadOriginal),
+          if (item.downloadUrl case final url? when url.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: FilledButton.icon(
+                onPressed: () => _download(context, l10n, url),
+                icon: const Icon(Icons.download),
+                label: Text(l10n.downloadOriginal),
+              ),
             ),
-          ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -72,12 +73,11 @@ class MediaDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _download(BuildContext context, AppLocalizations l10n) async {
-    final url = item.downloadUrl;
-    if (url == null || url.isEmpty) {
-      _snack(context, l10n.downloadUnavailable);
-      return;
-    }
+  Future<void> _download(
+    BuildContext context,
+    AppLocalizations l10n,
+    String url,
+  ) async {
     final opened = await launchUrl(
       Uri.parse(url),
       mode: LaunchMode.externalApplication,

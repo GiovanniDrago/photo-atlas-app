@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
@@ -11,9 +12,22 @@ bool get isSupported => true;
 
 bool get isAlbumBased => Platform.isAndroid;
 
+const _permissionRequest = PermissionRequestOption(
+  androidPermission: AndroidPermission(
+    type: RequestType.common,
+    mediaLocation: true,
+  ),
+);
+
+const _thumbnailSize = ThumbnailSize.square(320);
+const _thumbnailQuality = 75;
+const _maxThumbnailBytes = 200 * 1024;
+
 Future<List<ScanFolder>> listFolders() async {
   if (!Platform.isAndroid) return const [];
-  final permission = await PhotoManager.requestPermissionExtend();
+  final permission = await PhotoManager.requestPermissionExtend(
+    requestOption: _permissionRequest,
+  );
   if (!permission.isAuth && !permission.hasAccess) {
     throw const ScanPermissionException();
   }
@@ -36,7 +50,9 @@ Future<ScanResult> scanAlbum({
   required ScanBatchCallback onBatch,
   required ScanProgressCallback onProgress,
 }) async {
-  final permission = await PhotoManager.requestPermissionExtend();
+  final permission = await PhotoManager.requestPermissionExtend(
+    requestOption: _permissionRequest,
+  );
   if (!permission.isAuth && !permission.hasAccess) {
     throw const ScanPermissionException();
   }
@@ -72,9 +88,7 @@ Future<ScanResult> scanAlbum({
       try {
         final file = await asset.file;
         final size = await file?.length() ?? 0;
-        final latitude = asset.latitude;
-        final longitude = asset.longitude;
-        final hasGps = !(latitude == 0.0 && longitude == 0.0);
+        final (lat, lon) = await _readLocation(asset);
         final mediaType = asset.type == AssetType.video ? 'video' : 'image';
         final title = asset.title ?? 'asset-${asset.id}';
         batch.add(
@@ -89,11 +103,12 @@ Future<ScanResult> scanAlbum({
             sizeBytes: size,
             takenAt: asset.createDateTime,
             modifiedAt: asset.modifiedDateTime,
-            lat: hasGps ? latitude : null,
-            lon: hasGps ? longitude : null,
+            lat: lat,
+            lon: lon,
             width: asset.width,
             height: asset.height,
             durationS: mediaType == 'video' ? asset.duration.toDouble() : null,
+            thumbnailB64: await _readThumbnail(asset),
           ),
         );
         indexed++;
@@ -195,5 +210,34 @@ Future<Uint8List> _readPrefix(File file, int byteCount) async {
     return await handle.read(byteCount);
   } finally {
     await handle.close();
+  }
+}
+
+Future<(double?, double?)> _readLocation(AssetEntity asset) async {
+  try {
+    final location = await asset.latlngAsync();
+    final lat = location?.latitude;
+    final lon = location?.longitude;
+    if (lat == null || lon == null || (lat == 0.0 && lon == 0.0)) {
+      return (null, null);
+    }
+    return (lat, lon);
+  } catch (_) {
+    return (null, null);
+  }
+}
+
+Future<String?> _readThumbnail(AssetEntity asset) async {
+  try {
+    final bytes = await asset.thumbnailDataWithSize(
+      _thumbnailSize,
+      quality: _thumbnailQuality,
+    );
+    if (bytes == null || bytes.isEmpty || bytes.length > _maxThumbnailBytes) {
+      return null;
+    }
+    return base64Encode(bytes);
+  } catch (_) {
+    return null;
   }
 }
