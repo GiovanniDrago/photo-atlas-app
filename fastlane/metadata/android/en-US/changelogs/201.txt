@@ -1,0 +1,4 @@
+Local scans now read GPS from the photos (the app asks for the photo location permission) and
+upload a small preview per picture, so thumbnails, timeline and the planet map show your local
+library instead of gray placeholders. The "Download original" button is hidden when the file is
+already on your device; kDrive downloads are unchanged.
