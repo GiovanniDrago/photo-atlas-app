@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../models/api_config.dart';
 import '../models/auth_user.dart';
 import '../models/json_value.dart';
 import '../models/media_cluster.dart';
@@ -165,36 +166,9 @@ class ApiClient {
   String thumbnailUrl(String mediaId) =>
       '$baseUrl/api/media/$mediaId/thumbnail';
 
-  Future<RegisterResult> register({
-    required String email,
-    required String password,
-    String? username,
-    String? displayName,
-  }) async {
-    final body = await _sendJson(
-      'POST',
-      _uri('/api/auth/register'),
-      body: {
-        'email': email,
-        'password': password,
-        if (username != null && username.isNotEmpty) 'username': username,
-        if (displayName != null && displayName.isNotEmpty)
-          'display_name': displayName,
-      },
-    );
-    return RegisterResult.fromJson(body);
-  }
-
-  Future<AuthResult> login({
-    required String identifier,
-    required String password,
-  }) async {
-    final body = await _sendJson(
-      'POST',
-      _uri('/api/auth/login'),
-      body: {'identifier': identifier, 'password': password},
-    );
-    return AuthResult.fromJson(body);
+  Future<ApiConfig> apiConfig() async {
+    final body = await _getJson(_uri('/api/config'));
+    return ApiConfig.fromJson(body);
   }
 
   Future<AuthUser> me() async {
@@ -202,76 +176,26 @@ class ApiClient {
     return AuthUser.fromJson(body['user'] as Map<String, dynamic>);
   }
 
-  Future<void> logout() async {
-    await _sendJson('POST', _uri('/api/auth/logout'));
-  }
-
-  Future<void> changePassword({
-    required String currentPassword,
-    required String newPassword,
-  }) async {
-    await _sendJson(
-      'POST',
-      _uri('/api/auth/change-password'),
-      body: {'current_password': currentPassword, 'new_password': newPassword},
-    );
-  }
-
-  Future<MfaSetup> mfaSetup() async {
-    final body = await _sendJson('POST', _uri('/api/auth/mfa/setup'));
-    return MfaSetup.fromJson(body);
-  }
-
-  Future<({AuthUser user, List<String> recoveryCodes})> mfaEnable(
-    String code,
-  ) async {
-    final body = await _sendJson(
-      'POST',
-      _uri('/api/auth/mfa/enable'),
-      body: {'code': code},
-    );
-    return (
-      user: AuthUser.fromJson(body['user'] as Map<String, dynamic>),
-      recoveryCodes:
-          ((body['recovery_codes'] ?? const <dynamic>[]) as List<dynamic>)
-              .map((value) => '$value')
-              .toList(),
-    );
-  }
-
-  Future<void> mfaDisable(String password) async {
-    await _sendJson(
-      'POST',
-      _uri('/api/auth/mfa/disable'),
-      body: {'password': password},
-    );
-  }
-
-  Future<AuthUser> mfaVerify(String code) async {
-    final body = await _sendJson(
-      'POST',
-      _uri('/api/auth/mfa/verify'),
-      body: {'code': code},
-    );
+  Future<AuthUser> mfaSync() async {
+    final body = await _sendJson('POST', _uri('/api/auth/mfa/sync'));
     return AuthUser.fromJson(body['user'] as Map<String, dynamic>);
   }
 
-  Future<List<String>> regenerateMfaRecoveryCodes(String password) async {
-    final body = await _sendJson(
-      'POST',
-      _uri('/api/auth/mfa/recovery-codes'),
-      body: {'password': password},
+  Future<({int password, int mfa})> recoveryCodeCounts() async {
+    final body = await _getJson(_uri('/api/auth/recovery-codes'));
+    return (
+      password: asInt(body['password_remaining']) ?? 0,
+      mfa: asInt(body['mfa_remaining']) ?? 0,
     );
-    return ((body['recovery_codes'] ?? const <dynamic>[]) as List<dynamic>)
-        .map((value) => '$value')
-        .toList();
   }
 
-  Future<List<String>> regeneratePasswordRecoveryCodes(String password) async {
+  Future<List<String>> regenerateRecoveryCodes({
+    String kind = 'password',
+  }) async {
     final body = await _sendJson(
       'POST',
       _uri('/api/auth/recovery-codes'),
-      body: {'password': password},
+      body: {'kind': kind},
     );
     return ((body['recovery_codes'] ?? const <dynamic>[]) as List<dynamic>)
         .map((value) => '$value')
@@ -294,19 +218,15 @@ class ApiClient {
     );
   }
 
-  Future<List<AuthSession>> sessions() async {
-    final body = await _getJson(_uri('/api/auth/sessions'));
-    return ((body['sessions'] ?? const <dynamic>[]) as List<dynamic>)
-        .map((value) => AuthSession.fromJson(value as Map<String, dynamic>))
-        .toList();
-  }
-
-  Future<void> revokeSession(String id) async {
-    await _sendJson('DELETE', _uri('/api/auth/sessions/$id'));
-  }
-
-  Future<void> revokeOtherSessions() async {
-    await _sendJson('DELETE', _uri('/api/auth/sessions'));
+  Future<void> resetMfaWithCode({
+    required String identifier,
+    required String recoveryCode,
+  }) async {
+    await _sendJson(
+      'POST',
+      _uri('/api/auth/mfa/recovery'),
+      body: {'identifier': identifier, 'recovery_code': recoveryCode},
+    );
   }
 
   Future<bool> health({Duration timeout = const Duration(seconds: 25)}) async {

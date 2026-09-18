@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import '../../l10n/app_localizations.dart';
-import '../../models/auth_user.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/library_providers.dart';
 import '../../services/api_client.dart';
@@ -25,50 +24,41 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<String?> _promptPassword(String title, String label) async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          autofocus: true,
-          decoration: InputDecoration(labelText: label),
-          onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(AppLocalizations.of(dialogContext)!.close),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
-            child: Text(AppLocalizations.of(dialogContext)!.continueLabel),
-          ),
-        ],
-      ),
-    );
-    return result;
-  }
-
   Future<void> _enableMfa() async {
     final l10n = AppLocalizations.of(context)!;
     setState(() => _busy = true);
     try {
-      final setup = await ref.read(apiClientProvider).mfaSetup();
+      final client = sb.Supabase.instance.client;
+      final response = await client.auth.mfa.enroll(
+        factorType: sb.FactorType.totp,
+        friendlyName: 'Photo Atlas',
+      );
+      final secret = response.totp?.secret;
+      if (secret == null || secret.isEmpty) {
+        throw const ApiException(500, 'Supabase did not return a TOTP secret');
+      }
       if (!mounted) return;
-      final code = await _showQrDialog(setup);
-      if (code == null || code.isEmpty) return;
-      final result = await ref.read(apiClientProvider).mfaEnable(code);
-      await ref.read(authProvider.notifier).updateMfaUser(result.user);
+      final code = await _showQrDialog(response.id, secret);
+      if (code == null || code.isEmpty) {
+        await client.auth.mfa.unenroll(response.id);
+        return;
+      }
+      await client.auth.mfa.challengeAndVerify(
+        factorId: response.id,
+        code: code,
+      );
+      await ref.read(authProvider.notifier).syncMfa();
+      final codes = await ref
+          .read(apiClientProvider)
+          .regenerateRecoveryCodes(kind: 'mfa');
       if (!mounted) return;
       await showRecoveryCodesDialog(
         context,
         title: l10n.authRecoveryCodesTitle,
-        mfaCodes: result.recoveryCodes,
+        mfaCodes: codes,
       );
+    } on sb.AuthException catch (error) {
+      if (mounted) _snack(error.message);
     } on ApiException catch (error) {
       if (mounted) _snack(error.message);
     } catch (error) {
@@ -78,8 +68,12 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
     }
   }
 
-  Future<String?> _showQrDialog(MfaSetup setup) {
+  Future<String?> _showQrDialog(String factorId, String secret) {
     final l10n = AppLocalizations.of(context)!;
+    final account = ref.read(authProvider).user?.email ?? 'user';
+    final uri =
+        'otpauth://totp/${Uri.encodeComponent('Photo Atlas:$account')}'
+        '?secret=$secret&issuer=Photo%20Atlas&algorithm=SHA1&digits=6&period=30';
     final controller = TextEditingController();
     return showDialog<String>(
       context: context,
@@ -97,11 +91,11 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
               Container(
                 color: Colors.white,
                 padding: const EdgeInsets.all(8),
-                child: QrImageView(data: setup.otpauthUri, size: 200),
+                child: QrImageView(data: uri, size: 200),
               ),
               const SizedBox(height: 12),
               SelectableText(
-                setup.secret,
+                secret,
                 style: const TextStyle(fontFamily: 'monospace'),
               ),
               const SizedBox(height: 16),
@@ -134,16 +128,20 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
 
   Future<void> _disableMfa() async {
     final l10n = AppLocalizations.of(context)!;
-    final password = await _promptPassword(
-      l10n.securityDisableMfa,
-      l10n.authPassword,
-    );
-    if (password == null || password.isEmpty) return;
     setState(() => _busy = true);
     try {
-      await ref.read(apiClientProvider).mfaDisable(password);
-      await ref.read(authProvider.notifier).refreshUser();
+      final client = sb.Supabase.instance.client;
+      final factors = await client.auth.mfa.listFactors();
+      final verified = factors.totp
+          .where((factor) => factor.status == sb.FactorStatus.verified)
+          .toList();
+      for (final factor in verified) {
+        await client.auth.mfa.unenroll(factor.id);
+      }
+      await ref.read(authProvider.notifier).syncMfa();
       if (mounted) _snack(l10n.securityMfaDisabledMessage);
+    } on sb.AuthException catch (error) {
+      if (mounted) _snack(error.message);
     } on ApiException catch (error) {
       if (mounted) _snack(error.message);
     } catch (error) {
@@ -155,20 +153,13 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
 
   Future<void> _regenerateRecoveryCodes() async {
     final l10n = AppLocalizations.of(context)!;
-    final user = ref.read(authProvider).user;
-    final password = await _promptPassword(
-      l10n.securityRegenerateRecovery,
-      l10n.authPassword,
-    );
-    if (password == null || password.isEmpty) return;
+    final mfaEnabled = ref.read(authProvider).user?.mfaEnabled ?? false;
     setState(() => _busy = true);
     try {
       final client = ref.read(apiClientProvider);
-      final passwordCodes = await client.regeneratePasswordRecoveryCodes(
-        password,
-      );
-      final mfaCodes = (user?.mfaEnabled ?? false)
-          ? await client.regenerateMfaRecoveryCodes(password)
+      final passwordCodes = await client.regenerateRecoveryCodes();
+      final mfaCodes = mfaEnabled
+          ? await client.regenerateRecoveryCodes(kind: 'mfa')
           : <String>[];
       if (!mounted) return;
       await showRecoveryCodesDialog(
@@ -186,11 +177,27 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
     }
   }
 
-  Future<void> _showSessions() async {
-    await showDialog<void>(
+  Future<void> _signOutEverywhere() async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => const _SessionsDialog(),
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.securitySignOutEverywhere),
+        content: Text(l10n.securitySignOutEverywhereBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.kdriveCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.securitySignOutEverywhere),
+          ),
+        ],
+      ),
     );
+    if (confirmed != true) return;
+    await ref.read(authProvider.notifier).signOutEverywhere();
   }
 
   @override
@@ -232,124 +239,13 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
           ),
           const Divider(height: 1),
           ListTile(
-            leading: const Icon(Icons.devices_outlined),
-            title: Text(l10n.securitySessions),
+            leading: const Icon(Icons.logout),
+            title: Text(l10n.securitySignOutEverywhere),
             trailing: const Icon(Icons.chevron_right),
-            onTap: _busy ? null : _showSessions,
+            onTap: _busy ? null : _signOutEverywhere,
           ),
         ],
       ),
-    );
-  }
-}
-
-class _SessionsDialog extends ConsumerStatefulWidget {
-  const _SessionsDialog();
-
-  @override
-  ConsumerState<_SessionsDialog> createState() => _SessionsDialogState();
-}
-
-class _SessionsDialogState extends ConsumerState<_SessionsDialog> {
-  List<AuthSession> _sessions = const [];
-  bool _loading = true;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    try {
-      final sessions = await ref.read(apiClientProvider).sessions();
-      if (mounted) {
-        setState(() {
-          _sessions = sessions;
-          _error = null;
-        });
-      }
-    } catch (error) {
-      if (mounted) setState(() => _error = '$error');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
-    return AlertDialog(
-      title: Text(l10n.securitySessions),
-      content: SizedBox(
-        width: 420,
-        child: _loading
-            ? const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            : _error != null
-            ? Text(_error!)
-            : SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final session in _sessions)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(
-                          session.current
-                              ? Icons.phone_android
-                              : Icons.devices_other,
-                        ),
-                        title: Text(
-                          session.current
-                              ? l10n.securitySessionCurrent
-                              : (session.userAgent ?? session.ip ?? '-'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text(
-                          dateFormat.format(
-                            session.lastUsedAt ??
-                                session.createdAt ??
-                                DateTime.now(),
-                          ),
-                        ),
-                        trailing: session.current
-                            ? null
-                            : TextButton(
-                                onPressed: () async {
-                                  await ref
-                                      .read(apiClientProvider)
-                                      .revokeSession(session.id);
-                                  await _load();
-                                },
-                                child: Text(l10n.securityRevoke),
-                              ),
-                      ),
-                  ],
-                ),
-              ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () async {
-            await ref.read(apiClientProvider).revokeOtherSessions();
-            await _load();
-          },
-          child: Text(l10n.securityRevokeOthers),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.close),
-        ),
-      ],
     );
   }
 }

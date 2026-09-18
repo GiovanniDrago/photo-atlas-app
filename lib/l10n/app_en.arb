@@ -646,5 +646,19 @@
   "securitySessionCurrent": "This device",
   "securityRevoke": "Revoke",
   "securityRevokeOthers": "Sign out other devices",
-  "continueLabel": "Continue"
+  "continueLabel": "Continue",
+  "bootstrapErrorTitle": "Cannot reach the API",
+  "bootstrapErrorBody": "The app needs the Supabase configuration from the API (/api/config). Check the server address and try again.",
+  "authCheckEmailTitle": "Check your email",
+  "authCheckEmailBody": "We sent a confirmation link to {email}. Open it, then come back and sign in.",
+  "@authCheckEmailBody": {"placeholders": {"email": {"type": "String"}}},
+  "authResendEmail": "Resend the email",
+  "authEmailResent": "Confirmation email sent again",
+  "authBackToLogin": "Back to sign in",
+  "authMfaLostDevice": "Lost your device?",
+  "authMfaLostDeviceBody": "Enter your email and one MFA recovery code to remove the authenticator from the account.",
+  "authMfaResetConfirm": "Remove 2FA",
+  "authMfaResetDone": "Two-factor authentication removed. Sign in again.",
+  "securitySignOutEverywhere": "Sign out everywhere",
+  "securitySignOutEverywhereBody": "This signs out every device, including this one."
 }

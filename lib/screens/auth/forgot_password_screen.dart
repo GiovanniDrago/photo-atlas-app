@@ -82,9 +82,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: _identifierController,
-                      decoration: InputDecoration(
-                        labelText: l10n.authIdentifier,
-                      ),
+                      decoration: InputDecoration(labelText: l10n.authEmail),
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: 12),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../services/api_client.dart';
 
 class MfaScreen extends ConsumerStatefulWidget {
@@ -36,6 +37,75 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
     });
     try {
       await ref.read(authProvider.notifier).verifyMfa(code);
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } catch (error) {
+      if (mounted) setState(() => _error = '$error');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _resetWithRecoveryCode() async {
+    final l10n = AppLocalizations.of(context)!;
+    final emailController = TextEditingController(
+      text: ref.read(authProvider).user?.email ?? '',
+    );
+    final codeController = TextEditingController();
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.authMfaLostDevice),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                l10n.authMfaLostDeviceBody,
+                style: Theme.of(dialogContext).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(labelText: l10n.authEmail),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: codeController,
+                decoration: InputDecoration(labelText: l10n.forgotPasswordCode),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.kdriveCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.authMfaResetConfirm),
+          ),
+        ],
+      ),
+    );
+    if (submitted != true) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await ApiClient(ref.read(apiBaseUrlProvider)).resetMfaWithCode(
+        identifier: emailController.text.trim(),
+        recoveryCode: codeController.text.trim(),
+      );
+      if (!mounted) return;
+      await ref.read(authProvider.notifier).cancelMfa();
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l10n.authMfaResetDone)));
+      }
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (error) {
@@ -102,6 +172,10 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : Text(l10n.authMfaVerify),
+                    ),
+                    TextButton(
+                      onPressed: _loading ? null : _resetWithRecoveryCode,
+                      child: Text(l10n.authMfaLostDevice),
                     ),
                     TextButton(
                       onPressed: _loading

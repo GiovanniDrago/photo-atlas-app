@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../../providers/library_providers.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/api_client.dart';
 
 class ChangePasswordDialog extends ConsumerStatefulWidget {
@@ -53,7 +53,7 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
     });
     try {
       await ref
-          .read(apiClientProvider)
+          .read(authProvider.notifier)
           .changePassword(currentPassword: current, newPassword: next);
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (error) {

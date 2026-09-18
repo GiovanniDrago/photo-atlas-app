@@ -174,5 +174,18 @@
   "securitySessionCurrent": "Questo dispositivo",
   "securityRevoke": "Revoca",
   "securityRevokeOthers": "Disconnetti gli altri dispositivi",
-  "continueLabel": "Continua"
+  "continueLabel": "Continua",
+  "bootstrapErrorTitle": "Impossibile raggiungere l'API",
+  "bootstrapErrorBody": "L'app ha bisogno della configurazione Supabase dall'API (/api/config). Controlla l'indirizzo del server e riprova.",
+  "authCheckEmailTitle": "Controlla la tua email",
+  "authCheckEmailBody": "Abbiamo inviato un link di conferma a {email}. Aprilo, poi torna qui e accedi.",
+  "authResendEmail": "Invia di nuovo l'email",
+  "authEmailResent": "Email di conferma inviata di nuovo",
+  "authBackToLogin": "Torna all'accesso",
+  "authMfaLostDevice": "Dispositivo smarrito?",
+  "authMfaLostDeviceBody": "Inserisci la tua email e un codice di recupero MFA per rimuovere l'autenticatore dall'account.",
+  "authMfaResetConfirm": "Rimuovi la 2FA",
+  "authMfaResetDone": "Autenticazione a due fattori rimossa. Accedi di nuovo.",
+  "securitySignOutEverywhere": "Disconnetti tutti i dispositivi",
+  "securitySignOutEverywhereBody": "Questo disconnette tutti i dispositivi, incluso questo."
 }

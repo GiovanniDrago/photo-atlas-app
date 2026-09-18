@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/bootstrap_providers.dart';
 import '../../providers/settings_provider.dart';
 import '../../services/api_client.dart';
+import 'check_email_screen.dart';
 import 'forgot_password_screen.dart';
-import 'recovery_codes_dialog.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -16,7 +17,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final TextEditingController _identifierController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _displayNameController = TextEditingController();
   late final TextEditingController _serverController;
@@ -35,7 +36,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
-    _identifierController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _displayNameController.dispose();
     _serverController.dispose();
@@ -44,9 +45,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submit() async {
     final l10n = AppLocalizations.of(context)!;
-    final identifier = _identifierController.text.trim();
+    final email = _emailController.text.trim();
     final password = _passwordController.text;
-    if (identifier.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
       setState(() => _error = l10n.authFieldsRequired);
       return;
     }
@@ -57,24 +58,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final notifier = ref.read(authProvider.notifier);
       if (_registerMode) {
-        final result = await notifier.register(
-          email: identifier,
+        final signedIn = await notifier.register(
+          email: email,
           password: password,
           displayName: _displayNameController.text.trim(),
         );
-        if (!mounted) return;
-        if (result.passwordRecoveryCodes.isNotEmpty ||
-            result.mfaRecoveryCodes.isNotEmpty) {
-          await showRecoveryCodesDialog(
-            context,
-            title: l10n.authRecoveryCodesTitle,
-            passwordCodes: result.passwordRecoveryCodes,
-            mfaCodes: result.mfaRecoveryCodes,
+        if (!signedIn && mounted) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => CheckEmailScreen(email: email)),
           );
         }
-        await notifier.completeRegistration(result);
       } else {
-        await notifier.login(identifier: identifier, password: password);
+        await notifier.login(email: email, password: password);
       }
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
@@ -101,6 +96,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     await ref
         .read(apiBaseUrlProvider.notifier)
         .setBaseUrl(_serverController.text);
+    ref.invalidate(apiConfigProvider);
+    ref.invalidate(supabaseReadyProvider);
     if (mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l10n.saved)));
@@ -117,6 +114,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       if (found != null) {
         _serverController.text = found;
+        ref.invalidate(apiConfigProvider);
+        ref.invalidate(supabaseReadyProvider);
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(l10n.serverFound(found))));
       } else {
@@ -160,15 +159,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 20),
                     TextField(
-                      controller: _identifierController,
-                      decoration: InputDecoration(
-                        labelText: _registerMode
-                            ? l10n.authEmail
-                            : l10n.authIdentifier,
-                      ),
-                      keyboardType: _registerMode
-                          ? TextInputType.emailAddress
-                          : TextInputType.text,
+                      controller: _emailController,
+                      decoration: InputDecoration(labelText: l10n.authEmail),
+                      keyboardType: TextInputType.emailAddress,
                       autocorrect: false,
                       textInputAction: TextInputAction.next,
                     ),
