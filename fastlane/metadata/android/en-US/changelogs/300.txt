@@ -1,0 +1,4 @@
+Accounts are now email + password with optional two-factor authentication (TOTP authenticator
+apps). Signup shows one-time recovery codes used to reset the password without email; sessions can
+be listed and revoked from Settings, the session token lives in the device secure storage, and
+sign-in is protected by rate limiting and account lockout.
