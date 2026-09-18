@@ -167,7 +167,7 @@ class AuthNotifier extends Notifier<AuthState> {
     String? displayName,
   }) async {
     final client = sb.Supabase.instance.client;
-    final config = ref.read(supabaseReadyProvider).valueOrNull;
+    final config = ref.read(supabaseReadyProvider).value;
     try {
       final response = await client.auth.signUp(
         email: email,

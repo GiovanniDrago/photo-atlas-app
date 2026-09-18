@@ -35,7 +35,7 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
       );
       final secret = response.totp?.secret;
       if (secret == null || secret.isEmpty) {
-        throw const ApiException(500, 'Supabase did not return a TOTP secret');
+        throw ApiException(500, 'Supabase did not return a TOTP secret');
       }
       if (!mounted) return;
       final code = await _showQrDialog(response.id, secret);
