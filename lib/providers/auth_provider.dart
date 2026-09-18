@@ -153,7 +153,7 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> verifyMfa(String code) async {
     final token = state.token;
     if (token == null || token.isEmpty) {
-      throw const ApiException(401, 'unauthorized');
+      throw ApiException(401, 'unauthorized');
     }
     final user = await ApiClient(
       ref.read(apiBaseUrlProvider),
@@ -184,7 +184,7 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<AuthUser> refreshUser() async {
     final token = state.token;
     if (token == null || token.isEmpty) {
-      throw const ApiException(401, 'unauthorized');
+      throw ApiException(401, 'unauthorized');
     }
     final user = await ApiClient(
       ref.read(apiBaseUrlProvider),
