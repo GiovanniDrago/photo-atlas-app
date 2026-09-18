@@ -1,0 +1,4 @@
+Authentication now uses Supabase Auth: sign up with email + password and confirm the email from
+the link, enable two-factor authentication with any TOTP app, and use one-time recovery codes if
+you lose the password or the authenticator. Sessions live in the device secure storage and
+"Sign out everywhere" revokes them on every device.

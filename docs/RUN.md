@@ -22,24 +22,22 @@ login screen (with a **Detect** button), and later in Settings.
 
 ## Account and security
 
-- Sign up with **email + password** (the display name and the username handle are optional; the
-  handle defaults to the email local part). After signup the app shows the one-time **recovery
-  codes** — save them, they are never shown again
+- The app signs in through **Supabase Auth**; the API only verifies the access token. The Supabase
+  URL and publishable key come from `GET /api/config` on the configured server, so nothing is baked
+  into the build
+- Sign up with **email + password**: Supabase sends a confirmation email (link handled by the
+  Netlify page configured in the Supabase dashboard); until it is confirmed the app shows "check
+  your email". After the first sign-in the app shows the one-time **recovery codes**
 - **Settings → Security**:
-  - *Two-factor authentication*: enable with any TOTP app (the app shows the QR code), confirm
-    with a 6-digit code; disable with the password
+  - *Two-factor authentication*: enable with any TOTP app (QR code), disable from the same screen
   - *Regenerate recovery codes*: new password-reset codes (and MFA codes when 2FA is on)
-  - *Active sessions*: list devices and revoke them (or sign out all other devices)
-- **Settings → Account**: change password (revokes the other sessions)
-- **Forgot password**: sign-in screen → *Reset a forgotten password* → email/username + one
-  recovery code + new password. Each code works once. Break-glass on the server:
-  `npm run reset-password -- <username>` (prints a new password, revokes all sessions)
-- The session token is kept in the platform secure storage (Android Keystore, WebCrypto/local
-  storage fallback); ten failed logins lock the account for 15 minutes and `/api/auth/*` is rate
-  limited
-
-kDrive folders are added one by one from Settings → kDrive → **Add folder** (folder picker with an
-include-subfolders switch); the token is stored server-side, so it does not need to be re-entered.
+  - *Sign out everywhere*: revokes the session on every device
+- **Forgot password**: sign-in screen → *Reset a forgotten password* → email + one recovery code +
+  new password. Break-glass on the server: `npm run reset-password -- <email>` (API repo)
+- **Lost the 2FA device**: on the MFA screen → *Lost your device?* → email + one MFA recovery code
+  removes the authenticator; an admin can also delete the factor from the Supabase dashboard
+- The Supabase session (access + refresh token) is stored in the platform secure storage
+  (Android Keystore; web falls back to browser storage when WebCrypto is unavailable)
 
 ## Local folders
 
