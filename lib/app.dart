@@ -6,6 +6,7 @@ import 'providers/auth_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/mfa_screen.dart';
 import 'screens/shell.dart';
 import 'theme/app_theme.dart';
 
@@ -29,6 +30,7 @@ class PhotoAtlasApp extends ConsumerWidget {
       home: switch (auth.status) {
         AuthStatus.unknown => const _SplashScreen(),
         AuthStatus.loggedOut => const LoginScreen(),
+        AuthStatus.mfaRequired => const MfaScreen(),
         AuthStatus.loggedIn => const AppShell(),
       },
     );

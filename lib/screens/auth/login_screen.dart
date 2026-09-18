@@ -5,6 +5,8 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../services/api_client.dart';
+import 'forgot_password_screen.dart';
+import 'recovery_codes_dialog.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -14,8 +16,9 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _identifierController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _displayNameController = TextEditingController();
   late final TextEditingController _serverController;
   bool _registerMode = false;
   bool _loading = false;
@@ -32,17 +35,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
+    _displayNameController.dispose();
     _serverController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final l10n = AppLocalizations.of(context)!;
-    final username = _usernameController.text.trim();
+    final identifier = _identifierController.text.trim();
     final password = _passwordController.text;
-    if (username.isEmpty || password.isEmpty) {
+    if (identifier.isEmpty || password.isEmpty) {
       setState(() => _error = l10n.authFieldsRequired);
       return;
     }
@@ -53,9 +57,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final notifier = ref.read(authProvider.notifier);
       if (_registerMode) {
-        await notifier.register(username: username, password: password);
+        final result = await notifier.register(
+          email: identifier,
+          password: password,
+          displayName: _displayNameController.text.trim(),
+        );
+        if (!mounted) return;
+        if (result.passwordRecoveryCodes.isNotEmpty ||
+            result.mfaRecoveryCodes.isNotEmpty) {
+          await showRecoveryCodesDialog(
+            context,
+            title: l10n.authRecoveryCodesTitle,
+            passwordCodes: result.passwordRecoveryCodes,
+            mfaCodes: result.mfaRecoveryCodes,
+          );
+        }
+        await notifier.completeRegistration(result);
       } else {
-        await notifier.login(username: username, password: password);
+        await notifier.login(identifier: identifier, password: password);
       }
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
@@ -66,21 +85,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  Future<void> _showForgotPassword() async {
+  Future<void> _openForgotPassword() async {
     final l10n = AppLocalizations.of(context)!;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.forgotPasswordTitle),
-        content: SingleChildScrollView(child: Text(l10n.forgotPasswordBody)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.close),
-          ),
-        ],
-      ),
+    final reset = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
     );
+    if (reset == true && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.forgotPasswordSuccess)));
+    }
   }
 
   Future<void> _saveServer() async {
@@ -147,14 +160,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 20),
                     TextField(
-                      controller: _usernameController,
-                      decoration: InputDecoration(labelText: l10n.authUsername),
+                      controller: _identifierController,
+                      decoration: InputDecoration(
+                        labelText: _registerMode
+                            ? l10n.authEmail
+                            : l10n.authIdentifier,
+                      ),
+                      keyboardType: _registerMode
+                          ? TextInputType.emailAddress
+                          : TextInputType.text,
+                      autocorrect: false,
                       textInputAction: TextInputAction.next,
                     ),
+                    if (_registerMode) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _displayNameController,
+                        decoration: InputDecoration(
+                          labelText: l10n.authDisplayName,
+                        ),
+                        textInputAction: TextInputAction.next,
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     TextField(
                       controller: _passwordController,
-                      decoration: InputDecoration(labelText: l10n.authPassword),
+                      decoration: InputDecoration(
+                        labelText: l10n.authPassword,
+                        helperText: _registerMode
+                            ? l10n.authPasswordMinHint
+                            : null,
+                      ),
                       obscureText: true,
                       onSubmitted: (_) => _submit(),
                     ),
@@ -190,10 +226,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             : l10n.authSwitchToRegister,
                       ),
                     ),
-                    TextButton(
-                      onPressed: _loading ? null : _showForgotPassword,
-                      child: Text(l10n.forgotPassword),
-                    ),
+                    if (!_registerMode)
+                      TextButton(
+                        onPressed: _loading ? null : _openForgotPassword,
+                        child: Text(l10n.forgotPassword),
+                      ),
                     const Divider(height: 24),
                     ExpansionTile(
                       tilePadding: EdgeInsets.zero,

@@ -19,6 +19,7 @@ import '../../services/scan_service.dart';
 import '../../theme/app_theme.dart';
 import 'change_password_dialog.dart';
 import 'local_folder_picker.dart';
+import 'security_section.dart';
 import 'kdrive_folder_picker.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -720,9 +721,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.person_outline),
-              title: Text(user?.username ?? ''),
+              title: Text(user?.label ?? ''),
               subtitle: user != null
-                  ? Text(l10n.authLoggedInAs(user.username))
+                  ? Text(user.email ?? l10n.authLoggedInAs(user.username))
                   : null,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -746,6 +747,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 20),
+          Text(
+            l10n.securitySection,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          const SecuritySection(),
           const SizedBox(height: 20),
           Text(l10n.apiSection, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),

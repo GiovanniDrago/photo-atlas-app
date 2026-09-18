@@ -165,26 +165,34 @@ class ApiClient {
   String thumbnailUrl(String mediaId) =>
       '$baseUrl/api/media/$mediaId/thumbnail';
 
-  Future<AuthResult> register({
-    required String username,
+  Future<RegisterResult> register({
+    required String email,
     required String password,
+    String? username,
+    String? displayName,
   }) async {
     final body = await _sendJson(
       'POST',
       _uri('/api/auth/register'),
-      body: {'username': username, 'password': password},
+      body: {
+        'email': email,
+        'password': password,
+        if (username != null && username.isNotEmpty) 'username': username,
+        if (displayName != null && displayName.isNotEmpty)
+          'display_name': displayName,
+      },
     );
-    return AuthResult.fromJson(body);
+    return RegisterResult.fromJson(body);
   }
 
   Future<AuthResult> login({
-    required String username,
+    required String identifier,
     required String password,
   }) async {
     final body = await _sendJson(
       'POST',
       _uri('/api/auth/login'),
-      body: {'username': username, 'password': password},
+      body: {'identifier': identifier, 'password': password},
     );
     return AuthResult.fromJson(body);
   }
@@ -207,6 +215,98 @@ class ApiClient {
       _uri('/api/auth/change-password'),
       body: {'current_password': currentPassword, 'new_password': newPassword},
     );
+  }
+
+  Future<MfaSetup> mfaSetup() async {
+    final body = await _sendJson('POST', _uri('/api/auth/mfa/setup'));
+    return MfaSetup.fromJson(body);
+  }
+
+  Future<({AuthUser user, List<String> recoveryCodes})> mfaEnable(
+    String code,
+  ) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/auth/mfa/enable'),
+      body: {'code': code},
+    );
+    return (
+      user: AuthUser.fromJson(body['user'] as Map<String, dynamic>),
+      recoveryCodes:
+          ((body['recovery_codes'] ?? const <dynamic>[]) as List<dynamic>)
+              .map((value) => '$value')
+              .toList(),
+    );
+  }
+
+  Future<void> mfaDisable(String password) async {
+    await _sendJson(
+      'POST',
+      _uri('/api/auth/mfa/disable'),
+      body: {'password': password},
+    );
+  }
+
+  Future<AuthUser> mfaVerify(String code) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/auth/mfa/verify'),
+      body: {'code': code},
+    );
+    return AuthUser.fromJson(body['user'] as Map<String, dynamic>);
+  }
+
+  Future<List<String>> regenerateMfaRecoveryCodes(String password) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/auth/mfa/recovery-codes'),
+      body: {'password': password},
+    );
+    return ((body['recovery_codes'] ?? const <dynamic>[]) as List<dynamic>)
+        .map((value) => '$value')
+        .toList();
+  }
+
+  Future<List<String>> regeneratePasswordRecoveryCodes(String password) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/auth/recovery-codes'),
+      body: {'password': password},
+    );
+    return ((body['recovery_codes'] ?? const <dynamic>[]) as List<dynamic>)
+        .map((value) => '$value')
+        .toList();
+  }
+
+  Future<void> resetPasswordWithCode({
+    required String identifier,
+    required String recoveryCode,
+    required String newPassword,
+  }) async {
+    await _sendJson(
+      'POST',
+      _uri('/api/auth/password/reset-with-code'),
+      body: {
+        'identifier': identifier,
+        'recovery_code': recoveryCode,
+        'new_password': newPassword,
+      },
+    );
+  }
+
+  Future<List<AuthSession>> sessions() async {
+    final body = await _getJson(_uri('/api/auth/sessions'));
+    return ((body['sessions'] ?? const <dynamic>[]) as List<dynamic>)
+        .map((value) => AuthSession.fromJson(value as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> revokeSession(String id) async {
+    await _sendJson('DELETE', _uri('/api/auth/sessions/$id'));
+  }
+
+  Future<void> revokeOtherSessions() async {
+    await _sendJson('DELETE', _uri('/api/auth/sessions'));
   }
 
   Future<bool> health({Duration timeout = const Duration(seconds: 25)}) async {

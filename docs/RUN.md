@@ -20,10 +20,23 @@ login screen (with a **Detect** button), and later in Settings.
 - Thumbnails are served through signed URLs and cached: the server stores kDrive previews and
   phone-uploaded previews on disk and the app/browser keeps its own cache
 
-## Account
+## Account and security
 
+- Sign up with **email + password** (the display name and the username handle are optional; the
+  handle defaults to the email local part). After signup the app shows the one-time **recovery
+  codes** — save them, they are never shown again
+- **Settings → Security**:
+  - *Two-factor authentication*: enable with any TOTP app (the app shows the QR code), confirm
+    with a 6-digit code; disable with the password
+  - *Regenerate recovery codes*: new password-reset codes (and MFA codes when 2FA is on)
+  - *Active sessions*: list devices and revoke them (or sign out all other devices)
 - **Settings → Account**: change password (revokes the other sessions)
-- Lost password (dev setup, no email): `npm run reset-password -- <username>` on the server
+- **Forgot password**: sign-in screen → *Reset a forgotten password* → email/username + one
+  recovery code + new password. Each code works once. Break-glass on the server:
+  `npm run reset-password -- <username>` (prints a new password, revokes all sessions)
+- The session token is kept in the platform secure storage (Android Keystore, WebCrypto/local
+  storage fallback); ten failed logins lock the account for 15 minutes and `/api/auth/*` is rate
+  limited
 
 kDrive folders are added one by one from Settings → kDrive → **Add folder** (folder picker with an
 include-subfolders switch); the token is stored server-side, so it does not need to be re-entered.
