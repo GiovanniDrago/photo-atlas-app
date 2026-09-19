@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../../services/scan_models.dart';
 import '../../services/scan_service.dart';
 
 class LocalFolderSelection {

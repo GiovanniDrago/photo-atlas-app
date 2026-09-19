@@ -83,7 +83,7 @@ class AuthNotifier extends Notifier<AuthState> {
     }
     final client = sb.Supabase.instance.client;
     try {
-      final level = await client.auth.mfa.getAuthenticatorAssuranceLevel();
+      final level = client.auth.mfa.getAuthenticatorAssuranceLevel();
       if (level.currentLevel == sb.AuthenticatorAssuranceLevels.aal1 &&
           level.nextLevel == sb.AuthenticatorAssuranceLevels.aal2) {
         state = AuthState(

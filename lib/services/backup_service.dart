@@ -1,6 +1,3 @@
-import 'package:photo_manager/photo_manager.dart';
-
-import '../models/backup.dart';
 import '../models/source.dart';
 import 'api_client.dart';
 import 'device_service.dart';

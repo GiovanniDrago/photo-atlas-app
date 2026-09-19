@@ -534,7 +534,7 @@ class ApiClient {
         'status': status,
         'files_seen': filesSeen,
         'files_indexed': filesIndexed,
-        if (errors != null) 'errors': errors,
+        'errors': ?errors,
       },
     );
   }
@@ -576,7 +576,7 @@ class ApiClient {
       body: {
         'folder_id': folderId,
         'include_subfolders': includeSubfolders,
-        if (label != null) 'label': label,
+        'label': ?label,
       },
     );
     return body['scan_run_id'] as String;
@@ -590,10 +590,7 @@ class ApiClient {
     await _sendJson(
       'PATCH',
       _uri('/api/sources/$id'),
-      body: {
-        if (label != null) 'label': label,
-        if (includeSubfolders != null) 'include_subfolders': includeSubfolders,
-      },
+      body: {'label': ?label, 'include_subfolders': ?includeSubfolders},
     );
   }
 

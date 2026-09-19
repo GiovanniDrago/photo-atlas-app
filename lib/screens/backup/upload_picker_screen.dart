@@ -52,10 +52,11 @@ class _UploadPickerScreenState extends ConsumerState<UploadPickerScreen> {
         _error = null;
       });
     } on ScanPermissionException {
-      if (mounted)
+      if (mounted) {
         setState(
           () => _error = AppLocalizations.of(context)!.localPermissionDenied,
         );
+      }
     } catch (error) {
       if (mounted) setState(() => _error = '$error');
     } finally {
