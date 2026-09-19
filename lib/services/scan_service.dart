@@ -1,7 +1,12 @@
+import 'package:photo_manager/photo_manager.dart';
+
 import 'scan_models.dart';
 
 export 'scan_models.dart'
     show ScannedMedia, ScanResult, ScanFolder, ScanPermissionException;
+
+export 'package:photo_manager/photo_manager.dart'
+    show AssetEntity, AssetType, ThumbnailFormat, ThumbnailSize;
 
 import 'scan_service_stub.dart'
     if (dart.library.io) 'scan_service_io.dart'
@@ -36,5 +41,23 @@ class ScanService {
       onBatch: onBatch,
       onProgress: onProgress,
     );
+  }
+
+  static Future<AssetPage> listAllAssets({
+    required int page,
+    required int size,
+  }) {
+    return impl.listAllAssets(page: page, size: size);
+  }
+
+  static Future<ScannedMedia?> buildScannedMedia(AssetEntity asset) {
+    return impl.buildScannedMedia(asset);
+  }
+
+  static Future<String?> localFilePath({
+    required String externalKey,
+    String? path,
+  }) {
+    return impl.localFilePath(externalKey: externalKey, path: path);
   }
 }

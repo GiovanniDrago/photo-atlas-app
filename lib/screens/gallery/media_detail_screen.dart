@@ -124,6 +124,7 @@ class MediaDetailScreen extends ConsumerWidget {
             : _formatDuration(item.durationS!),
       ),
       (l10n.fieldMetadataStatus, _statusLabel(l10n, item.metadataStatus)),
+      (l10n.fieldBackup, _backupLabel(l10n, item)),
       (
         l10n.fieldSource,
         '${item.sourceLabel ?? l10n.notAvailable} (${item.sourceKind ?? '-'})',
@@ -152,6 +153,22 @@ class MediaDetailScreen extends ConsumerWidget {
           ),
         ),
     ];
+  }
+
+  static String _backupLabel(AppLocalizations l10n, MediaItem item) {
+    switch (item.backupStatus) {
+      case 'uploaded':
+        final date = item.backedUpAt;
+        return date == null
+            ? l10n.backupStatusUploaded
+            : '${l10n.backupStatusUploaded} · ${DateFormat('yyyy-MM-dd HH:mm').format(date)}';
+      case 'failed':
+        return item.backupError == null
+            ? l10n.backupStatusFailed
+            : '${l10n.backupStatusFailed} (${item.backupError})';
+      default:
+        return l10n.backupStatusPending;
+    }
   }
 
   static String _statusLabel(AppLocalizations l10n, String status) {

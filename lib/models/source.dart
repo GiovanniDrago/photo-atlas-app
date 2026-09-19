@@ -10,6 +10,10 @@ class MediaSource {
   final int? kdriveFolderId;
   final bool includeSubfolders;
   final DateTime? lastScanAt;
+  final String? deviceId;
+  final String? albumKey;
+  final bool autoBackup;
+  final String? backupFolderPath;
 
   const MediaSource({
     required this.id,
@@ -21,6 +25,10 @@ class MediaSource {
     this.kdriveFolderId,
     this.includeSubfolders = true,
     this.lastScanAt,
+    this.deviceId,
+    this.albumKey,
+    this.autoBackup = false,
+    this.backupFolderPath,
   });
 
   bool get isKDrive => kind == 'kdrive';
@@ -38,6 +46,10 @@ class MediaSource {
       lastScanAt: json['last_scan_at'] == null
           ? null
           : DateTime.tryParse(json['last_scan_at'] as String)?.toLocal(),
+      deviceId: json['device_id'] as String?,
+      albumKey: json['album_key'] as String?,
+      autoBackup: (json['auto_backup'] ?? false) as bool,
+      backupFolderPath: json['backup_folder_path'] as String?,
     );
   }
 }

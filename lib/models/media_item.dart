@@ -23,6 +23,10 @@ class MediaItem {
   final String? sourceLabel;
   final String? thumbnailUrl;
   final String? downloadUrl;
+  final String backupStatus;
+  final int? kdriveFileId;
+  final DateTime? backedUpAt;
+  final String? backupError;
 
   const MediaItem({
     required this.id,
@@ -47,10 +51,18 @@ class MediaItem {
     this.sourceLabel,
     this.thumbnailUrl,
     this.downloadUrl,
+    this.backupStatus = 'none',
+    this.kdriveFileId,
+    this.backedUpAt,
+    this.backupError,
   });
 
   bool get isVideo => mediaType == 'video';
   bool get hasFullMetadata => metadataStatus == 'full';
+  bool get isBackedUp => backupStatus == 'uploaded';
+  bool get isBackupPending =>
+      backupStatus == 'none' || backupStatus == 'pending';
+  bool get isBackupFailed => backupStatus == 'failed';
 
   factory MediaItem.fromJson(Map<String, dynamic> json) {
     return MediaItem(
@@ -76,6 +88,10 @@ class MediaItem {
       sourceLabel: json['source_label'] as String?,
       thumbnailUrl: json['thumbnail_url'] as String?,
       downloadUrl: json['download_url'] as String?,
+      backupStatus: (json['backup_status'] ?? 'none') as String,
+      kdriveFileId: asInt(json['kdrive_file_id']),
+      backedUpAt: _parseDate(json['backed_up_at']),
+      backupError: json['backup_error'] as String?,
     );
   }
 

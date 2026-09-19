@@ -1,3 +1,5 @@
+import 'package:photo_manager/photo_manager.dart';
+
 const imageExtensions = <String>{
   'jpg',
   'jpeg',
@@ -138,4 +140,11 @@ typedef ScanProgressCallback = void Function(int seen, int indexed);
 
 class ScanPermissionException implements Exception {
   const ScanPermissionException();
+}
+
+class AssetPage {
+  final List<AssetEntity> assets;
+  final int total;
+
+  const AssetPage({required this.assets, required this.total});
 }

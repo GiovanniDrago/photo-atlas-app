@@ -204,6 +204,72 @@ Future<ScanResult> scanDirectory({
   return ScanResult(filesSeen: seen, indexed: indexed);
 }
 
+Future<AssetPage> listAllAssets({required int page, required int size}) async {
+  if (!Platform.isAndroid) return const AssetPage(assets: [], total: 0);
+  final permission = await PhotoManager.requestPermissionExtend(
+    requestOption: _permissionRequest,
+  );
+  if (!permission.isAuth && !permission.hasAccess) {
+    throw const ScanPermissionException();
+  }
+  final paths = await PhotoManager.getAssetPathList(
+    type: RequestType.common,
+    onlyAll: true,
+  );
+  if (paths.isEmpty) return const AssetPage(assets: [], total: 0);
+  final all = paths.first;
+  final total = await all.assetCountAsync;
+  final assets = await all.getAssetListPaged(page: page, size: size);
+  return AssetPage(assets: assets, total: total);
+}
+
+Future<ScannedMedia?> buildScannedMedia(AssetEntity asset) async {
+  if (asset.type == AssetType.audio || asset.type == AssetType.other) {
+    return null;
+  }
+  try {
+    final file = await asset.file;
+    final size = await file?.length() ?? 0;
+    final (lat, lon) = await _readLocation(asset);
+    final mediaType = asset.type == AssetType.video ? 'video' : 'image';
+    final title = asset.title ?? 'asset-${asset.id}';
+    return ScannedMedia(
+      externalKey: asset.id,
+      path: file?.path ?? '',
+      name: title,
+      mime:
+          asset.mimeType ?? (mediaType == 'video' ? 'video/mp4' : 'image/jpeg'),
+      mediaType: mediaType,
+      sizeBytes: size,
+      takenAt: asset.createDateTime,
+      modifiedAt: asset.modifiedDateTime,
+      lat: lat,
+      lon: lon,
+      width: asset.width,
+      height: asset.height,
+      durationS: mediaType == 'video' ? asset.duration.toDouble() : null,
+      thumbnailB64: await _readThumbnail(asset),
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<String?> localFilePath({
+  required String externalKey,
+  String? path,
+}) async {
+  if (!Platform.isAndroid) return path;
+  try {
+    final asset = await AssetEntity.fromId(externalKey);
+    if (asset == null) return path;
+    final file = await asset.originFile ?? await asset.file;
+    return file?.path ?? path;
+  } catch (_) {
+    return path;
+  }
+}
+
 Future<Uint8List> _readPrefix(File file, int byteCount) async {
   final handle = await file.open();
   try {

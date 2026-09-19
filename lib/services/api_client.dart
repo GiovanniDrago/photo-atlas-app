@@ -5,11 +5,13 @@ import 'package:http/http.dart' as http;
 
 import '../models/api_config.dart';
 import '../models/auth_user.dart';
+import '../models/backup.dart';
 import '../models/json_value.dart';
 import '../models/media_cluster.dart';
 import '../models/media_item.dart';
 import '../models/source.dart';
 import '../models/timeline_bucket.dart';
+import 'upload_service.dart';
 
 class ApiException implements Exception {
   final int statusCode;
@@ -347,16 +349,24 @@ class ApiClient {
     required String kind,
     required String label,
     String? rootPath,
+    String? deviceId,
+    String? albumKey,
   }) async {
     final body = await _sendJson(
       'POST',
       _uri('/api/sources'),
-      body: {'kind': kind, 'label': label, 'root_path': rootPath},
+      body: {
+        'kind': kind,
+        'label': label,
+        'root_path': rootPath,
+        'device_id': deviceId,
+        'album_key': albumKey,
+      },
     );
     return (body['source'] as Map<String, dynamic>)['id'] as String;
   }
 
-  Future<int> batchMedia({
+  Future<BatchResult> batchMedia({
     required String sourceId,
     String? scanRunId,
     required List<Map<String, dynamic>> items,
@@ -366,7 +376,134 @@ class ApiClient {
       _uri('/api/media/batch'),
       body: {'source_id': sourceId, 'scan_run_id': scanRunId, 'items': items},
     );
-    return asInt(body['indexed']) ?? 0;
+    return BatchResult(
+      indexed: asInt(body['indexed']) ?? 0,
+      items: ((body['items'] ?? const <dynamic>[]) as List<dynamic>)
+          .map((value) => BatchItem.fromJson(value as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  Future<String> registerDevice({
+    required String fingerprint,
+    String? name,
+    String? platform,
+  }) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/devices'),
+      body: {'fingerprint': fingerprint, 'name': name, 'platform': platform},
+    );
+    return (body['device'] as Map<String, dynamic>)['id'] as String;
+  }
+
+  Future<BackupStatusSnapshot> backupStatus() async {
+    final body = await _getJson(_uri('/api/backup/status'));
+    return BackupStatusSnapshot.fromJson(body);
+  }
+
+  Future<List<PendingBackupItem>> backupPending({
+    String? sourceId,
+    int limit = 100,
+  }) async {
+    final body = await _getJson(
+      _uri('/api/backup/pending', {'source_id': sourceId, 'limit': limit}),
+    );
+    return ((body['items'] ?? const <dynamic>[]) as List<dynamic>)
+        .map(
+          (value) => PendingBackupItem.fromJson(value as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  Future<List<VerifyQueueItem>> verifyQueue({
+    String? sourceId,
+    int limit = 100,
+  }) async {
+    final body = await _getJson(
+      _uri('/api/backup/verify-queue', {'source_id': sourceId, 'limit': limit}),
+    );
+    return ((body['items'] ?? const <dynamic>[]) as List<dynamic>)
+        .map((value) => VerifyQueueItem.fromJson(value as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<VerifyResult> verifyMedia(String mediaId) async {
+    final body = await _sendJson('POST', _uri('/api/media/$mediaId/verify'));
+    return VerifyResult.fromJson(body);
+  }
+
+  Future<String> createBackupRun({
+    String kind = 'backup',
+    String? sourceId,
+    String? deviceId,
+  }) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/backup/runs'),
+      body: {'kind': kind, 'source_id': sourceId, 'device_id': deviceId},
+    );
+    return (body['run'] as Map<String, dynamic>)['id'] as String;
+  }
+
+  Future<void> patchBackupRun(
+    String id, {
+    String? status,
+    int? filesSeen,
+    int? filesUploaded,
+    int? filesSkipped,
+    int? filesFailed,
+    int? verifiedOk,
+    int? verifiedMissing,
+    int? bytesUploaded,
+    List<String>? errors,
+  }) async {
+    await _sendJson(
+      'PATCH',
+      _uri('/api/backup/runs/$id'),
+      body: {
+        'status': status,
+        'files_seen': filesSeen,
+        'files_uploaded': filesUploaded,
+        'files_skipped': filesSkipped,
+        'files_failed': filesFailed,
+        'verified_ok': verifiedOk,
+        'verified_missing': verifiedMissing,
+        'bytes_uploaded': bytesUploaded,
+        'errors': errors,
+      },
+    );
+  }
+
+  Future<void> uploadMedia({
+    required String mediaId,
+    required String filePath,
+    String? destination,
+    void Function(int sent, int total)? onProgress,
+    bool Function()? isCancelled,
+  }) {
+    return uploadFileToApi(
+      baseUrl: baseUrl,
+      token: token,
+      mediaId: mediaId,
+      filePath: filePath,
+      destination: destination,
+      onProgress: onProgress,
+      isCancelled: isCancelled,
+    );
+  }
+
+  Future<MediaSource> patchSource(
+    String id, {
+    String? deviceId,
+    String? albumKey,
+  }) async {
+    final body = await _sendJson(
+      'PATCH',
+      _uri('/api/sources/$id'),
+      body: {'device_id': deviceId, 'album_key': albumKey},
+    );
+    return MediaSource.fromJson(body['source'] as Map<String, dynamic>);
   }
 
   Future<String> createScanRun(String sourceId) async {

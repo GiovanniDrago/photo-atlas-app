@@ -131,6 +131,29 @@ class MediaThumbnail extends ConsumerWidget {
                           ),
                         ),
                       ),
+                    if (!selectionMode)
+                      Positioned(
+                        right: 6,
+                        bottom: 6,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            item.isBackedUp
+                                ? Icons.cloud_done
+                                : item.isBackupFailed
+                                ? Icons.cloud_off
+                                : Icons.cloud_queue,
+                            size: 14,
+                            color: item.isBackupFailed
+                                ? scheme.error
+                                : Colors.white,
+                          ),
+                        ),
+                      ),
                     if (missingMetadata && !selectionMode)
                       Positioned(
                         right: 6,
