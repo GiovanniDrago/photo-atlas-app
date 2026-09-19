@@ -1,0 +1,3 @@
+Backup to kDrive: the new + button opens the Backup screen where you can upload selected photos and
+videos (Media/PhotoAtlas/Manual) or back up whole folders (Media/PhotoAtlas/<folder>), verify that
+files still exist on kDrive, and see a cloud badge for every item in gallery, timeline and detail.

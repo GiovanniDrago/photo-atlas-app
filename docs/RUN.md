@@ -39,6 +39,16 @@ login screen (with a **Detect** button), and later in Settings.
 - The Supabase session (access + refresh token) is stored in the platform secure storage
   (Android Keystore; web falls back to browser storage when WebCrypto is unavailable)
 
+## Backup to kDrive
+
+- Central **+** button in the bottom bar → Backup screen: *Upload files* opens a multi-select
+  picker (all device photos/videos) and uploads the originals to `Media/PhotoAtlas/Manual`
+- *Back up all* / per-folder *Back up now* upload the indexed originals of a scanned folder to
+  `Media/PhotoAtlas/<folder>`; *Verify backup* checks on kDrive that every file still exists
+- Gallery, timeline and detail show a cloud badge (uploaded / pending / failed); details in
+  [BACKUP.md](BACKUP.md)
+- kDrive must be connected in Settings → kDrive; uploads need the API to be reachable
+
 ## Local folders
 
 - Settings → **Local folders** lists every added folder with its indexed count, last scan and a
