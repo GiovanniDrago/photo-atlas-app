@@ -1,0 +1,3 @@
+Backup uploads are fixed: the app now reads the original photo through the system media library,
+validates the file before sending it and shows the real reason when an upload fails. The kDrive
+destination moved to Private/Media/PhotoAtlas (kDrive does not allow folders at the drive root).
