@@ -112,7 +112,7 @@ class _UploadPickerScreenState extends ConsumerState<UploadPickerScreen> {
           content: Text(
             failed > 0
                 ? '${l10n.backupUploadResult(uploaded, failed)}'
-                      '${detail == null ? '' : ' · $detail'}"
+                      '${detail == null ? '' : ' · $detail'}'
                 : l10n.backupUploadedCount(uploaded),
           ),
         ),
