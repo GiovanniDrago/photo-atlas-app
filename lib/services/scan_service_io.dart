@@ -260,13 +260,37 @@ Future<String?> localFilePath({
   String? path,
 }) async {
   if (!Platform.isAndroid) return path;
+  AssetEntity? asset;
   try {
-    final asset = await AssetEntity.fromId(externalKey);
-    if (asset == null) return path;
-    final file = await asset.originFile ?? await asset.file;
-    return file?.path ?? path;
+    asset = await AssetEntity.fromId(externalKey);
   } catch (_) {
-    return path;
+    asset = null;
+  }
+  if (asset == null) return path;
+  final current = asset;
+  final candidates = [
+    await _safeFile(() => current.loadFile(isOrigin: true)),
+    await _safeFile(() => current.originFile),
+    await _safeFile(() => current.file),
+  ];
+  for (final candidate in candidates) {
+    if (candidate == null) continue;
+    try {
+      if (candidate.existsSync() && candidate.lengthSync() > 0) {
+        return candidate.path;
+      }
+    } catch (_) {
+      continue;
+    }
+  }
+  return path;
+}
+
+Future<File?> _safeFile(Future<File?> Function() loader) async {
+  try {
+    return await loader();
+  } catch (_) {
+    return null;
   }
 }
 

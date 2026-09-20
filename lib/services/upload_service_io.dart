@@ -21,6 +21,28 @@ Future<void> uploadFileToApi({
   void Function(int sent, int total)? onProgress,
   bool Function()? isCancelled,
 }) async {
+  final file = File(filePath);
+  bool exists;
+  int length;
+  try {
+    exists = await file.exists();
+    length = exists ? await file.length() : 0;
+  } on FileSystemException catch (error) {
+    throw ApiException(
+      400,
+      'cannot read ${error.path ?? filePath}: ${error.osError?.message ?? error.message}',
+    );
+  }
+  if (!exists) {
+    throw ApiException(400, 'file not found on the device: $filePath');
+  }
+  if (length <= 0) {
+    throw ApiException(400, 'empty file on the device: $filePath');
+  }
+  if (isCancelled?.call() ?? false) {
+    throw const UploadCancelled();
+  }
+
   final query = destination == null ? '' : '?destination=$destination';
   final uri = Uri.parse('$baseUrl/api/media/$mediaId/upload$query');
   final request = http.StreamedRequest('POST', uri);
@@ -29,21 +51,18 @@ Future<void> uploadFileToApi({
     headers['Authorization'] = 'Bearer $token';
   }
   request.headers.addAll(headers);
+  request.contentLength = length;
 
   final responseFuture = request.send();
   var sent = 0;
-  var length = 0;
   try {
-    final file = File(filePath);
-    length = await file.length();
-    if (length > 0) request.contentLength = length;
     await for (final chunk in file.openRead()) {
       if (isCancelled?.call() ?? false) {
         throw const UploadCancelled();
       }
       request.sink.add(chunk);
       sent += chunk.length;
-      onProgress?.call(sent, length > 0 ? length : sent);
+      onProgress?.call(sent, length);
     }
     await request.sink.close();
   } catch (error) {
@@ -51,7 +70,9 @@ Future<void> uploadFileToApi({
     rethrow;
   }
 
-  final response = await http.Response.fromStream(await responseFuture);
+  final response = await http.Response.fromStream(
+    await responseFuture.timeout(const Duration(minutes: 30)),
+  );
   if (response.statusCode >= 400) {
     throw ApiException(response.statusCode, _message(response));
   }

@@ -217,5 +217,6 @@
   "backupSelectedCount": "{count} selezionate",
   "backupUploadCount": "Carica ({count})",
   "backupUploadedCount": "{count} caricate",
-  "backupUploadResult": "{uploaded} caricate, {failed} fallite"
+  "backupUploadResult": "{uploaded} caricate, {failed} fallite",
+  "backupNothingToVerify": "Niente da verificare: carica prima qualche file."
 }

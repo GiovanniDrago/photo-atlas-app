@@ -195,12 +195,12 @@ class BackupService {
     }
   }
 
-  Future<void> uploadPickedAssets({
+  Future<List<String>> uploadPickedAssets({
     required List<AssetEntity> assets,
     required void Function(BackupProgress progress) onProgress,
     bool Function()? isCancelled,
   }) async {
-    if (assets.isEmpty) return;
+    if (assets.isEmpty) return const [];
     final deviceId = await DeviceService.ensureRegistered(client);
     final sources = await client.sources();
     final sourceByLabel = <String, MediaSource>{};
@@ -286,6 +286,7 @@ class BackupService {
         total: assets.length,
       ),
     );
+    return errors;
   }
 
   static String _folderName(AssetEntity asset) {

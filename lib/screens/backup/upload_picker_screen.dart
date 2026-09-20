@@ -96,7 +96,7 @@ class _UploadPickerScreenState extends ConsumerState<UploadPickerScreen> {
     });
     try {
       final service = BackupService(ref.read(apiClientProvider));
-      await service.uploadPickedAssets(
+      final errors = await service.uploadPickedAssets(
         assets: _selected.values.toList(),
         onProgress: (progress) {
           if (mounted) setState(() => _progress = progress);
@@ -106,16 +106,20 @@ class _UploadPickerScreenState extends ConsumerState<UploadPickerScreen> {
       if (!mounted) return;
       final uploaded = _progress?.uploaded ?? 0;
       final failed = _progress?.failed ?? 0;
+      final detail = errors.isEmpty ? null : errors.first;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             failed > 0
-                ? l10n.backupUploadResult(uploaded, failed)
+                ? '${l10n.backupUploadResult(uploaded, failed)}'
+                      '${detail == null ? '' : ' · $detail'}"
                 : l10n.backupUploadedCount(uploaded),
           ),
         ),
       );
-      Navigator.of(context).pop(true);
+      if (uploaded > 0 || failed == 0) {
+        Navigator.of(context).pop(true);
+      }
     } catch (error) {
       if (mounted) setState(() => _error = '$error');
     } finally {

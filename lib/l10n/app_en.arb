@@ -700,5 +700,6 @@
   "backupUploadedCount": "{count} uploaded",
   "@backupUploadedCount": {"placeholders": {"count": {"type": "int"}}},
   "backupUploadResult": "{uploaded} uploaded, {failed} failed",
-  "@backupUploadResult": {"placeholders": {"uploaded": {"type": "int"}, "failed": {"type": "int"}}}
+  "@backupUploadResult": {"placeholders": {"uploaded": {"type": "int"}, "failed": {"type": "int"}}},
+  "backupNothingToVerify": "Nothing to verify: back up some files first."
 }

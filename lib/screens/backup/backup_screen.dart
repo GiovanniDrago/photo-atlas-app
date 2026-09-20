@@ -204,10 +204,14 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                     const SizedBox(height: 8),
                     if (_verifyMode)
                       Text(
-                        l10n.backupVerifyCounters(
-                          _progress!.verifiedOk,
-                          _progress!.verifiedMissing,
-                        ),
+                        !_running &&
+                                _progress!.verifiedOk == 0 &&
+                                _progress!.verifiedMissing == 0
+                            ? l10n.backupNothingToVerify
+                            : l10n.backupVerifyCounters(
+                                _progress!.verifiedOk,
+                                _progress!.verifiedMissing,
+                              ),
                       )
                     else
                       Text(
