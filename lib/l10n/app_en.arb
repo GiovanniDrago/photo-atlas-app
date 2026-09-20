@@ -701,5 +701,14 @@
   "@backupUploadedCount": {"placeholders": {"count": {"type": "int"}}},
   "backupUploadResult": "{uploaded} uploaded, {failed} failed",
   "@backupUploadResult": {"placeholders": {"uploaded": {"type": "int"}, "failed": {"type": "int"}}},
-  "backupNothingToVerify": "Nothing to verify: back up some files first."
+  "backupNothingToVerify": "Nothing to verify: back up some files first.",
+  "checkForUpdates": "Check for updates",
+  "version": "Version",
+  "updateAvailable": "Update available",
+  "download": "Download",
+  "later": "Later",
+  "noUpdates": "You are on the latest version",
+  "updateError": "Update check failed",
+  "updateDialogBody": "A newer version ({latest}) is available. You have {current}. Download it now?",
+  "@updateDialogBody": {"placeholders": {"latest": {"type": "String"}, "current": {"type": "String"}}}
 }

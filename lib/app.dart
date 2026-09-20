@@ -11,6 +11,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/mfa_screen.dart';
 import 'screens/auth/recovery_codes_dialog.dart';
 import 'screens/shell.dart';
+import 'services/update_service.dart';
 import 'theme/app_theme.dart';
 
 class PhotoAtlasApp extends ConsumerWidget {
@@ -39,11 +40,24 @@ class PhotoAtlasApp extends ConsumerWidget {
   }
 }
 
-class _AuthGate extends ConsumerWidget {
+class _AuthGate extends ConsumerStatefulWidget {
   const _AuthGate();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends ConsumerState<_AuthGate> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) UpdateService.checkForUpdates(context, silent: true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     ref.listen(authProvider, (previous, next) {
       final codes = next.newRecoveryCodes;
       if (codes == null || codes.isEmpty) return;

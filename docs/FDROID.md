@@ -74,3 +74,10 @@ The Android release workflow already implements the F-Droid requirements:
 - `CurrentVersionCode` must always be the highest ABI code (`base*10 + 3`).
 - Keep the signing keystore safe: losing it means changing `AllowedAPKSigningKeys` for future
   versions.
+
+## Update check
+
+The app checks GitHub releases for updates (Settings → About, plus a daily silent check) and opens
+the download in the browser. F-Droid policy does not allow apps to check for updates on their own:
+before submitting to F-Droid, disable this feature (the check lives in
+`lib/services/update_service.dart` and is only triggered from the About section and the app gate).

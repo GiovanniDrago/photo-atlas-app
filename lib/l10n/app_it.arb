@@ -218,5 +218,13 @@
   "backupUploadCount": "Carica ({count})",
   "backupUploadedCount": "{count} caricate",
   "backupUploadResult": "{uploaded} caricate, {failed} fallite",
-  "backupNothingToVerify": "Niente da verificare: carica prima qualche file."
+  "backupNothingToVerify": "Niente da verificare: carica prima qualche file.",
+  "checkForUpdates": "Controlla aggiornamenti",
+  "version": "Versione",
+  "updateAvailable": "Aggiornamento disponibile",
+  "download": "Scarica",
+  "later": "Più tardi",
+  "noUpdates": "Sei già all'ultima versione",
+  "updateError": "Controllo aggiornamenti non riuscito",
+  "updateDialogBody": "È disponibile una versione più recente ({latest}). Hai la {current}. Vuoi scaricarla?"
 }

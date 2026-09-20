@@ -49,6 +49,13 @@ login screen (with a **Detect** button), and later in Settings.
   [BACKUP.md](BACKUP.md)
 - kDrive must be connected in Settings → kDrive; uploads need the API to be reachable
 
+## Updates
+
+- Settings → About shows the installed version (`v0.5.1 (501)`) and a **Check for updates** button
+- The app also checks silently once a day at startup; when a newer GitHub release exists it offers
+  to download it (Android: the arm64 APK; Linux: the bundle) and opens the browser
+- "Later" silences that version for the silent check; the manual check always reports the result
+
 ## Local folders
 
 - Settings → **Local folders** lists every added folder with its indexed count, last scan and a

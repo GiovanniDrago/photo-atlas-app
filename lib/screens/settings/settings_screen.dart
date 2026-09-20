@@ -17,6 +17,7 @@ import '../../providers/locale_provider.dart';
 import '../../services/api_client.dart';
 import '../../services/scan_service.dart';
 import '../../theme/app_theme.dart';
+import '../../services/update_service.dart';
 import 'change_password_dialog.dart';
 import 'local_folder_picker.dart';
 import 'security_section.dart';
@@ -1223,12 +1224,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 8),
           Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                l10n.aboutText,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    l10n.aboutText,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                const Divider(height: 1),
+                FutureBuilder<String>(
+                  future: UpdateService.currentVersionLabel,
+                  builder: (context, snapshot) {
+                    final version = snapshot.data ?? '';
+                    return ListTile(
+                      leading: const Icon(Icons.info_outline),
+                      title: Text(l10n.version),
+                      subtitle: version.isEmpty ? null : Text(version),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.system_update),
+                  title: Text(l10n.checkForUpdates),
+                  onTap: () =>
+                      UpdateService.checkForUpdates(context, silent: false),
+                ),
+              ],
             ),
           ),
         ],
