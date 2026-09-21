@@ -15,6 +15,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../services/api_client.dart';
+import '../../services/local_scan_service.dart';
 import '../../services/scan_service.dart';
 import '../../theme/app_theme.dart';
 import '../../services/update_service.dart';
@@ -192,7 +193,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await _runLocalScan(
         label: selection.name,
         rootPath: 'album:${selection.id}',
-        albumId: selection.id,
       );
       return;
     }
@@ -210,7 +210,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _runLocalScan({
     required String label,
     required String rootPath,
-    String? albumId,
   }) async {
     final l10n = AppLocalizations.of(context)!;
     setState(() {
@@ -219,60 +218,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _scanIndexed = 0;
       _scanStatus = l10n.scanning;
     });
-    String? scanRunId;
     try {
       final client = ref.read(apiClientProvider);
-      final sources = await client.sources();
-      String? sourceId;
-      for (final source in sources) {
-        if (source.kind == 'local' && source.rootPath == rootPath) {
-          sourceId = source.id;
-          break;
-        }
-      }
-      sourceId ??= await client.createSource(
-        kind: 'local',
+      final scanner = LocalScanService(client);
+      final sourceId = await scanner.ensureSource(
         label: label,
         rootPath: rootPath,
       );
-      scanRunId = await client.createScanRun(sourceId);
-      final currentSourceId = sourceId;
-      final currentScanRunId = scanRunId;
-
-      Future<void> onBatch(List<ScannedMedia> batch) async {
-        await client.batchMedia(
-          sourceId: currentSourceId,
-          scanRunId: currentScanRunId,
-          items: batch.map((item) => item.toJson()).toList(),
-        );
-      }
-
-      void onProgress(int seen, int indexed) {
-        if (mounted) {
-          setState(() {
-            _scanSeen = seen;
-            _scanIndexed = indexed;
-            _scanStatus = '${l10n.scanning} $seen / $indexed';
-          });
-        }
-      }
-
-      final result = albumId != null
-          ? await ScanService.scanAlbum(
-              albumId: albumId,
-              onBatch: onBatch,
-              onProgress: onProgress,
-            )
-          : await ScanService.scanDirectory(
-              directoryPath: rootPath,
-              onBatch: onBatch,
-              onProgress: onProgress,
-            );
-      await client.patchScanRun(
-        currentScanRunId,
-        status: 'completed',
-        filesSeen: result.filesSeen,
-        filesIndexed: result.indexed,
+      final result = await scanner.scanSource(
+        sourceId: sourceId,
+        rootPath: rootPath,
+        onProgress: (seen, indexed) {
+          if (mounted) {
+            setState(() {
+              _scanSeen = seen;
+              _scanIndexed = indexed;
+              _scanStatus = '${l10n.scanning} $seen / $indexed';
+            });
+          }
+        },
       );
       if (mounted) {
         setState(() {
@@ -287,7 +251,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ref.invalidate(timelineProvider);
       ref.invalidate(clustersProvider);
     } on ScanPermissionException {
-      await _failScanRun(scanRunId, 'media permission denied');
       if (mounted) {
         setState(() {
           _scanning = false;
@@ -295,7 +258,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         });
       }
     } catch (error) {
-      await _failScanRun(scanRunId, '$error');
       if (mounted) {
         setState(() {
           _scanning = false;
@@ -305,26 +267,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _failScanRun(String? scanRunId, String reason) async {
-    if (scanRunId == null) return;
-    try {
-      await ref
-          .read(apiClientProvider)
-          .patchScanRun(scanRunId, status: 'failed', errors: [reason]);
-    } catch (_) {}
-  }
-
   Future<void> _rescanLocalSource(MediaSource source) async {
     final rootPath = source.rootPath;
     if (rootPath == null) return;
-    final albumId = rootPath.startsWith('album:')
-        ? rootPath.substring('album:'.length)
-        : null;
-    await _runLocalScan(
-      label: source.label,
-      rootPath: rootPath,
-      albumId: albumId,
-    );
+    await _runLocalScan(label: source.label, rootPath: rootPath);
   }
 
   Future<void> _deleteLocalSource(MediaSource source) async {

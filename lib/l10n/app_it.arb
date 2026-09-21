@@ -226,5 +226,21 @@
   "later": "Più tardi",
   "noUpdates": "Sei già all'ultima versione",
   "updateError": "Controllo aggiornamenti non riuscito",
-  "updateDialogBody": "È disponibile una versione più recente ({latest}). Hai la {current}. Vuoi scaricarla?"
+  "updateDialogBody": "È disponibile una versione più recente ({latest}). Hai la {current}. Vuoi scaricarla?",
+  "autoBackupTitle": "Backup automatico",
+  "autoBackupSubtitle": "Carica le nuove foto in background, anche ad app chiusa (Android)",
+  "autoBackupInterval": "Frequenza",
+  "autoBackupWifiOnly": "Solo in Wi-Fi",
+  "autoBackupChargingOnly": "Solo in carica",
+  "autoBackupNeverRan": "Nessuna esecuzione automatica",
+  "autoBackupFolderToggle": "Backup automatico di questa cartella",
+  "autoBackupEnableAllTitle": "Attivare tutte le cartelle?",
+  "autoBackupEnableAll": "Attiva tutte",
+  "autoBackupNotificationTitle": "Backup Photo Atlas",
+  "autoBackupNotificationText": "Caricamento delle foto su kDrive",
+  "autoBackupNotificationsOff": "Notifiche disattivate: il backup in background funziona comunque",
+  "autoBackupLastRun": "Ultima esecuzione automatica: {time}",
+  "autoBackupEnableAllBody": "Il backup automatico è attivo ma nessuna cartella è selezionata. Attivarlo per tutte le {count} cartelle?",
+  "autoBackupMinutes": "{minutes} min",
+  "autoBackupHours": "{hours} h"
 }

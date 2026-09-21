@@ -32,6 +32,8 @@ Future<AssetPage> listAllAssets({required int page, required int size}) async {
   return const AssetPage(assets: [], total: 0);
 }
 
+Future<String?> findAlbumIdByName(String name) async => null;
+
 Future<ScannedMedia?> buildScannedMedia(AssetEntity asset) async => null;
 
 Future<String?> localFilePath({

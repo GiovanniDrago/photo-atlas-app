@@ -45,6 +45,24 @@ Future<List<ScanFolder>> listFolders() async {
   return folders;
 }
 
+Future<String?> findAlbumIdByName(String name) async {
+  if (!Platform.isAndroid) return null;
+  final permission = await PhotoManager.requestPermissionExtend(
+    requestOption: _permissionRequest,
+  );
+  if (!permission.isAuth && !permission.hasAccess) {
+    throw const ScanPermissionException();
+  }
+  final paths = await PhotoManager.getAssetPathList(
+    type: RequestType.common,
+    onlyAll: false,
+  );
+  for (final path in paths) {
+    if (path.name == name) return path.id;
+  }
+  return null;
+}
+
 Future<ScanResult> scanAlbum({
   required String albumId,
   required ScanBatchCallback onBatch,

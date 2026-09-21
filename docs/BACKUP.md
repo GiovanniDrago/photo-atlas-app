@@ -29,8 +29,26 @@ overwritten. Albums are database relations, never kDrive folders.
 
 - kDrive connected in Settings → kDrive (the token is stored encrypted on the server).
 - The app must be able to reach the API (`http://<vm-ip>:8787` by default on Android).
-- Uploads run in the foreground in this version; the background service arrives with the next
-  update (`auto_backup` is already stored per folder).
+- Uploads run in the foreground by default; Android can also back up periodically in the
+  background (see below).
+
+## Automatic backup (Android)
+
+The Backup screen has an **Automatic backup** switch, **off by default**. When it is on, the app
+registers a periodic Android job (WorkManager, promoted to a foreground service with a
+notification) that scans the selected folders for new media and uploads everything still pending.
+
+- Configurable: frequency (15 min / 1 h / **6 h** / 24 h), *Only on Wi-Fi* (on by default) and
+  *Only while charging* (off by default).
+- Per-folder switches decide what is included; when the global switch is turned on and no folder is
+  selected, the app offers to enable them all.
+- Enabling asks for the notification permission (Android 13+); the job runs even if it is denied.
+- Each run stops after ~8 minutes and the next run continues: the queue lives on the server
+  (`GET /api/backup/pending` claims items with `backup_status='uploading'`, so a foreground run and
+  the background job never upload the same file twice; claims older than 2 hours are released).
+- A completed backup run updates `sources.backup_last_run_at`, shown in the Backup screen.
+- Android may defer the job (Doze, battery optimization): whitelist the app if backups seem late.
+- Linux and the web build schedule nothing; on Linux backups run in the foreground only.
 
 ## Limits and notes
 

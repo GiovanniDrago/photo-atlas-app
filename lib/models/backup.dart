@@ -30,6 +30,7 @@ class BackupSourceStatus {
   final int bytesTotal;
   final String? backupFolderPath;
   final DateTime? backupLastRunAt;
+  final bool autoBackup;
 
   const BackupSourceStatus({
     required this.id,
@@ -42,6 +43,7 @@ class BackupSourceStatus {
     required this.bytesTotal,
     this.backupFolderPath,
     this.backupLastRunAt,
+    this.autoBackup = false,
   });
 
   factory BackupSourceStatus.fromJson(Map<String, dynamic> json) {
@@ -58,6 +60,7 @@ class BackupSourceStatus {
       backupLastRunAt: json['backup_last_run_at'] == null
           ? null
           : DateTime.tryParse(json['backup_last_run_at'] as String)?.toLocal(),
+      autoBackup: (json['auto_backup'] ?? false) as bool,
     );
   }
 }

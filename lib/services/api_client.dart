@@ -586,11 +586,16 @@ class ApiClient {
     String id, {
     String? label,
     bool? includeSubfolders,
+    bool? autoBackup,
   }) async {
     await _sendJson(
       'PATCH',
       _uri('/api/sources/$id'),
-      body: {'label': ?label, 'include_subfolders': ?includeSubfolders},
+      body: {
+        'label': ?label,
+        'include_subfolders': ?includeSubfolders,
+        'auto_backup': ?autoBackup,
+      },
     );
   }
 

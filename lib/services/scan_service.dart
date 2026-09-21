@@ -50,6 +50,10 @@ class ScanService {
     return impl.listAllAssets(page: page, size: size);
   }
 
+  static Future<String?> findAlbumIdByName(String name) {
+    return impl.findAlbumIdByName(name);
+  }
+
   static Future<ScannedMedia?> buildScannedMedia(AssetEntity asset) {
     return impl.buildScannedMedia(asset);
   }
