@@ -30,7 +30,8 @@ android {
     }
 
     namespace = "dev.giovannidrago.photoatlas"
-    compileSdk = flutter.compileSdkVersion
+    // permission_handler_android requires compiling against API 37; Flutter 3.47 defaults to 36.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
