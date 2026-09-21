@@ -47,11 +47,14 @@ login screen (with a **Detect** button), and later in Settings.
   `Media/PhotoAtlas/<folder>`; *Verify backup* checks on kDrive that every file still exists
 - Gallery, timeline and detail show a cloud badge (uploaded / pending / failed); details in
   [BACKUP.md](BACKUP.md)
+- On Android the Backup screen has an **Automatic backup** switch (off by default): a periodic
+  WorkManager job scans the selected folders and uploads new photos in the background, with a
+  notification while it runs. Frequency, *Only on Wi-Fi* and *Only while charging* are configurable
 - kDrive must be connected in Settings → kDrive; uploads need the API to be reachable
 
 ## Updates
 
-- Settings → About shows the installed version (`v0.5.1 (501)`) and a **Check for updates** button
+- Settings → About shows the installed version (`v0.7.0 (700)`) and a **Check for updates** button
 - The app also checks silently once a day at startup; when a newer GitHub release exists it offers
   to download it (Android: the arm64 APK; Linux: the bundle) and opens the browser
 - "Later" silences that version for the silent check; the manual check always reports the result

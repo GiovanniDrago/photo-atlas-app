@@ -55,6 +55,15 @@ class LocalScanService {
 
       final progress = onProgress ?? (int seen, int indexed) {};
       final albumId = await resolveAlbumId(rootPath);
+      if (rootPath.startsWith(_albumPrefix) && albumId == null) {
+        await client.patchScanRun(
+          scanRunId,
+          status: 'completed',
+          filesSeen: 0,
+          filesIndexed: 0,
+        );
+        return const ScanResult(filesSeen: 0, indexed: 0);
+      }
       final result = albumId != null
           ? await ScanService.scanAlbum(
               albumId: albumId,

@@ -1,0 +1,4 @@
+Automatic backup on Android (off by default): a periodic background job scans the selected
+folders, indexes new photos and uploads them to kDrive, with a notification while it runs.
+Frequency, Wi-Fi only and charging only are configurable, and each folder has its own switch.
+The app now also ships the update check from 0.6.0 in a single release.
