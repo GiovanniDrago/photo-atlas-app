@@ -78,17 +78,3 @@ final timelineItemsProvider = FutureProvider.family<MediaPage, TimelineQuery>((
       .watch(apiClientProvider)
       .timelineItems(from: query.from, to: query.to);
 });
-
-final galleryProvider = FutureProvider.family<MediaPage, MediaFilter>((
-  ref,
-  filter,
-) {
-  return ref
-      .watch(apiClientProvider)
-      .media(
-        status: filter.missingOnly ? 'missing' : filter.status,
-        type: filter.type,
-        limit: 200,
-        offset: 0,
-      );
-});

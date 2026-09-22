@@ -56,6 +56,11 @@ List<String> apiBaseUrlCandidates({String? prefer, String? saved}) {
 class ApiBaseUrlNotifier extends Notifier<String> {
   static const _key = 'api_base_url';
 
+  final Completer<void> _ready = Completer<void>();
+
+  /// Completes when the stored address has been loaded (or skipped).
+  Future<void> get ready => _ready.future;
+
   @override
   String build() {
     _load();
@@ -64,14 +69,18 @@ class ApiBaseUrlNotifier extends Notifier<String> {
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString(_key);
-    if (value == null || value.isEmpty) return;
-    if (kIsWeb && isLoopbackBaseUrl(value)) {
-      state = platformDefaultApiBaseUrl();
-      return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final value = prefs.getString(_key);
+      if (value == null || value.isEmpty) return;
+      if (kIsWeb && isLoopbackBaseUrl(value)) {
+        state = platformDefaultApiBaseUrl();
+        return;
+      }
+      state = value;
+    } finally {
+      if (!_ready.isCompleted) _ready.complete();
     }
-    state = value;
   }
 
   Future<void> setBaseUrl(String value) async {

@@ -64,4 +64,7 @@ class ScanService {
   }) {
     return impl.localFilePath(externalKey: externalKey, path: path);
   }
+
+  /// Opens the system settings page of the app (media permissions).
+  static Future<void> openSettings() => impl.openSettings();
 }

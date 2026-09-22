@@ -37,6 +37,20 @@ class MediaPage {
   });
 }
 
+class MediaDeleteResult {
+  final int deleted;
+  final int cloudDeleted;
+  final int reset;
+  final List<({String id, String error})> failed;
+
+  const MediaDeleteResult({
+    this.deleted = 0,
+    this.cloudDeleted = 0,
+    this.reset = 0,
+    this.failed = const [],
+  });
+}
+
 class ClusterQuery {
   final double west;
   final double south;
@@ -252,6 +266,7 @@ class ApiClient {
     String status = 'all',
     String type = 'all',
     String? sourceId,
+    String? backupStatus,
     bool? hasGps,
     String? search,
     int limit = 100,
@@ -269,6 +284,7 @@ class ApiClient {
         'status': status,
         'type': type,
         'source_id': sourceId,
+        'backup_status': backupStatus,
         'has_gps': hasGps,
         'q': search,
         'limit': limit,
@@ -283,6 +299,31 @@ class ApiClient {
       total: asInt(body['total']) ?? 0,
       limit: asInt(body['limit']) ?? limit,
       offset: asInt(body['offset']) ?? offset,
+    );
+  }
+
+  /// Trashes the kDrive files (`cloud`) and/or drops the index rows (`index`).
+  Future<MediaDeleteResult> deleteMedia({
+    required List<String> ids,
+    bool cloud = true,
+    bool index = false,
+  }) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/media/delete'),
+      body: {'ids': ids, 'cloud': cloud, 'index': index},
+    );
+    final failed = <({String id, String error})>[];
+    for (final value
+        in (body['failed'] ?? const <dynamic>[]) as List<dynamic>) {
+      final map = value as Map<String, dynamic>;
+      failed.add((id: '${map['id']}', error: '${map['error']}'));
+    }
+    return MediaDeleteResult(
+      deleted: asInt(body['deleted']) ?? 0,
+      cloudDeleted: asInt(body['cloud_deleted']) ?? 0,
+      reset: asInt(body['reset']) ?? 0,
+      failed: failed,
     );
   }
 

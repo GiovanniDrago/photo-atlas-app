@@ -24,6 +24,17 @@ class _AppShellState extends State<AppShell> {
     SettingsScreen(),
   ];
 
+  /// Tabs are built on first visit: no burst of API requests at startup and
+  /// the media permission prompt appears only when the gallery is opened.
+  final Set<int> _built = {0};
+
+  void _select(int index) {
+    setState(() {
+      _index = index;
+      _built.add(index);
+    });
+  }
+
   Future<void> _openBackup() async {
     await Navigator.of(context)
         .push(MaterialPageRoute(builder: (_) => const BackupScreen()));
@@ -33,7 +44,13 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      body: IndexedStack(index: _index, children: _screens),
+      body: IndexedStack(
+        index: _index,
+        children: [
+          for (var index = 0; index < _screens.length; index += 1)
+            _built.contains(index) ? _screens[index] : const SizedBox.shrink(),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openBackup,
         tooltip: l10n.backupTitle,
@@ -76,7 +93,7 @@ class _AppShellState extends State<AppShell> {
     final color = selected ? scheme.primary : scheme.onSurfaceVariant;
     return Expanded(
       child: InkWell(
-        onTap: () => setState(() => _index = index),
+        onTap: () => _select(index),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Column(

@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/json_value.dart';
 import '../../models/source.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/gallery_providers.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/theme_provider.dart';

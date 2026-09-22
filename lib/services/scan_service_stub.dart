@@ -42,3 +42,5 @@ Future<String?> localFilePath({
 }) async {
   return null;
 }
+
+Future<void> openSettings() async {}

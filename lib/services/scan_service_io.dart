@@ -273,6 +273,8 @@ Future<ScannedMedia?> buildScannedMedia(AssetEntity asset) async {
   }
 }
 
+Future<void> openSettings() => PhotoManager.openSetting();
+
 Future<String?> localFilePath({
   required String externalKey,
   String? path,

@@ -6,6 +6,7 @@ import '../services/supabase_bootstrap.dart';
 import 'settings_provider.dart';
 
 final apiConfigProvider = FutureProvider<ApiConfig>((ref) async {
+  await ref.read(apiBaseUrlProvider.notifier).ready;
   final baseUrl = ref.watch(apiBaseUrlProvider);
   try {
     return await ApiClient(baseUrl).apiConfig();
