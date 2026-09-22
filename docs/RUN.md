@@ -17,6 +17,11 @@ login screen (with a **Detect** button), and later in Settings.
   same photo appears once, with a badge telling its state — `cloud_done` uploaded, `cloud_queue`
   not uploaded, `cloud_off` failed, plus "On device" for files that are not indexed yet. Items are
   ordered by capture date, newest first; items without a date (no EXIF and no file date) go last
+- The device library is read with an explicit date order in a single query (the platform default
+  order is arbitrary and makes paged reads repeat or skip items) and matched to the indexed rows by
+  asset id, falling back to name + size so a rebuilt media library (new asset ids) does not show
+  the same photo twice. A small line under the filters shows how many items come from the device
+  and from the cloud
 - Filters: All / Photos / Videos / Not uploaded / Uploaded / No metadata. Pull down to refresh
 - **Tap** an item to open the full screen viewer: the photo fills the screen, **swipe left/right**
   moves to the previous/next item and **scrolling vertically** reveals the details (all metadata

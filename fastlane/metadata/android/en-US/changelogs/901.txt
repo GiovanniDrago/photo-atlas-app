@@ -1,0 +1,5 @@
+Gallery fixes: the device library is now read in a single query with an explicit date order, so the
+photos from the Camera folder and the screenshots are all there and no item is repeated or skipped
+while scrolling. Photos already on kDrive are matched to the device files by name and size as well,
+so a rebuilt media library does not show them twice. The cloud list pages are stable too. A small
+line under the filters shows how many items come from the device and from the cloud.
