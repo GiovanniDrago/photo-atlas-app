@@ -78,6 +78,33 @@ void main() {
     expect(entries.last.local?.id, 'asset-c');
   });
 
+  test('merge interleaves cloud and device items by date', () {
+    final entries = mergeGalleryEntries(
+      cloud: [
+        cloudItem(
+          id: 'cloud-1',
+          externalKey: 'asset-a',
+          takenAt: DateTime.utc(2025, 1, 10),
+        ),
+        cloudItem(
+          id: 'cloud-2',
+          externalKey: 'asset-b',
+          takenAt: DateTime.utc(2025, 1, 6),
+        ),
+      ],
+      local: [
+        localItem(id: 'asset-c', takenAt: DateTime.utc(2025, 1, 12)),
+        localItem(id: 'asset-d', takenAt: DateTime.utc(2025, 1, 8)),
+      ],
+    );
+    expect(entries.map((entry) => entry.sortDate).toList(), [
+      DateTime.utc(2025, 1, 12),
+      DateTime.utc(2025, 1, 10),
+      DateTime.utc(2025, 1, 8),
+      DateTime.utc(2025, 1, 6),
+    ]);
+  });
+
   test('filters by media type, upload state and metadata', () {
     final uploaded = GalleryEntry(
       cloud: cloudItem(backupStatus: 'uploaded'),

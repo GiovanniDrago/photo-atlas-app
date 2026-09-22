@@ -14,6 +14,8 @@ Future<LocalMediaPage> page({
 
 Future<String?> localPath(LocalMedia media) async => media.path;
 
+Future<({double lat, double lon})?> location(LocalMedia media) async => null;
+
 Future<List<String>> deleteAll(List<LocalMedia> media) async => const [];
 
 void invalidateCache() {}

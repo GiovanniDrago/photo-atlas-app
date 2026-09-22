@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -13,7 +14,8 @@ import '../../services/export_service.dart';
 import '../../services/gallery_actions_service.dart';
 import '../../services/scan_service.dart';
 import '../../widgets/gallery_tile.dart';
-import 'media_detail_screen.dart';
+import 'gallery_geometry.dart';
+import 'media_viewer_screen.dart';
 
 class GalleryScreen extends ConsumerStatefulWidget {
   const GalleryScreen({super.key});
@@ -25,11 +27,18 @@ class GalleryScreen extends ConsumerStatefulWidget {
 class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   final Set<String> _selectedKeys = {};
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _gridKey = GlobalKey();
   bool _selectionMode = false;
   bool _exporting = false;
   bool _busy = false;
   String? _busyLabel;
   GalleryActionProgress? _progress;
+  double _tileSize = 100;
+  bool _dragValue = true;
+  int? _lastDragIndex;
+  Offset? _dragPosition;
+  double _dragDirection = 0;
+  Timer? _dragTimer;
 
   @override
   void initState() {
@@ -39,6 +48,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
 
   @override
   void dispose() {
+    _dragTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -73,11 +83,121 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     });
   }
 
-  void _enterSelection(GalleryEntry entry) {
+  int? _indexAt(Offset globalPosition) {
+    final box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return null;
+    return galleryIndexAt(
+      localPosition: box.globalToLocal(globalPosition),
+      scrollOffset: _scrollController.hasClients ? _scrollController.offset : 0,
+      tileSize: _tileSize,
+      crossAxisCount: 3,
+      itemCount: _entries.length,
+    );
+  }
+
+  void _applyDragValue(String key, bool value) {
+    if (value) {
+      _selectedKeys.add(key);
+    } else {
+      _selectedKeys.remove(key);
+    }
+  }
+
+  /// Long press starts the selection; dragging over the grid keeps toggling
+  /// the tiles it passes (selecting or deselecting, like Google Photos).
+  void _onLongPressStart(LongPressStartDetails details) {
+    final index = _indexAt(details.globalPosition);
+    if (index == null) return;
+    final entry = _entries[index];
+    final value = !_selectedKeys.contains(entry.key);
     setState(() {
       _selectionMode = true;
-      _selectedKeys.add(entry.key);
+      _dragValue = value;
+      _applyDragValue(entry.key, value);
+      _lastDragIndex = index;
+      _dragPosition = details.globalPosition;
     });
+    _updateAutoScroll(details.globalPosition);
+  }
+
+  void _onLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
+    _dragPosition = details.globalPosition;
+    _extendSelection(details.globalPosition);
+    _updateAutoScroll(details.globalPosition);
+  }
+
+  void _onLongPressEnd(LongPressEndDetails details) {
+    _stopAutoScroll();
+    setState(() {
+      _lastDragIndex = null;
+      _dragPosition = null;
+      if (_selectedKeys.isEmpty) _selectionMode = false;
+    });
+  }
+
+  void _extendSelection(Offset globalPosition) {
+    final index = _indexAt(globalPosition);
+    if (index == null) return;
+    final last = _lastDragIndex;
+    if (last == index) return;
+    final entries = _entries;
+    final from = last ?? index;
+    setState(() {
+      if (index >= from) {
+        for (var i = from; i <= index; i += 1) {
+          if (i >= 0 && i < entries.length) {
+            _applyDragValue(entries[i].key, _dragValue);
+          }
+        }
+      } else {
+        for (var i = from; i >= index; i -= 1) {
+          if (i >= 0 && i < entries.length) {
+            _applyDragValue(entries[i].key, _dragValue);
+          }
+        }
+      }
+      _lastDragIndex = index;
+    });
+  }
+
+  void _updateAutoScroll(Offset globalPosition) {
+    final box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final local = box.globalToLocal(globalPosition);
+    const edge = 72.0;
+    if (local.dy < edge) {
+      _startAutoScroll(-1);
+    } else if (local.dy > box.size.height - edge) {
+      _startAutoScroll(1);
+    } else {
+      _stopAutoScroll();
+    }
+  }
+
+  void _startAutoScroll(double direction) {
+    _dragDirection = direction;
+    _dragTimer ??= Timer.periodic(
+      const Duration(milliseconds: 60),
+      (_) => _autoScrollTick(),
+    );
+  }
+
+  void _stopAutoScroll() {
+    _dragDirection = 0;
+    _dragTimer?.cancel();
+    _dragTimer = null;
+  }
+
+  void _autoScrollTick() {
+    if (_dragDirection == 0 || !_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    final target = (position.pixels + _dragDirection * 26).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if (target != position.pixels) _scrollController.jumpTo(target);
+    final global = _dragPosition;
+    if (global != null) _extendSelection(global);
   }
 
   void _clearSelection() {
@@ -100,11 +220,21 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     });
   }
 
-  void _openDetail(GalleryEntry entry) {
-    final item = entry.cloud;
-    if (item == null) return;
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => MediaDetailScreen(item: item)));
+  Future<void> _openViewer(int index) async {
+    final entries = List<GalleryEntry>.of(_entries);
+    if (index < 0 || index >= entries.length) return;
+    final key = entries[index].key;
+    final result = await Navigator.of(context).push<MediaViewerResult>(
+      MaterialPageRoute(
+        builder: (_) =>
+            MediaViewerScreen(entries: entries, initialIndex: index),
+      ),
+    );
+    if (!mounted || result != MediaViewerResult.select) return;
+    setState(() {
+      _selectionMode = true;
+      _selectedKeys.add(key);
+    });
   }
 
   void _snack(String message) {
@@ -307,6 +437,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     final state = ref.watch(galleryProvider);
     final filter = state.filter;
     final tileSize = (MediaQuery.sizeOf(context).width - 24 - 12) / 3;
+    _tileSize = tileSize;
 
     return Scaffold(
       appBar: _selectionMode
@@ -409,7 +540,15 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
           ),
           if (state.localPermissionDenied)
             _PermissionBanner(onOpenSettings: ScanService.openSettings),
-          Expanded(child: _body(state, l10n, tileSize)),
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onLongPressStart: _busy ? null : _onLongPressStart,
+              onLongPressMoveUpdate: _busy ? null : _onLongPressMoveUpdate,
+              onLongPressEnd: _busy ? null : _onLongPressEnd,
+              child: _body(state, l10n, tileSize),
+            ),
+          ),
           if (_selectionMode && !_busy) _actionBar(l10n),
           if (_busy) _progressBar(l10n),
         ],
@@ -444,6 +583,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     return RefreshIndicator(
       onRefresh: _refresh,
       child: GridView.builder(
+        key: _gridKey,
         controller: _scrollController,
         padding: const EdgeInsets.all(12),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -473,15 +613,10 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
               if (_busy) return;
               if (_selectionMode) {
                 _toggleSelection(entry);
-              } else if (entry.isIndexed) {
-                _openDetail(entry);
               } else {
-                // Not indexed yet: tapping selects it so the upload, share and
-                // delete actions become available.
-                _enterSelection(entry);
+                _openViewer(index);
               }
             },
-            onLongPress: () => _enterSelection(entry),
           );
         },
       ),

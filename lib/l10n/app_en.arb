@@ -764,5 +764,13 @@
 "@galleryDeletedFailed": {"placeholders": {"failed": {"type": "int"}}},
 "updateManualTitle": "Download failed",
 "updateManualBody": "No browser could be opened. Copy the link and open it manually:",
-"updateLinkCopied": "Link copied"
+"updateLinkCopied": "Link copied",
+"viewerScrollHint": "Scroll for details",
+"viewerPosition": "{index} of {total}",
+"viewerSelect": "Select",
+"viewerLocation": "Position",
+"viewerOpenInMaps": "Open in Maps",
+"viewerNoLocation": "No position available",
+"viewerOpenMapsFailed": "Could not open the maps app",
+"@viewerPosition": {"placeholders": {"index": {"type": "int"}, "total": {"type": "int"}}}
 }

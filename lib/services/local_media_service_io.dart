@@ -135,6 +135,20 @@ Future<String?> localPath(LocalMedia media) async {
   return ScanService.localFilePath(externalKey: media.id, path: media.path);
 }
 
+Future<({double lat, double lon})?> location(LocalMedia media) async {
+  final asset = media.asset;
+  if (asset == null) return null;
+  try {
+    final position = await asset.latlngAsync();
+    final lat = position?.latitude;
+    final lon = position?.longitude;
+    if (lat == null || lon == null || (lat == 0.0 && lon == 0.0)) return null;
+    return (lat: lat, lon: lon);
+  } catch (_) {
+    return null;
+  }
+}
+
 Future<List<String>> deleteAll(List<LocalMedia> media) async {
   if (media.isEmpty) return const [];
   if (!ScanService.isAlbumBased) {

@@ -7,12 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../models/gallery_entry.dart';
 import '../../models/media_cluster.dart';
 import '../../providers/library_providers.dart';
 import '../../services/api_client.dart';
 import '../../widgets/media_thumbnail.dart';
 import '../../widgets/planet_globe.dart';
-import '../gallery/media_detail_screen.dart';
+import '../gallery/media_viewer_screen.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -343,8 +344,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         size: 110,
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) =>
-                                MediaDetailScreen(item: items[index]),
+                            builder: (_) => MediaViewerScreen(
+                              entries: [
+                                for (final item in items)
+                                  GalleryEntry(cloud: item),
+                              ],
+                              initialIndex: index,
+                            ),
                           ),
                         ),
                       ),

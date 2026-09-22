@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../models/gallery_entry.dart';
 import '../../models/timeline_bucket.dart';
 import '../../providers/library_providers.dart';
 import '../../widgets/media_thumbnail.dart';
-import '../gallery/media_detail_screen.dart';
+import '../gallery/media_viewer_screen.dart';
 
 class TimelineScreen extends ConsumerWidget {
   const TimelineScreen({super.key});
@@ -119,8 +120,13 @@ class _BucketCard extends ConsumerWidget {
                           size: 110,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  MediaDetailScreen(item: page.items[index]),
+                              builder: (_) => MediaViewerScreen(
+                                entries: [
+                                  for (final item in page.items)
+                                    GalleryEntry(cloud: item),
+                                ],
+                                initialIndex: index,
+                              ),
                             ),
                           ),
                         ),

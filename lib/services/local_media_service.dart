@@ -31,6 +31,10 @@ class LocalMediaService {
 
   static Future<String?> localPath(LocalMedia media) => impl.localPath(media);
 
+  /// GPS coordinates of a device file, read lazily (used by the viewer).
+  static Future<({double lat, double lon})?> location(LocalMedia media) =>
+      impl.location(media);
+
   static Future<List<String>> deleteAll(List<LocalMedia> media) =>
       impl.deleteAll(media);
 

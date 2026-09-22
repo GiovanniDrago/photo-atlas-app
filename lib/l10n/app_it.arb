@@ -272,5 +272,12 @@
 "galleryOpenSettings": "Impostazioni",
 "updateManualTitle": "Download non riuscito",
 "updateManualBody": "Non è stato possibile aprire il browser. Copia il link e aprilo manualmente:",
-"updateLinkCopied": "Link copiato"
+"updateLinkCopied": "Link copiato",
+"viewerScrollHint": "Scorri per i dettagli",
+"viewerPosition": "{index} di {total}",
+"viewerSelect": "Seleziona",
+"viewerLocation": "Posizione",
+"viewerOpenInMaps": "Apri in Maps",
+"viewerNoLocation": "Nessuna posizione disponibile",
+"viewerOpenMapsFailed": "Impossibile aprire l'app delle mappe"
 }
