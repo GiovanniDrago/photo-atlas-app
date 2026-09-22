@@ -10,6 +10,7 @@ MediaItem cloudItem({
   String mediaType = 'image',
   String metadataStatus = 'full',
   String backupStatus = 'none',
+  int? sizeBytes,
   DateTime? takenAt,
 }) {
   return MediaItem.fromJson({
@@ -20,6 +21,7 @@ MediaItem cloudItem({
     'media_type': mediaType,
     'metadata_status': metadataStatus,
     'backup_status': backupStatus,
+    'size_bytes': sizeBytes,
     'has_gps': false,
     'source_kind': sourceKind,
     'taken_at': takenAt?.toUtc().toIso8601String(),
@@ -30,9 +32,16 @@ LocalMedia localItem({
   String id = 'asset-1',
   String name = 'IMG_0001.jpg',
   String mediaType = 'image',
+  int? sizeBytes,
   DateTime? takenAt,
 }) {
-  return LocalMedia(id: id, name: name, mediaType: mediaType, takenAt: takenAt);
+  return LocalMedia(
+    id: id,
+    name: name,
+    mediaType: mediaType,
+    sizeBytes: sizeBytes,
+    takenAt: takenAt,
+  );
 }
 
 void main() {
