@@ -41,17 +41,10 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     if (mounted) setState(() => _autoBackup = settings);
   }
 
-  Future<void> _updateAutoBackup(
-    AutoBackupSettings settings, {
-    bool justEnabled = false,
-  }) async {
+  Future<void> _updateAutoBackup(AutoBackupSettings settings) async {
     setState(() => _autoBackup = settings);
     await AutoBackupService.save(settings);
     await AutoBackupService.apply(settings);
-    if (justEnabled) {
-      await _requestNotificationPermission();
-      await _maybeEnableAllFolders();
-    }
   }
 
   Future<void> _requestNotificationPermission() async {
@@ -61,51 +54,6 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         _snack(AppLocalizations.of(context)!.autoBackupNotificationsOff);
       }
     } catch (_) {}
-  }
-
-  Future<void> _maybeEnableAllFolders() async {
-    final l10n = AppLocalizations.of(context)!;
-    final sources = _status?.sources ?? const <BackupSourceStatus>[];
-    if (sources.isEmpty || sources.any((source) => source.autoBackup)) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.autoBackupEnableAllTitle),
-        content: Text(l10n.autoBackupEnableAllBody(sources.length)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.kdriveCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.autoBackupEnableAll),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    final client = ref.read(apiClientProvider);
-    for (final source in sources) {
-      try {
-        await client.updateSource(source.id, autoBackup: true);
-      } catch (_) {}
-    }
-    await _loadStatus();
-  }
-
-  Future<void> _setSourceAutoBackup(
-    BackupSourceStatus source,
-    bool value,
-  ) async {
-    try {
-      await ref
-          .read(apiClientProvider)
-          .updateSource(source.id, autoBackup: value);
-    } catch (error) {
-      if (mounted) setState(() => _error = '$error');
-    }
-    await _loadStatus();
   }
 
   void _snack(String message) {
@@ -143,10 +91,10 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
             value: settings.enabled,
             onChanged: disabled
                 ? null
-                : (value) => _updateAutoBackup(
-                    settings.copyWith(enabled: value),
-                    justEnabled: value,
-                  ),
+                : (value) async {
+                    await _updateAutoBackup(settings.copyWith(enabled: value));
+                    if (value) await _requestNotificationPermission();
+                  },
           ),
           if (settings.enabled) ...[
             const Divider(height: 1),
@@ -456,17 +404,6 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (AutoBackupService.isSupported)
-                        Tooltip(
-                          message: l10n.autoBackupFolderToggle,
-                          child: Switch(
-                            value: source.autoBackup,
-                            onChanged: _running || _autoBackup?.enabled != true
-                                ? null
-                                : (value) =>
-                                      _setSourceAutoBackup(source, value),
-                          ),
-                        ),
                       PopupMenuButton<String>(
                         enabled: !_running,
                         onSelected: (value) {

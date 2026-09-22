@@ -9,6 +9,30 @@ import '../services/local_media_service.dart';
 import '../services/scan_models.dart';
 import 'library_providers.dart';
 
+/// Which gallery a controller instance is showing: the whole library (tab) or
+/// a single device folder (collections).
+class GalleryScope {
+  final String? sourceId;
+  final String? albumId;
+  final String? rootPath;
+
+  const GalleryScope({this.sourceId, this.albumId, this.rootPath});
+
+  static const tab = GalleryScope();
+
+  bool get isFolder => albumId != null || rootPath != null;
+
+  @override
+  bool operator ==(Object other) =>
+      other is GalleryScope &&
+      other.sourceId == sourceId &&
+      other.albumId == albumId &&
+      other.rootPath == rootPath;
+
+  @override
+  int get hashCode => Object.hash(sourceId, albumId, rootPath);
+}
+
 class GalleryState {
   final List<GalleryEntry> entries;
   final GalleryFilter filter;
@@ -71,15 +95,22 @@ class GalleryState {
 /// Loads the indexed items (paged) and the whole device library (one ordered
 /// query) and merges them.
 class GalleryController extends Notifier<GalleryState> {
+  GalleryController(this.scope);
+
+  final GalleryScope scope;
+
   static const _cloudPageSize = 100;
+  static const _localPageSize = 120;
 
   final List<MediaItem> _cloud = [];
   final Set<String> _cloudIds = {};
   final List<LocalMedia> _local = [];
   int _cloudPage = 0;
+  int _localPage = 0;
   int _cloudTotal = 0;
   int _localTotal = 0;
   bool _cloudDone = false;
+  bool _localDone = false;
   bool _localLoading = false;
   bool _localPermissionDenied = false;
   bool _disposed = false;
@@ -99,15 +130,20 @@ class GalleryController extends Notifier<GalleryState> {
     );
   }
 
+  /// A folder gallery without an indexed source has nothing on the cloud side.
+  bool get _cloudDisabled => scope.isFolder && scope.sourceId == null;
+
   void _reset() {
     _generation += 1;
     _cloud.clear();
     _cloudIds.clear();
     _local.clear();
     _cloudPage = 0;
+    _localPage = 0;
     _cloudTotal = 0;
     _localTotal = 0;
-    _cloudDone = false;
+    _cloudDone = _cloudDisabled;
+    _localDone = !LocalMediaService.isSupported;
     _localLoading = false;
     _localPermissionDenied = false;
   }
@@ -136,11 +172,17 @@ class GalleryController extends Notifier<GalleryState> {
   }
 
   Future<void> loadMore() async {
-    if (state.loading || state.loadingMore || _cloudDone) return;
+    if (state.loading || state.loadingMore) return;
+    if (_cloudDone && _localDone) return;
     final generation = _generation;
     state = state.copyWith(loadingMore: true);
     final client = ref.read(apiClientProvider);
-    await _fetchCloud(client, _cloudPage, generation);
+    final tasks = <Future<void>>[
+      if (!_cloudDone) _fetchCloud(client, _cloudPage, generation),
+      if (!_localDone && scope.isFolder)
+        _fetchLocalPage(client, _localPage, generation),
+    ];
+    await Future.wait(tasks);
     if (_isStale(generation)) return;
     state = _snapshot(loading: false, loadingMore: false);
   }
@@ -148,8 +190,12 @@ class GalleryController extends Notifier<GalleryState> {
   Future<void> _loadFirstPages() async {
     final generation = _generation;
     final client = ref.read(apiClientProvider);
-    final cloudFuture = _fetchCloud(client, 0, generation);
-    final localFuture = _loadLocal(client, generation);
+    final cloudFuture = _cloudDisabled
+        ? Future<void>.value()
+        : _fetchCloud(client, 0, generation);
+    final localFuture = scope.isFolder
+        ? _fetchLocalPage(client, 0, generation)
+        : _loadLocal(client, generation);
     String? error;
     try {
       await cloudFuture;
@@ -169,6 +215,7 @@ class GalleryController extends Notifier<GalleryState> {
     final result = await client.media(
       status: _filter.missingOnly ? 'missing' : 'all',
       type: _filter.type,
+      sourceId: scope.sourceId,
       backupStatus: _filter.backupStatus,
       limit: _cloudPageSize,
       offset: page * _cloudPageSize,
@@ -185,6 +232,44 @@ class GalleryController extends Notifier<GalleryState> {
     _cloudTotal = result.total;
     _cloudPage = page + 1;
     _cloudDone = items.length < _cloudPageSize || _cloud.length >= _cloudTotal;
+  }
+
+  /// One page of the folder shown by this controller (bounded memory).
+  Future<void> _fetchLocalPage(
+    ApiClient client,
+    int page,
+    int generation,
+  ) async {
+    if (!LocalMediaService.isSupported) {
+      _localDone = true;
+      return;
+    }
+    if (page == 0) _localLoading = true;
+    try {
+      final result = await LocalMediaService.loadFolderPage(
+        client: client,
+        albumId: scope.albumId,
+        rootPath: scope.rootPath,
+        page: page,
+        size: _localPageSize,
+      );
+      if (_isStale(generation)) return;
+      if (page == 0) _local.clear();
+      _local.addAll(result.items);
+      _localTotal = result.total;
+      _localPage = page + 1;
+      _localDone = !result.hasMore;
+      _localPermissionDenied = false;
+    } on ScanPermissionException {
+      if (_isStale(generation)) return;
+      _localPermissionDenied = true;
+      _localDone = true;
+    } catch (_) {
+      if (_isStale(generation)) return;
+      _localDone = true;
+    } finally {
+      if (page == 0) _localLoading = false;
+    }
   }
 
   Future<void> _loadLocal(ApiClient client, int generation) async {
@@ -225,7 +310,7 @@ class GalleryController extends Notifier<GalleryState> {
       loading: loading,
       localLoading: _localLoading,
       loadingMore: loadingMore,
-      hasMore: !_cloudDone,
+      hasMore: !_cloudDone || !_localDone,
       error: error,
       localPermissionDenied: _localPermissionDenied,
       localSupported: LocalMediaService.isSupported,
@@ -233,6 +318,7 @@ class GalleryController extends Notifier<GalleryState> {
   }
 }
 
-final galleryProvider = NotifierProvider<GalleryController, GalleryState>(
-  GalleryController.new,
-);
+final galleryProvider =
+    NotifierProvider.family<GalleryController, GalleryState, GalleryScope>(
+      GalleryController.new,
+    );

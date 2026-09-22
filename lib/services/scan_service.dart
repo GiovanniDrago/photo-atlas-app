@@ -19,6 +19,20 @@ class ScanService {
 
   static Future<List<ScanFolder>> listFolders() => impl.listFolders();
 
+  /// One page of a single device folder (no subfolders).
+  static Future<AssetPage> folderPage({
+    required String albumId,
+    required int page,
+    required int size,
+  }) {
+    return impl.folderPage(albumId: albumId, page: page, size: size);
+  }
+
+  /// The newest assets of the device, used by the collections preview.
+  static Future<List<AssetEntity>> recentAssets({int limit = 6}) {
+    return impl.recentAssets(limit: limit);
+  }
+
   static Future<ScanResult> scanDirectory({
     required String directoryPath,
     required ScanBatchCallback onBatch,

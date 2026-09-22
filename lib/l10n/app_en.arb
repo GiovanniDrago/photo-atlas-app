@@ -775,5 +775,20 @@
 "@viewerPosition": {"placeholders": {"index": {"type": "int"}, "total": {"type": "int"}}},
 "galleryCounts": "On device: {device} · Cloud: {cloud}",
 "galleryDeviceLoading": "Loading the device library…",
-"@galleryCounts": {"placeholders": {"device": {"type": "int"}, "cloud": {"type": "int"}}}
+"@galleryCounts": {"placeholders": {"device": {"type": "int"}, "cloud": {"type": "int"}}},
+"activate": "Activate",
+"collectionsTab": "Collections",
+"collectionsTimelineTitle": "Timeline",
+"collectionsTimelineSubtitle": "The most recent photos, grouped by day and month",
+"collectionsFolders": "Folders",
+"collectionsFoldersHint": "Turn on the automatic upload for the folders you want to keep on kDrive: the folder is scanned, indexed and uploaded right away, and the background job keeps checking the same folders.",
+"collectionsEmpty": "No folders with photos on this device",
+"collectionsLocalUnavailable": "Device folders are only available in the Android app",
+"folderAutoUpload": "Automatic upload",
+"folderScanning": "Scanning the folder…",
+"folderUploading": "Uploading…",
+"folderUploadedOf": "{uploaded} of {total} uploaded",
+"folderEnableBackgroundTitle": "Automatic backup is off",
+"folderEnableBackgroundBody": "Turn on the background backup so the folders you selected are checked automatically?",
+"@folderUploadedOf": {"placeholders": {"uploaded": {"type": "int"}, "total": {"type": "int"}}}
 }

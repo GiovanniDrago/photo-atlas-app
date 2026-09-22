@@ -31,6 +31,29 @@ class LocalScanService {
     );
   }
 
+  /// Source of a device folder, identified by its album id (unique even when
+  /// two folders share the same name).
+  Future<String> ensureAlbumSource({
+    required String albumId,
+    required String label,
+    String? deviceId,
+  }) async {
+    final rootPath = 'album:$albumId';
+    final sources = await client.sources();
+    for (final source in sources) {
+      if (source.kind == 'local' && source.rootPath == rootPath) {
+        return source.id;
+      }
+    }
+    return client.createSource(
+      kind: 'local',
+      label: label,
+      rootPath: rootPath,
+      deviceId: deviceId,
+      albumKey: rootPath,
+    );
+  }
+
   Future<List<MediaSource>> autoBackupSources() async {
     final sources = await client.sources();
     return sources

@@ -141,3 +141,35 @@ class KDrivePreviewState {
     );
   }
 }
+
+/// Finds the local source that maps a device folder, matching first by album
+/// id, then by the legacy `album:path:<name>` keys created by older versions.
+MediaSource? matchSourceForFolder({
+  required String albumId,
+  required String folderName,
+  required List<MediaSource> sources,
+}) {
+  final locals = [
+    for (final source in sources)
+      if (source.kind == 'local') source,
+  ];
+  for (final source in locals) {
+    if (source.rootPath == 'album:$albumId' ||
+        source.albumKey == 'album:$albumId') {
+      return source;
+    }
+  }
+  for (final source in locals) {
+    if (source.rootPath == 'album:path:$folderName' ||
+        source.albumKey == 'path:$folderName') {
+      return source;
+    }
+  }
+  for (final source in locals) {
+    if (source.label == folderName &&
+        (source.rootPath?.startsWith('album:') ?? false)) {
+      return source;
+    }
+  }
+  return null;
+}

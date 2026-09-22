@@ -27,6 +27,28 @@ class LocalMediaService {
     return impl.loadAll(client: client);
   }
 
+  /// One page of a single device folder (or of a local folder on desktop).
+  static Future<LocalMediaPage> loadFolderPage({
+    required ApiClient client,
+    String? albumId,
+    String? rootPath,
+    required int page,
+    int size = 120,
+  }) {
+    return impl.loadFolderPage(
+      client: client,
+      albumId: albumId,
+      rootPath: rootPath,
+      page: page,
+      size: size,
+    );
+  }
+
+  /// The newest device files, used by the collections preview.
+  static Future<List<LocalMedia>> recent({int limit = 6}) {
+    return impl.recent(limit: limit);
+  }
+
   static Future<String?> localPath(LocalMedia media) => impl.localPath(media);
 
   /// GPS coordinates of a device file, read lazily (used by the viewer).

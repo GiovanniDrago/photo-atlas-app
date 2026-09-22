@@ -24,34 +24,92 @@ Future<LocalMediaPage> loadAll({required ApiClient client}) async {
   }
   if (ScanService.isAlbumBased) {
     final assets = await ScanService.listAllAssetsOnce();
-    final items = <LocalMedia>[];
-    final seen = <String>{};
-    for (final asset in assets) {
-      if (asset.type == AssetType.audio || asset.type == AssetType.other) {
-        continue;
-      }
-      if (!seen.add(asset.id)) continue;
-      final isVideo = asset.type == AssetType.video;
-      items.add(
-        LocalMedia(
-          id: asset.id,
-          name: asset.title ?? asset.id,
-          mediaType: isVideo ? 'video' : 'image',
-          takenAt: asset.createDateTime,
-          modifiedAt: asset.modifiedDateTime,
-          width: asset.width,
-          height: asset.height,
-          durationS: isVideo ? asset.duration.toDouble() : null,
-          asset: asset,
-        ),
-      );
-    }
+    final items = _mapAssets(assets);
     items.sort(_newestFirst);
     _cachedAssets = items;
     return LocalMediaPage(items: items, total: items.length, hasMore: false);
   }
   final files = await _localFiles(client);
   return LocalMediaPage(items: files, total: files.length, hasMore: false);
+}
+
+/// One page of a single folder: a MediaStore bucket on Android, a local
+/// folder on desktop. Loaded incrementally so memory stays bounded.
+Future<LocalMediaPage> loadFolderPage({
+  required ApiClient client,
+  String? albumId,
+  String? rootPath,
+  required int page,
+  int size = 120,
+}) async {
+  if (albumId != null && albumId.isNotEmpty) {
+    final result = await ScanService.folderPage(
+      albumId: albumId,
+      page: page,
+      size: size,
+    );
+    final items = _mapAssets(result.assets);
+    return LocalMediaPage(
+      items: items,
+      total: result.total,
+      hasMore: page * size + items.length < result.total,
+    );
+  }
+  final files = await _localFiles(client);
+  final root = rootPath;
+  final filtered = (root == null || root.isEmpty)
+      ? files
+      : [
+          for (final file in files)
+            if ((file.path ?? '').startsWith(root)) file,
+        ];
+  final start = page * size;
+  if (start >= filtered.length) {
+    return LocalMediaPage(
+      items: const [],
+      total: filtered.length,
+      hasMore: false,
+    );
+  }
+  final end = start + size > filtered.length ? filtered.length : start + size;
+  return LocalMediaPage(
+    items: filtered.sublist(start, end),
+    total: filtered.length,
+    hasMore: end < filtered.length,
+  );
+}
+
+/// The newest device files (collections preview).
+Future<List<LocalMedia>> recent({int limit = 6}) async {
+  if (!ScanService.isAlbumBased) return const [];
+  final assets = await ScanService.recentAssets(limit: limit);
+  return _mapAssets(assets);
+}
+
+List<LocalMedia> _mapAssets(List<AssetEntity> assets) {
+  final items = <LocalMedia>[];
+  final seen = <String>{};
+  for (final asset in assets) {
+    if (asset.type == AssetType.audio || asset.type == AssetType.other) {
+      continue;
+    }
+    if (!seen.add(asset.id)) continue;
+    final isVideo = asset.type == AssetType.video;
+    items.add(
+      LocalMedia(
+        id: asset.id,
+        name: asset.title ?? asset.id,
+        mediaType: isVideo ? 'video' : 'image',
+        takenAt: asset.createDateTime,
+        modifiedAt: asset.modifiedDateTime,
+        width: asset.width,
+        height: asset.height,
+        durationS: isVideo ? asset.duration.toDouble() : null,
+        asset: asset,
+      ),
+    );
+  }
+  return items;
 }
 
 int _newestFirst(LocalMedia a, LocalMedia b) {

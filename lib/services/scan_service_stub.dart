@@ -8,6 +8,16 @@ bool get isAlbumBased => false;
 
 Future<List<ScanFolder>> listFolders() async => const [];
 
+Future<AssetPage> folderPage({
+  required String albumId,
+  required int page,
+  required int size,
+}) async {
+  return const AssetPage(assets: [], total: 0);
+}
+
+Future<List<AssetEntity>> recentAssets({int limit = 6}) async => const [];
+
 Future<ScanResult> scanDirectory({
   required String directoryPath,
   required ScanBatchCallback onBatch,

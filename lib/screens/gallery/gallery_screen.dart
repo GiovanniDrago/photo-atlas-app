@@ -18,7 +18,21 @@ import 'gallery_geometry.dart';
 import 'media_viewer_screen.dart';
 
 class GalleryScreen extends ConsumerStatefulWidget {
-  const GalleryScreen({super.key});
+  /// [scope] selects what the gallery shows: the whole library (default) or a
+  /// single device folder. [header] is shown above the grid (folder controls),
+  /// [title] replaces the tab title and [showFilters] hides the filter chips.
+  final GalleryScope scope;
+  final String? title;
+  final Widget? header;
+  final bool showFilters;
+
+  const GalleryScreen({
+    super.key,
+    this.scope = GalleryScope.tab,
+    this.title,
+    this.header,
+    this.showFilters = true,
+  });
 
   @override
   ConsumerState<GalleryScreen> createState() => _GalleryScreenState();
@@ -61,9 +75,11 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     }
   }
 
-  GalleryController get _controller => ref.read(galleryProvider.notifier);
+  GalleryController get _controller =>
+      ref.read(galleryProvider(widget.scope).notifier);
 
-  List<GalleryEntry> get _entries => ref.read(galleryProvider).entries;
+  List<GalleryEntry> get _entries =>
+      ref.read(galleryProvider(widget.scope)).entries;
 
   List<GalleryEntry> get _selectedEntries => [
     for (final entry in _entries)
@@ -434,7 +450,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final state = ref.watch(galleryProvider);
+    final state = ref.watch(galleryProvider(widget.scope));
     final filter = state.filter;
     final tileSize = (MediaQuery.sizeOf(context).width - 24 - 12) / 3;
     _tileSize = tileSize;
@@ -469,7 +485,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
               ],
             )
           : AppBar(
-              title: Text(l10n.galleryTab),
+              title: Text(widget.title ?? l10n.galleryTab),
               actions: [
                 IconButton(
                   tooltip: l10n.retry,
@@ -480,64 +496,70 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
             ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _FilterChip(
-                    label: l10n.allImages,
-                    selected: filter == const GalleryFilter(),
-                    onSelected: () => _setFilter(const GalleryFilter()),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: l10n.photosOnly,
-                    selected:
-                        filter.type == 'image' &&
-                        filter.upload == GalleryUploadFilter.all &&
-                        !filter.missingOnly,
-                    onSelected: () =>
-                        _setFilter(const GalleryFilter(type: 'image')),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: l10n.videosOnly,
-                    selected:
-                        filter.type == 'video' &&
-                        filter.upload == GalleryUploadFilter.all &&
-                        !filter.missingOnly,
-                    onSelected: () =>
-                        _setFilter(const GalleryFilter(type: 'video')),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: l10n.galleryNotUploaded,
-                    selected: filter.upload == GalleryUploadFilter.pending,
-                    onSelected: () => _setFilter(
-                      const GalleryFilter(upload: GalleryUploadFilter.pending),
+          if (widget.header != null) widget.header!,
+          if (widget.showFilters)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _FilterChip(
+                      label: l10n.allImages,
+                      selected: filter == const GalleryFilter(),
+                      onSelected: () => _setFilter(const GalleryFilter()),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: l10n.galleryUploaded,
-                    selected: filter.upload == GalleryUploadFilter.uploaded,
-                    onSelected: () => _setFilter(
-                      const GalleryFilter(upload: GalleryUploadFilter.uploaded),
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: l10n.photosOnly,
+                      selected:
+                          filter.type == 'image' &&
+                          filter.upload == GalleryUploadFilter.all &&
+                          !filter.missingOnly,
+                      onSelected: () =>
+                          _setFilter(const GalleryFilter(type: 'image')),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: l10n.missingMetadataOnly,
-                    selected: filter.missingOnly,
-                    onSelected: () =>
-                        _setFilter(const GalleryFilter(missingOnly: true)),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: l10n.videosOnly,
+                      selected:
+                          filter.type == 'video' &&
+                          filter.upload == GalleryUploadFilter.all &&
+                          !filter.missingOnly,
+                      onSelected: () =>
+                          _setFilter(const GalleryFilter(type: 'video')),
+                    ),
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: l10n.galleryNotUploaded,
+                      selected: filter.upload == GalleryUploadFilter.pending,
+                      onSelected: () => _setFilter(
+                        const GalleryFilter(
+                          upload: GalleryUploadFilter.pending,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: l10n.galleryUploaded,
+                      selected: filter.upload == GalleryUploadFilter.uploaded,
+                      onSelected: () => _setFilter(
+                        const GalleryFilter(
+                          upload: GalleryUploadFilter.uploaded,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: l10n.missingMetadataOnly,
+                      selected: filter.missingOnly,
+                      onSelected: () =>
+                          _setFilter(const GalleryFilter(missingOnly: true)),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
             child: Align(

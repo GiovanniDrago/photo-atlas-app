@@ -8,6 +8,18 @@ Future<LocalMediaPage> loadAll({required ApiClient client}) async {
   return const LocalMediaPage(items: [], total: 0, hasMore: false);
 }
 
+Future<LocalMediaPage> loadFolderPage({
+  required ApiClient client,
+  String? albumId,
+  String? rootPath,
+  required int page,
+  int size = 120,
+}) async {
+  return const LocalMediaPage(items: [], total: 0, hasMore: false);
+}
+
+Future<List<LocalMedia>> recent({int limit = 6}) async => const [];
+
 Future<String?> localPath(LocalMedia media) async => media.path;
 
 Future<({double lat, double lon})?> location(LocalMedia media) async => null;

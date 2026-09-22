@@ -34,15 +34,81 @@ Future<List<ScanFolder>> listFolders() async {
   final paths = await PhotoManager.getAssetPathList(
     type: RequestType.common,
     onlyAll: false,
+    filterOption: _galleryFilterOption(),
   );
   final folders = <ScanFolder>[];
   for (final path in paths) {
+    // The "Recent" pseudo album is not a folder.
+    if (path.isAll) continue;
     final count = await path.assetCountAsync;
     if (count == 0) continue;
-    folders.add(ScanFolder(id: path.id, name: path.name, count: count));
+    var relative = path.name;
+    try {
+      final assets = await path.getAssetListRange(start: 0, end: 1);
+      final first = assets.isEmpty ? null : assets.first;
+      final value = first?.relativePath;
+      if (value != null && value.trim().isNotEmpty) relative = value;
+    } catch (_) {
+      relative = path.name;
+    }
+    folders.add(
+      ScanFolder(id: path.id, name: path.name, path: relative, count: count),
+    );
   }
   folders.sort((a, b) => b.count.compareTo(a.count));
   return folders;
+}
+
+/// One page of a device folder, ordered newest first.
+Future<AssetPage> folderPage({
+  required String albumId,
+  required int page,
+  required int size,
+}) async {
+  if (!Platform.isAndroid) return const AssetPage(assets: [], total: 0);
+  final permission = await PhotoManager.requestPermissionExtend(
+    requestOption: _permissionRequest,
+  );
+  if (!permission.isAuth && !permission.hasAccess) {
+    throw const ScanPermissionException();
+  }
+  final paths = await PhotoManager.getAssetPathList(
+    type: RequestType.common,
+    onlyAll: false,
+    filterOption: _galleryFilterOption(),
+  );
+  AssetPathEntity? album;
+  for (final path in paths) {
+    if (path.id == albumId) {
+      album = path;
+      break;
+    }
+  }
+  if (album == null) return const AssetPage(assets: [], total: 0);
+  final total = await album.assetCountAsync;
+  final start = page * size;
+  if (start >= total) return AssetPage(assets: const [], total: total);
+  final end = start + size > total ? total : start + size;
+  final assets = await album.getAssetListRange(start: start, end: end);
+  return AssetPage(assets: assets, total: total);
+}
+
+/// The newest assets of the whole library (used by the collections preview).
+Future<List<AssetEntity>> recentAssets({int limit = 6}) async {
+  if (!Platform.isAndroid) return const [];
+  final permission = await PhotoManager.requestPermissionExtend(
+    requestOption: _permissionRequest,
+  );
+  if (!permission.isAuth && !permission.hasAccess) {
+    throw const ScanPermissionException();
+  }
+  final paths = await PhotoManager.getAssetPathList(
+    type: RequestType.common,
+    onlyAll: true,
+    filterOption: _galleryFilterOption(),
+  );
+  if (paths.isEmpty) return const [];
+  return paths.first.getAssetListRange(start: 0, end: limit);
 }
 
 Future<String?> findAlbumIdByName(String name) async {

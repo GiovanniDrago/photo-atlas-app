@@ -281,5 +281,19 @@
 "viewerNoLocation": "Nessuna posizione disponibile",
 "viewerOpenMapsFailed": "Impossibile aprire l'app delle mappe",
 "galleryCounts": "Sul dispositivo: {device} · Cloud: {cloud}",
-"galleryDeviceLoading": "Caricamento della libreria locale…"
+"galleryDeviceLoading": "Caricamento della libreria locale…",
+"activate": "Attiva",
+"collectionsTab": "Raccolte",
+"collectionsTimelineTitle": "Timeline",
+"collectionsTimelineSubtitle": "Le foto più recenti, raggruppate per giorno e mese",
+"collectionsFolders": "Cartelle",
+"collectionsFoldersHint": "Attiva l'upload automatico per le cartelle che vuoi tenere su kDrive: la cartella viene scansionata, censita e caricata subito, e il job in background continua a controllare le stesse cartelle.",
+"collectionsEmpty": "Nessuna cartella con foto su questo dispositivo",
+"collectionsLocalUnavailable": "Le cartelle del dispositivo sono disponibili solo nell'app Android",
+"folderAutoUpload": "Upload automatico",
+"folderScanning": "Scansione della cartella…",
+"folderUploading": "Caricamento…",
+"folderUploadedOf": "{uploaded} di {total} caricate",
+"folderEnableBackgroundTitle": "Backup automatico disattivato",
+"folderEnableBackgroundBody": "Attivare il backup in background per controllare automaticamente le cartelle scelte?"
 }

@@ -1,3 +1,5 @@
+import 'package:photo_manager/photo_manager.dart';
+
 const imageExtensions = <String>{
   'jpg',
   'jpeg',
@@ -121,9 +123,25 @@ class ScannedMedia {
 class ScanFolder {
   final String id;
   final String name;
+
+  /// Folder path on the device (for example `DCIM/Camera`), used to tell
+  /// folders with the same name apart.
+  final String path;
   final int count;
 
-  const ScanFolder({required this.id, required this.name, required this.count});
+  const ScanFolder({
+    required this.id,
+    required this.name,
+    required this.path,
+    required this.count,
+  });
+}
+
+class AssetPage {
+  final List<AssetEntity> assets;
+  final int total;
+
+  const AssetPage({required this.assets, required this.total});
 }
 
 class ScanResult {

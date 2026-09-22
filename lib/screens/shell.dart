@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import 'backup/backup_screen.dart';
+import 'collections/collections_screen.dart';
 import 'gallery/gallery_screen.dart';
 import 'map/map_screen.dart';
 import 'settings/settings_screen.dart';
-import 'timeline/timeline_screen.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -19,7 +19,7 @@ class _AppShellState extends State<AppShell> {
 
   static const List<Widget> _screens = [
     MapScreen(),
-    TimelineScreen(),
+    CollectionsScreen(),
     GalleryScreen(),
     SettingsScreen(),
   ];
@@ -65,7 +65,11 @@ class _AppShellState extends State<AppShell> {
         child: Row(
           children: [
             _barItem(index: 0, icon: Icons.public, label: l10n.mapTab),
-            _barItem(index: 1, icon: Icons.timeline, label: l10n.timelineTab),
+            _barItem(
+              index: 1,
+              icon: Icons.collections_outlined,
+              label: l10n.collectionsTab,
+            ),
             const SizedBox(width: 64),
             _barItem(
               index: 2,
