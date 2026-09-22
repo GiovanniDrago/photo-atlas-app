@@ -189,4 +189,63 @@ void main() {
     expect(kdrive.canDeleteCloud, isTrue);
     expect(kdrive.canDeleteLocal, isFalse);
   });
+
+  test('merge matches a device file with a reindexed cloud row', () {
+    final entries = mergeGalleryEntries(
+      cloud: [
+        cloudItem(
+          externalKey: 'stale-asset-id',
+          name: 'PXL_20260819_121415527.MP.jpg',
+          sizeBytes: 5673031,
+          backupStatus: 'uploaded',
+        ),
+      ],
+      local: [
+        localItem(
+          id: 'fresh-asset-id',
+          name: 'PXL_20260819_121415527.MP.jpg',
+          sizeBytes: 5673031,
+        ),
+      ],
+    );
+    expect(entries, hasLength(1));
+    expect(entries.first.hasLocal, isTrue);
+    expect(entries.first.isIndexed, isTrue);
+    expect(entries.first.isUploaded, isTrue);
+  });
+
+  test(
+    'merge keeps a second device file with the same name and size apart',
+    () {
+      final entries = mergeGalleryEntries(
+        cloud: [
+          cloudItem(externalKey: 'stale', name: 'IMG.jpg', sizeBytes: 100),
+        ],
+        local: [
+          localItem(id: 'new-1', name: 'IMG.jpg', sizeBytes: 100),
+          localItem(id: 'new-2', name: 'IMG.jpg', sizeBytes: 100),
+        ],
+      );
+      expect(entries, hasLength(2));
+      expect(entries.where((entry) => entry.hasLocal), hasLength(2));
+      expect(entries.where((entry) => entry.isIndexed), hasLength(1));
+    },
+  );
+
+  test('merge never matches kDrive items by name and size', () {
+    final entries = mergeGalleryEntries(
+      cloud: [
+        cloudItem(
+          externalKey: '42',
+          sourceKind: 'kdrive',
+          name: 'IMG.jpg',
+          sizeBytes: 100,
+        ),
+      ],
+      local: [localItem(id: 'new-1', name: 'IMG.jpg', sizeBytes: 100)],
+    );
+    expect(entries, hasLength(2));
+    expect(entries.where((entry) => entry.isLocalOnly), hasLength(1));
+    expect(entries.where((entry) => entry.isCloudOnly), hasLength(1));
+  });
 }

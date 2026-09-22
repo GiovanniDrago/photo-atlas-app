@@ -772,5 +772,8 @@
 "viewerOpenInMaps": "Open in Maps",
 "viewerNoLocation": "No position available",
 "viewerOpenMapsFailed": "Could not open the maps app",
-"@viewerPosition": {"placeholders": {"index": {"type": "int"}, "total": {"type": "int"}}}
+"@viewerPosition": {"placeholders": {"index": {"type": "int"}, "total": {"type": "int"}}},
+"galleryCounts": "On device: {device} · Cloud: {cloud}",
+"galleryDeviceLoading": "Loading the device library…",
+"@galleryCounts": {"placeholders": {"device": {"type": "int"}, "cloud": {"type": "int"}}}
 }

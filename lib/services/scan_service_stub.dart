@@ -28,9 +28,7 @@ Future<ScanResult> scanAlbum({
   );
 }
 
-Future<AssetPage> listAllAssets({required int page, required int size}) async {
-  return const AssetPage(assets: [], total: 0);
-}
+Future<List<AssetEntity>> listAllAssetsOnce() async => const [];
 
 Future<String?> findAlbumIdByName(String name) async => null;
 

@@ -279,5 +279,7 @@
 "viewerLocation": "Posizione",
 "viewerOpenInMaps": "Apri in Maps",
 "viewerNoLocation": "Nessuna posizione disponibile",
-"viewerOpenMapsFailed": "Impossibile aprire l'app delle mappe"
+"viewerOpenMapsFailed": "Impossibile aprire l'app delle mappe",
+"galleryCounts": "Sul dispositivo: {device} · Cloud: {cloud}",
+"galleryDeviceLoading": "Caricamento della libreria locale…"
 }

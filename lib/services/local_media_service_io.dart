@@ -12,67 +12,56 @@ bool get isSupported => true;
 
 const _cacheTtl = Duration(minutes: 5);
 
+List<LocalMedia>? _cachedAssets;
 List<LocalMedia>? _cachedFiles;
 DateTime? _cachedAt;
 
-Future<LocalMediaPage> page({
-  required ApiClient client,
-  required int page,
-  int size = 60,
-}) {
-  if (ScanService.isAlbumBased) return _assetPage(page: page, size: size);
-  return _filePage(client: client, page: page, size: size);
-}
-
-Future<LocalMediaPage> _assetPage({
-  required int page,
-  required int size,
-}) async {
-  final result = await ScanService.listAllAssets(page: page, size: size);
-  final items = <LocalMedia>[];
-  for (final asset in result.assets) {
-    if (asset.type == AssetType.audio || asset.type == AssetType.other) {
-      continue;
+/// Loads the whole device library once, newest first and without duplicates.
+Future<LocalMediaPage> loadAll({required ApiClient client}) async {
+  final cached = _cachedAssets;
+  if (cached != null) {
+    return LocalMediaPage(items: cached, total: cached.length, hasMore: false);
+  }
+  if (ScanService.isAlbumBased) {
+    final assets = await ScanService.listAllAssetsOnce();
+    final items = <LocalMedia>[];
+    final seen = <String>{};
+    for (final asset in assets) {
+      if (asset.type == AssetType.audio || asset.type == AssetType.other) {
+        continue;
+      }
+      if (!seen.add(asset.id)) continue;
+      final isVideo = asset.type == AssetType.video;
+      items.add(
+        LocalMedia(
+          id: asset.id,
+          name: asset.title ?? asset.id,
+          mediaType: isVideo ? 'video' : 'image',
+          takenAt: asset.createDateTime,
+          modifiedAt: asset.modifiedDateTime,
+          width: asset.width,
+          height: asset.height,
+          durationS: isVideo ? asset.duration.toDouble() : null,
+          asset: asset,
+        ),
+      );
     }
-    final isVideo = asset.type == AssetType.video;
-    items.add(
-      LocalMedia(
-        id: asset.id,
-        name: asset.title ?? asset.id,
-        mediaType: isVideo ? 'video' : 'image',
-        takenAt: asset.createDateTime,
-        modifiedAt: asset.modifiedDateTime,
-        width: asset.width,
-        height: asset.height,
-        durationS: isVideo ? asset.duration.toDouble() : null,
-        asset: asset,
-      ),
-    );
+    items.sort(_newestFirst);
+    _cachedAssets = items;
+    return LocalMediaPage(items: items, total: items.length, hasMore: false);
   }
-  final seen = (page + 1) * size;
-  return LocalMediaPage(
-    items: items,
-    total: result.total,
-    hasMore: seen < result.total,
-  );
+  final files = await _localFiles(client);
+  return LocalMediaPage(items: files, total: files.length, hasMore: false);
 }
 
-Future<LocalMediaPage> _filePage({
-  required ApiClient client,
-  required int page,
-  int size = 60,
-}) async {
-  final files = await _localFiles(client);
-  final start = page * size;
-  if (start >= files.length) {
-    return LocalMediaPage(items: const [], total: files.length, hasMore: false);
-  }
-  final end = start + size > files.length ? files.length : start + size;
-  return LocalMediaPage(
-    items: files.sublist(start, end),
-    total: files.length,
-    hasMore: end < files.length,
-  );
+int _newestFirst(LocalMedia a, LocalMedia b) {
+  final left = a.takenAt ?? a.modifiedAt;
+  final right = b.takenAt ?? b.modifiedAt;
+  if (left == null && right == null) return a.id.compareTo(b.id);
+  if (left == null) return 1;
+  if (right == null) return -1;
+  final byDate = right.compareTo(left);
+  return byDate != 0 ? byDate : a.id.compareTo(b.id);
 }
 
 Future<List<LocalMedia>> _localFiles(ApiClient client) async {
@@ -173,6 +162,7 @@ Future<List<String>> deleteAll(List<LocalMedia> media) async {
 }
 
 void invalidateCache() {
+  _cachedAssets = null;
   _cachedFiles = null;
   _cachedAt = null;
 }

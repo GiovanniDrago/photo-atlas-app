@@ -21,12 +21,10 @@ class LocalMediaPage {
 class LocalMediaService {
   static bool get isSupported => impl.isSupported;
 
-  static Future<LocalMediaPage> page({
-    required ApiClient client,
-    required int page,
-    int size = 60,
-  }) {
-    return impl.page(client: client, page: page, size: size);
+  /// Loads the whole device library once, newest first and without
+  /// duplicates (the platform paging is not stable without an explicit order).
+  static Future<LocalMediaPage> loadAll({required ApiClient client}) {
+    return impl.loadAll(client: client);
   }
 
   static Future<String?> localPath(LocalMedia media) => impl.localPath(media);

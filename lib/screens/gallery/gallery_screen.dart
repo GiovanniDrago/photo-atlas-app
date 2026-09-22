@@ -538,6 +538,18 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                state.localLoading
+                    ? l10n.galleryDeviceLoading
+                    : l10n.galleryCounts(state.localTotal, state.cloudTotal),
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ),
+          ),
           if (state.localPermissionDenied)
             _PermissionBanner(onOpenSettings: ScanService.openSettings),
           Expanded(

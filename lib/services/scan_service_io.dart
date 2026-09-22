@@ -222,8 +222,20 @@ Future<ScanResult> scanDirectory({
   return ScanResult(filesSeen: seen, indexed: indexed);
 }
 
-Future<AssetPage> listAllAssets({required int page, required int size}) async {
-  if (!Platform.isAndroid) return const AssetPage(assets: [], total: 0);
+/// Explicit ordering: without it MediaStore returns rows in an arbitrary,
+/// unstable order, which breaks paging (duplicates and skipped items).
+FilterOptionGroup _galleryFilterOption() {
+  return FilterOptionGroup(
+    orders: [
+      OrderOption(type: OrderOptionType.createDate, asc: false),
+      OrderOption(type: OrderOptionType.updateDate, asc: false),
+    ],
+  );
+}
+
+/// The whole device media library in a single query, newest first.
+Future<List<AssetEntity>> listAllAssetsOnce() async {
+  if (!Platform.isAndroid) return const [];
   final permission = await PhotoManager.requestPermissionExtend(
     requestOption: _permissionRequest,
   );
@@ -233,12 +245,13 @@ Future<AssetPage> listAllAssets({required int page, required int size}) async {
   final paths = await PhotoManager.getAssetPathList(
     type: RequestType.common,
     onlyAll: true,
+    filterOption: _galleryFilterOption(),
   );
-  if (paths.isEmpty) return const AssetPage(assets: [], total: 0);
+  if (paths.isEmpty) return const [];
   final all = paths.first;
   final total = await all.assetCountAsync;
-  final assets = await all.getAssetListPaged(page: page, size: size);
-  return AssetPage(assets: assets, total: total);
+  if (total <= 0) return const [];
+  return all.getAssetListRange(start: 0, end: total);
 }
 
 Future<ScannedMedia?> buildScannedMedia(AssetEntity asset) async {

@@ -131,11 +131,34 @@ List<GalleryEntry> mergeGalleryEntries({
   required List<LocalMedia> local,
 }) {
   final entries = <String, GalleryEntry>{};
+  final byNameSize = <String, String>{};
   for (final item in cloud) {
-    entries[GalleryEntry.cloudKey(item)] = GalleryEntry(cloud: item);
+    final key = GalleryEntry.cloudKey(item);
+    entries[key] = GalleryEntry(cloud: item);
+    // Rebuilding the device media library assigns new asset ids, so indexed
+    // items are matched by name and size as well to avoid showing a photo
+    // twice (once from the cloud, once from the device).
+    if (item.sourceKind != 'kdrive') {
+      final size = item.sizeBytes;
+      if (size != null && size > 0 && item.name.isNotEmpty) {
+        byNameSize.putIfAbsent('${item.name}|$size', () => key);
+      }
+    }
   }
   for (final media in local) {
-    final key = GalleryEntry.localKey(media);
+    var key = GalleryEntry.localKey(media);
+    if (!entries.containsKey(key)) {
+      final size = media.sizeBytes;
+      if (size != null && size > 0 && media.name.isNotEmpty) {
+        final candidate = byNameSize['${media.name}|$size'];
+        final candidateEntry = candidate == null ? null : entries[candidate];
+        if (candidate != null &&
+            candidateEntry != null &&
+            candidateEntry.local == null) {
+          key = candidate;
+        }
+      }
+    }
     final existing = entries[key];
     entries[key] = GalleryEntry(cloud: existing?.cloud, local: media);
   }

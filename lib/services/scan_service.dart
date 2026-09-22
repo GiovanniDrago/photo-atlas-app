@@ -43,11 +43,8 @@ class ScanService {
     );
   }
 
-  static Future<AssetPage> listAllAssets({
-    required int page,
-    required int size,
-  }) {
-    return impl.listAllAssets(page: page, size: size);
+  static Future<List<AssetEntity>> listAllAssetsOnce() {
+    return impl.listAllAssetsOnce();
   }
 
   static Future<String?> findAlbumIdByName(String name) {

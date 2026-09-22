@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../models/gallery_entry.dart';
 import '../../providers/library_providers.dart';
 import '../../services/backup_service.dart';
+import '../../services/local_media_service.dart';
 import '../../services/scan_service.dart';
 
 class UploadPickerScreen extends ConsumerStatefulWidget {
@@ -18,37 +20,32 @@ class UploadPickerScreen extends ConsumerStatefulWidget {
 class _UploadPickerScreenState extends ConsumerState<UploadPickerScreen> {
   static const _pageSize = 60;
 
-  final Map<String, AssetEntity> _selected = {};
-  final List<AssetEntity> _assets = [];
-  int _page = 0;
-  int _total = 0;
+  final Map<String, LocalMedia> _selected = {};
+  final List<LocalMedia> _all = [];
+  int _visible = _pageSize;
   bool _loading = true;
   bool _uploading = false;
   bool _cancelled = false;
-  bool _finished = false;
   String? _error;
   BackupProgress? _progress;
 
   @override
   void initState() {
     super.initState();
-    _loadMore();
+    _load();
   }
 
-  Future<void> _loadMore() async {
-    if (_finished) return;
+  Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final page = await ScanService.listAllAssets(
-        page: _page,
-        size: _pageSize,
+      final page = await LocalMediaService.loadAll(
+        client: ref.read(apiClientProvider),
       );
       if (!mounted) return;
       setState(() {
-        _assets.addAll(page.assets);
-        _total = page.total;
-        _page += 1;
-        _finished = page.assets.length < _pageSize;
+        _all
+          ..clear()
+          ..addAll(page.items);
         _error = null;
       });
     } on ScanPermissionException {
@@ -64,23 +61,30 @@ class _UploadPickerScreenState extends ConsumerState<UploadPickerScreen> {
     }
   }
 
-  void _toggle(AssetEntity asset) {
+  void _showMore() {
+    setState(() => _visible += _pageSize);
+  }
+
+  void _toggle(LocalMedia media) {
     setState(() {
-      if (_selected.containsKey(asset.id)) {
-        _selected.remove(asset.id);
+      if (_selected.containsKey(media.id)) {
+        _selected.remove(media.id);
       } else {
-        _selected[asset.id] = asset;
+        _selected[media.id] = media;
       }
     });
   }
 
   void _toggleAll() {
     setState(() {
-      if (_selected.length == _assets.length) {
-        _selected.clear();
+      final visible = _all.take(_visible).toList();
+      if (visible.every((media) => _selected.containsKey(media.id))) {
+        for (final media in visible) {
+          _selected.remove(media.id);
+        }
       } else {
-        for (final asset in _assets) {
-          _selected[asset.id] = asset;
+        for (final media in visible) {
+          _selected[media.id] = media;
         }
       }
     });
@@ -97,7 +101,10 @@ class _UploadPickerScreenState extends ConsumerState<UploadPickerScreen> {
     try {
       final service = BackupService(ref.read(apiClientProvider));
       final errors = await service.uploadPickedAssets(
-        assets: _selected.values.toList(),
+        assets: [
+          for (final media in _selected.values)
+            if (media.asset != null) media.asset!,
+        ],
         onProgress: (progress) {
           if (mounted) setState(() => _progress = progress);
         },
@@ -131,7 +138,7 @@ class _UploadPickerScreenState extends ConsumerState<UploadPickerScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
-    if (kIsWeb) {
+    if (kIsWeb || !ScanService.isAlbumBased) {
       return Scaffold(
         appBar: AppBar(title: Text(l10n.backupPickerTitle)),
         body: Center(
@@ -142,16 +149,18 @@ class _UploadPickerScreenState extends ConsumerState<UploadPickerScreen> {
         ),
       );
     }
+    final visible = _all.take(_visible).toList();
+    final allSelected =
+        visible.isNotEmpty &&
+        visible.every((media) => _selected.containsKey(media.id));
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.backupPickerTitle),
         actions: [
           TextButton(
-            onPressed: _uploading || _assets.isEmpty ? null : _toggleAll,
+            onPressed: _uploading || visible.isEmpty ? null : _toggleAll,
             child: Text(
-              _selected.length == _assets.length && _assets.isNotEmpty
-                  ? l10n.backupDeselectAll
-                  : l10n.backupSelectAll,
+              allSelected ? l10n.backupDeselectAll : l10n.backupSelectAll,
             ),
           ),
         ],
@@ -171,23 +180,27 @@ class _UploadPickerScreenState extends ConsumerState<UploadPickerScreen> {
                 crossAxisSpacing: 4,
                 mainAxisSpacing: 4,
               ),
-              itemCount: _assets.length,
+              itemCount: visible.length,
               itemBuilder: (context, index) {
-                final asset = _assets[index];
-                final selected = _selected.containsKey(asset.id);
+                final media = visible[index];
+                final asset = media.asset;
+                final selected = _selected.containsKey(media.id);
                 return GestureDetector(
-                  onTap: _uploading ? null : () => _toggle(asset),
+                  onTap: _uploading ? null : () => _toggle(media),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      AssetEntityImage(
-                        asset,
-                        isOriginal: false,
-                        thumbnailSize: const ThumbnailSize.square(240),
-                        thumbnailFormat: ThumbnailFormat.jpeg,
-                        fit: BoxFit.cover,
-                      ),
-                      if (asset.type == AssetType.video)
+                      if (asset != null)
+                        AssetEntityImage(
+                          asset,
+                          isOriginal: false,
+                          thumbnailSize: const ThumbnailSize.square(240),
+                          thumbnailFormat: ThumbnailFormat.jpeg,
+                          fit: BoxFit.cover,
+                        )
+                      else
+                        ColoredBox(color: scheme.surfaceContainerHighest),
+                      if (media.isVideo)
                         const Positioned(
                           left: 4,
                           bottom: 4,
@@ -229,10 +242,10 @@ class _UploadPickerScreenState extends ConsumerState<UploadPickerScreen> {
               padding: EdgeInsets.all(8),
               child: LinearProgressIndicator(),
             )
-          else if (!_finished)
+          else if (_visible < _all.length)
             TextButton(
-              onPressed: _loadMore,
-              child: Text(l10n.backupLoadMore(_total)),
+              onPressed: _showMore,
+              child: Text(l10n.backupLoadMore(_all.length)),
             ),
           if (_uploading)
             Padding(
