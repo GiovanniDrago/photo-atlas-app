@@ -168,8 +168,10 @@ class ApiClient {
   String thumbnailUrl(String mediaId) =>
       '$baseUrl/api/media/$mediaId/thumbnail';
 
-  Future<ApiConfig> apiConfig() async {
-    final body = await _getJson(_uri('/api/config'));
+  Future<ApiConfig> apiConfig({
+    Duration timeout = const Duration(seconds: 8),
+  }) async {
+    final body = await _getJson(_uri('/api/config'), timeout: timeout);
     return ApiConfig.fromJson(body);
   }
 

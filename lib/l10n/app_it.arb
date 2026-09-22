@@ -22,7 +22,7 @@
   "settingsTitle": "Impostazioni",
   "apiSection": "Server API",
   "apiBaseUrl": "URL base dell'API",
-  "apiBaseUrlHint": "http://localhost:8787",
+  "apiBaseUrlHint": "http://10.234.121.225:8787",
   "save": "Salva",
   "detectServer": "Rileva",
   "serverFound": "Server trovato: {url}",
@@ -242,5 +242,9 @@
   "autoBackupLastRun": "Ultima esecuzione automatica: {time}",
   "autoBackupEnableAllBody": "Il backup automatico è attivo ma nessuna cartella è selezionata. Attivarlo per tutte le {count} cartelle?",
   "autoBackupMinutes": "{minutes} min",
-  "autoBackupHours": "{hours} h"
+  "autoBackupHours": "{hours} h",
+  "testConnection": "Verifica connessione",
+  "serverTestOk": "Server raggiungibile",
+  "serverTestFailed": "Server non raggiungibile",
+  "bootstrapSlowHint": "Sta richiedendo più tempo del previsto: controlla l'indirizzo del server."
 }

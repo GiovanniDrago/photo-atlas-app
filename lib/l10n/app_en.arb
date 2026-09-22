@@ -93,7 +93,7 @@
   "@apiBaseUrl": {
     "description": "Label for the API base URL field"
   },
-  "apiBaseUrlHint": "http://localhost:8787",
+  "apiBaseUrlHint": "http://10.234.121.225:8787",
   "@apiBaseUrlHint": {
     "description": "Hint for the API base URL field"
   },
@@ -730,5 +730,9 @@
   "autoBackupMinutes": "{minutes} min",
   "@autoBackupMinutes": {"placeholders": {"minutes": {"type": "int"}}},
   "autoBackupHours": "{hours} h",
-  "@autoBackupHours": {"placeholders": {"hours": {"type": "int"}}}
+  "@autoBackupHours": {"placeholders": {"hours": {"type": "int"}}},
+  "testConnection": "Test connection",
+  "serverTestOk": "Server reachable",
+  "serverTestFailed": "Server not reachable",
+  "bootstrapSlowHint": "Taking longer than expected: check the server address."
 }

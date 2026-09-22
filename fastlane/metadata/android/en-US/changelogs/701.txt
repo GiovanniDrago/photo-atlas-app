@@ -1,0 +1,4 @@
+Server address handling: the app ships with the current default API address, tries the known
+addresses automatically at startup and, when the server is unreachable, shows a screen with
+Test connection, Detect (including a scan of the local network) and a manual address field.
+The loading screen also offers a shortcut to those settings.

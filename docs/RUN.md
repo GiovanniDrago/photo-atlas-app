@@ -135,6 +135,15 @@ You can point the web build at an API at compile time:
 flutter build web --release --dart-define=API_BASE_URL=http://192.168.1.20:8787
 ```
 
+## Server address
+
+- The app ships with `http://10.234.121.225:8787` as the default API address (Android/Linux); the
+  web build uses the host that serves the page
+- When the API does not answer, the app tries the known addresses and then shows **Server settings**
+  (also reachable from the loading screen after a few seconds) with *Test connection*, *Detect*
+  (known addresses plus a scan of the local `/24` on port 8787) and a manual field
+- The address is stored per installation, so it survives app restarts
+
 ## Checks
 
 ```bash
@@ -148,6 +157,7 @@ flutter gen-l10n
 |---|---|
 | `This application is not configured to build on the web` | Run the scaffold workflow or `flutter create --platforms=web .` |
 | Images do not load in the gallery | The API is unreachable: check the health chip in Settings |
+| The app stays on the loading screen at startup | The API address changed (the VM hotspot hands out a new subnet). The app detects it automatically after a few seconds; if not, tap **Server settings** on the loading screen, then **Detect** (it also scans the local network) or type the new address |
 | Map tiles are blank | Network blocked: CARTO tiles require internet access |
 | Local scan button disabled | The web build cannot read local folders: use Android/Linux or kDrive |
 | Android build fails on signing | Create `android/key.properties` from `android/key.properties_sample` or use debug signing |
