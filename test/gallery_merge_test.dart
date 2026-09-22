@@ -97,7 +97,7 @@ void main() {
         localItem(id: 'asset-d', takenAt: DateTime.utc(2025, 1, 8)),
       ],
     );
-    expect(entries.map((entry) => entry.sortDate).toList(), [
+    expect(entries.map((entry) => entry.sortDate?.toUtc()).toList(), [
       DateTime.utc(2025, 1, 12),
       DateTime.utc(2025, 1, 10),
       DateTime.utc(2025, 1, 8),
