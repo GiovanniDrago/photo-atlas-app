@@ -1,0 +1,7 @@
+Gallery rebuilt: indexed items and device files in one grid, with badges for the upload state
+(cloud_done uploaded, cloud_queue not uploaded, cloud_off failed) and filters for photos, videos,
+uploaded, not uploaded and missing metadata. Multi-select actions: upload (indexing device files
+that are missing), share (system share sheet, cloud files are downloaded first) and delete with a
+per-action dialog to remove the cloud copy (kDrive trash, recoverable) and/or the device file.
+The gallery now loads as soon as it is opened and refreshes itself when the server address or the
+session changes.

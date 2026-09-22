@@ -32,12 +32,7 @@ LocalMedia localItem({
   String mediaType = 'image',
   DateTime? takenAt,
 }) {
-  return LocalMedia(
-    id: id,
-    name: name,
-    mediaType: mediaType,
-    takenAt: takenAt,
-  );
+  return LocalMedia(id: id, name: name, mediaType: mediaType, takenAt: takenAt);
 }
 
 void main() {

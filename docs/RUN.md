@@ -12,13 +12,25 @@ login screen (with a **Detect** button), and later in Settings.
 
 ## Gallery, details and export
 
-- Tap any thumbnail (gallery, timeline, map list) to open the media detail: big preview, every
-  metadata field and **Download original** (full quality, straight from kDrive when available; the
-  button is hidden for local items whose file is already on this device)
-- In the gallery, long-press to enter selection mode: tap to add/remove items, use **Select all**,
-  then **Export metadata** to download a JSON file with all fields of the selected items
+- The gallery merges the **indexed items** (kDrive and scanned local folders) with the **files on
+  this device** (the whole Android media library, or the local folders configured on desktop): the
+  same photo appears once, with a badge telling its state — `cloud_done` uploaded, `cloud_queue`
+  not uploaded, `cloud_off` failed, plus "On device" for files that are not indexed yet
+- Filters: All / Photos / Videos / Not uploaded / Uploaded / No metadata. Pull down to refresh
+- Tap an indexed item for the media detail (big preview, every metadata field and **Download
+  original**); tap a device-only file to select it and act on it
+- Long-press to enter selection mode: tap to add/remove items, **Select all**, then
+  - **Upload**: indexes the device files that are missing from the server (attaching them to the
+    album/folder source) and uploads them to kDrive
+  - **Share**: opens the system share sheet; cloud-only items are downloaded to a temporary file
+    first
+  - **Delete**: asks every time with two checkboxes — *From the cloud* (moves the kDrive copies to
+    the trash, recoverable) and *From the device* (system trash). Index rows left without any copy
+    are dropped; when a copy survives the row is kept and its state updated
+  - **Export metadata**: JSON file with all fields of the selected items
 - Thumbnails are served through signed URLs and cached: the server stores kDrive previews and
-  phone-uploaded previews on disk and the app/browser keeps its own cache
+  phone-uploaded previews on disk and the app/browser keeps its own cache; device files are read
+  locally, without a round trip
 
 ## Account and security
 
@@ -54,7 +66,7 @@ login screen (with a **Detect** button), and later in Settings.
 
 ## Updates
 
-- Settings → About shows the installed version (`v0.7.0 (700)`) and a **Check for updates** button
+- Settings → About shows the installed version (`v0.8.0 (800)`) and a **Check for updates** button
 - The app also checks silently once a day at startup; when a newer GitHub release exists it offers
   to download it (Android: the arm64 APK; Linux: the bundle) and opens the browser
 - "Later" silences that version for the silent check; the manual check always reports the result

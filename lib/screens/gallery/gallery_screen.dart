@@ -475,6 +475,10 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                 _toggleSelection(entry);
               } else if (entry.isIndexed) {
                 _openDetail(entry);
+              } else {
+                // Not indexed yet: tapping selects it so the upload, share and
+                // delete actions become available.
+                _enterSelection(entry);
               }
             },
             onLongPress: () => _enterSelection(entry),
