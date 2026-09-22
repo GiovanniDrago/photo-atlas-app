@@ -80,7 +80,6 @@ class GalleryController extends Notifier<GalleryState> {
   int _cloudTotal = 0;
   int _localTotal = 0;
   bool _cloudDone = false;
-  bool _localDone = false;
   bool _localLoading = false;
   bool _localPermissionDenied = false;
   bool _disposed = false;
@@ -109,7 +108,6 @@ class GalleryController extends Notifier<GalleryState> {
     _cloudTotal = 0;
     _localTotal = 0;
     _cloudDone = false;
-    _localDone = !LocalMediaService.isSupported;
     _localLoading = false;
     _localPermissionDenied = false;
   }
@@ -190,10 +188,7 @@ class GalleryController extends Notifier<GalleryState> {
   }
 
   Future<void> _loadLocal(ApiClient client, int generation) async {
-    if (!LocalMediaService.isSupported) {
-      _localDone = true;
-      return;
-    }
+    if (!LocalMediaService.isSupported) return;
     _localLoading = true;
     try {
       final result = await LocalMediaService.loadAll(client: client);
@@ -202,15 +197,12 @@ class GalleryController extends Notifier<GalleryState> {
         ..clear()
         ..addAll(result.items);
       _localTotal = result.total;
-      _localDone = true;
       _localPermissionDenied = false;
     } on ScanPermissionException {
       if (_isStale(generation)) return;
       _localPermissionDenied = true;
-      _localDone = true;
     } catch (_) {
       if (_isStale(generation)) return;
-      _localDone = true;
     } finally {
       _localLoading = false;
     }
