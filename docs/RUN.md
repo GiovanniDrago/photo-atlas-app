@@ -15,11 +15,19 @@ login screen (with a **Detect** button), and later in Settings.
 - The gallery merges the **indexed items** (kDrive and scanned local folders) with the **files on
   this device** (the whole Android media library, or the local folders configured on desktop): the
   same photo appears once, with a badge telling its state — `cloud_done` uploaded, `cloud_queue`
-  not uploaded, `cloud_off` failed, plus "On device" for files that are not indexed yet
+  not uploaded, `cloud_off` failed, plus "On device" for files that are not indexed yet. Items are
+  ordered by capture date, newest first; items without a date (no EXIF and no file date) go last
 - Filters: All / Photos / Videos / Not uploaded / Uploaded / No metadata. Pull down to refresh
-- Tap an indexed item for the media detail (big preview, every metadata field and **Download
-  original**); tap a device-only file to select it and act on it
-- Long-press to enter selection mode: tap to add/remove items, **Select all**, then
+- **Tap** an item to open the full screen viewer: the photo fills the screen, **swipe left/right**
+  moves to the previous/next item and **scrolling vertically** reveals the details (all metadata
+  fields, **Download original** for cloud items and a small map preview when the position is known;
+  tap the map to open it in the maps app). The viewer menu has **Share**, **Select** (goes back to
+  the grid with the item selected) and **Open in Maps**. kDrive items are previewed at 1600 px on
+  the fly (`/api/media/:id/thumbnail?w=1600`), device files are read locally
+- **Long-press** to start the selection and **drag over the grid** to select (or deselect, when the
+  long-pressed item was already selected) the items you pass; the grid scrolls automatically near
+  the edges. In selection mode a tap toggles a single item; **Select all** selects the loaded ones,
+  then
   - **Upload**: indexes the device files that are missing from the server (attaching them to the
     album/folder source) and uploads them to kDrive
   - **Share**: opens the system share sheet; cloud-only items are downloaded to a temporary file

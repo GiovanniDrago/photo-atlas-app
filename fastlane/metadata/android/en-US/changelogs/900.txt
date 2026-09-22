@@ -1,0 +1,6 @@
+Gallery selection and viewer reworked. Selection now starts with a long press only: drag over the
+grid to select (or deselect) the items you pass, with automatic scrolling near the edges. Tapping an
+item opens the full screen viewer: swipe left/right to change photo, scroll down for all the metadata
+and a small map preview when the position is known, with Share, Select and Open in Maps in the menu.
+Cloud photos are previewed at higher resolution in the viewer. The gallery is ordered by capture
+date, newest first.
