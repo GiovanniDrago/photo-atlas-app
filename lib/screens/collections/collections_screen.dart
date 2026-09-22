@@ -292,12 +292,6 @@ class _FolderCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
-    final sources = ref.watch(sourcesProvider).value ?? const <MediaSource>[];
-    final matched = matchSourceForFolder(
-      albumId: folder.id,
-      folderName: folder.name,
-      sources: sources,
-    );
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,

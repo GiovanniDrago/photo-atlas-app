@@ -71,7 +71,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     if (!_scrollController.hasClients) return;
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 500) {
-      ref.read(galleryProvider.notifier).loadMore();
+      ref.read(galleryProvider(widget.scope).notifier).loadMore();
     }
   }
 
