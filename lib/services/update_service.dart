@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -186,11 +187,55 @@ class UpdateService {
       return;
     }
     final uri = Uri.parse(release.downloadUrl);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else if (context.mounted) {
-      _showSnack(context, AppLocalizations.of(context)!.updateError);
+    var opened = false;
+    try {
+      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (error) {
+      debugPrint('Update download launch failed: $error');
     }
+    if (!opened && context.mounted) {
+      await _showManualDownload(context, uri);
+    }
+  }
+
+  /// Shown when no browser could be opened (for example on Android without a
+  /// matching `<queries>` entry): the user copies the link and opens it.
+  static Future<void> _showManualDownload(BuildContext context, Uri uri) async {
+    final l10n = AppLocalizations.of(context)!;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.updateManualTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.updateManualBody),
+            const SizedBox(height: 8),
+            SelectableText(
+              uri.toString(),
+              style: Theme.of(dialogContext).textTheme.bodySmall,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l10n.close),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: uri.toString()));
+              if (!dialogContext.mounted) return;
+              Navigator.of(dialogContext).pop();
+              if (context.mounted) _showSnack(context, l10n.updateLinkCopied);
+            },
+            icon: const Icon(Icons.copy),
+            label: Text(l10n.authRecoveryCodesCopy),
+          ),
+        ],
+      ),
+    );
   }
 
   static void _showSnack(BuildContext context, String message) {

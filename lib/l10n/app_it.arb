@@ -269,5 +269,8 @@
 "galleryDeletedFailed": "Eliminazione non riuscita per {failed} elementi",
 "galleryShareFailed": "Condivisione non riuscita",
 "galleryLocalPermissionDenied": "Accesso alle foto negato: sono mostrati solo gli elementi nel cloud.",
-"galleryOpenSettings": "Impostazioni"
+"galleryOpenSettings": "Impostazioni",
+"updateManualTitle": "Download non riuscito",
+"updateManualBody": "Non è stato possibile aprire il browser. Copia il link e aprilo manualmente:",
+"updateLinkCopied": "Link copiato"
 }

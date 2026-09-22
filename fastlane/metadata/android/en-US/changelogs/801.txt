@@ -1,0 +1,3 @@
+Fixed the in-app update download: the browser now opens reliably (the Android package visibility
+declaration for https links was missing) and, when no browser can be opened, the app shows the
+download link so it can be copied and opened manually.

@@ -761,5 +761,8 @@
 "@galleryUploadedCount": {"placeholders": {"count": {"type": "int"}}},
 "@galleryUploadedFailed": {"placeholders": {"uploaded": {"type": "int"}, "failed": {"type": "int"}}},
 "@galleryDeleted": {"placeholders": {"count": {"type": "int"}}},
-"@galleryDeletedFailed": {"placeholders": {"failed": {"type": "int"}}}
+"@galleryDeletedFailed": {"placeholders": {"failed": {"type": "int"}}},
+"updateManualTitle": "Download failed",
+"updateManualBody": "No browser could be opened. Copy the link and open it manually:",
+"updateLinkCopied": "Link copied"
 }
