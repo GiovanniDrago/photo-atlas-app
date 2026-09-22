@@ -1,0 +1,6 @@
+New Collections tab: the big card previews the newest photos and opens the timeline, and below it
+every device folder is listed with an "Automatic upload" switch. Turning the switch on scans the
+folder (without subfolders), indexes it and uploads everything it contains, with a progress bar; the
+background job then keeps checking the same folders. Tapping a folder opens the gallery restricted
+to that folder, with the same selection actions. The per-folder switches moved here from the Backup
+screen, which keeps the schedule, manual runs and verification.

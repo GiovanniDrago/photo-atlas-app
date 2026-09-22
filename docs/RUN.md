@@ -45,6 +45,24 @@ login screen (with a **Detect** button), and later in Settings.
   phone-uploaded previews on disk and the app/browser keeps its own cache; device files are read
   locally, without a round trip
 
+## Collections (folders and timeline)
+
+- The **Collections** tab is the entry point for browsing:
+  - the big card on top previews the newest photos (device + cloud) and opens the **timeline**
+    (day/week/month buckets with horizontal previews)
+  - the **Folders** section lists every device folder (MediaStore bucket) that directly contains
+    photos or videos: subfolders are folders of their own, and a folder with only subfolders never
+    appears. Each card shows the folder path (to tell same-named folders apart), the item count, a
+    thumbnail and the **Automatic upload** switch
+- Turning the switch on indexes the folder (scan + database census, **without subfolders**) and
+  uploads everything it contains; a progress bar shows the scan and the upload. Turning it off
+  keeps the indexed items. If the background backup is off, the app asks whether to enable it
+- The background job checks exactly the folders enabled here: on every run it scans each one and
+  uploads what is missing (`docs/BACKUP.md`)
+- Tapping a folder card opens the same gallery UI restricted to that folder: type filters are
+  hidden, the header keeps the switch and the upload state, and selection actions (upload, share,
+  delete) work as in the Gallery. Device folders are only available in the Android app
+
 ## Account and security
 
 - The app signs in through **Supabase Auth**; the API only verifies the access token. The Supabase
