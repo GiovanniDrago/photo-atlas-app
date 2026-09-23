@@ -13,6 +13,16 @@ Future<List<GalleryEntry>> mergeCloudWithDevice(
 }) async {
   if (cloud.isEmpty) return const [];
   final index = await LocalMediaService.deviceIndex(client: client);
+  return mergeCloudWithIndex(cloud, index);
+}
+
+/// Pure part of [mergeCloudWithDevice]: matches indexed items with the device
+/// files by name and size.
+List<GalleryEntry> mergeCloudWithIndex(
+  List<MediaItem> cloud,
+  Map<String, LocalMedia> index,
+) {
+  if (cloud.isEmpty) return const [];
   if (index.isEmpty) {
     return [for (final item in cloud) GalleryEntry(cloud: item)];
   }
