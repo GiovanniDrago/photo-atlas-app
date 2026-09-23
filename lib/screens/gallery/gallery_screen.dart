@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/gallery_entry.dart';
 import '../../models/media_item.dart';
+import '../../providers/collections_providers.dart';
 import '../../providers/gallery_providers.dart';
 import '../../providers/library_providers.dart';
 import '../../services/export_service.dart';
@@ -259,6 +260,9 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   }
 
   Future<void> _refresh() async {
+    // Keep the folder counters (uploaded X of Y) in sync as well.
+    ref.invalidate(backupStatusProvider);
+    ref.invalidate(sourcesProvider);
     await _controller.refresh();
   }
 

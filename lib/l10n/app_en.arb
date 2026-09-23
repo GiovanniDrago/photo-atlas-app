@@ -746,7 +746,7 @@
 "galleryDeleteCloud": "From the cloud",
 "galleryDeleteCloudHint": "Moves the kDrive copies to the trash (recoverable)",
 "galleryDeleteLocal": "From the device",
-"galleryDeleteLocalHint": "Removes the files from the phone (system trash)",
+"galleryDeleteLocalHint": "Removes the files from the phone (system trash on Android 11+, permanent on older versions)",
 "galleryDeleteConfirm": "Delete",
 "galleryUploading": "Uploading",
 "galleryDeleting": "Deleting",
@@ -791,5 +791,7 @@
 "folderEnableBackgroundTitle": "Automatic backup is off",
 "folderEnableBackgroundBody": "Turn on the background backup so the folders you selected are checked automatically?",
 "@folderUploadedOf": {"placeholders": {"uploaded": {"type": "int"}, "total": {"type": "int"}}},
-"backupBannerStarting": "Waiting to start…"
+"backupBannerStarting": "Waiting to start…",
+"backupBannerFailed": "Upload did not start",
+"folderAutoUploadKeep": "Files already uploaded stay on kDrive"
 }

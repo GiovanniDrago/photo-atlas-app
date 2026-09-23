@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/backup.dart';
+import '../models/source.dart';
 import '../services/auto_backup_service.dart';
 import '../services/backup_progress_store.dart';
 import '../services/backup_service.dart';
@@ -19,13 +21,25 @@ class BackupRunnerState {
   bool get active => progress != null || queue.isNotEmpty;
   bool get starting => progress == null && queue.isNotEmpty;
   int get queued => queue.isEmpty ? 0 : queue.length - 1;
+
+  /// No progress after ~90s: the job did not start (permissions, WorkManager
+  /// deferral); the banner offers a retry.
+  bool get waitingTooLong {
+    if (!starting) return false;
+    final since = queue.first.enqueuedAtMs;
+    if (since == 0) return false;
+    return DateTime.now().millisecondsSinceEpoch - since > 90000;
+  }
 }
 
 /// Starts the folder backups and follows their progress. On Android the work
 /// runs in a WorkManager one-off task with a foreground service (it survives
 /// the app being closed); the app only reads the progress from the store.
 class BackupRunner extends Notifier<BackupRunnerState> {
+  static const _catchUpInterval = Duration(minutes: 15);
+
   Timer? _timer;
+  DateTime? _lastCatchUp;
 
   @override
   BackupRunnerState build() {
@@ -59,7 +73,17 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     required String rootPath,
   }) async {
     final queue = await BackupProgressStore.readQueue();
-    queue.add(BackupQueueItem(sourceId: sourceId, label: label));
+    if (queue.any((item) => item.sourceId == sourceId) ||
+        state.progress?.sourceId == sourceId) {
+      return;
+    }
+    queue.add(
+      BackupQueueItem(
+        sourceId: sourceId,
+        label: label,
+        enqueuedAtMs: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
     await BackupProgressStore.writeQueue(queue);
     state = BackupRunnerState(progress: state.progress, queue: queue);
     _startPolling();
@@ -71,6 +95,62 @@ class BackupRunner extends Notifier<BackupRunnerState> {
       return;
     }
     unawaited(_runInline(sourceId: sourceId, label: label, rootPath: rootPath));
+  }
+
+  /// Starts the folders enabled for automatic upload that still have pending
+  /// files (or that have not run recently). Called when the app opens and
+  /// comes back to the foreground: while the app is open uploads start right
+  /// away, the periodic schedule only matters when it is closed.
+  Future<void> catchUp() async {
+    if (!AutoBackupService.isSupported) return;
+    if (state.active) return;
+    final now = DateTime.now();
+    final last = _lastCatchUp;
+    if (last != null && now.difference(last) < _catchUpInterval) return;
+    _lastCatchUp = now;
+
+    BackupStatusSnapshot snapshot;
+    try {
+      snapshot = await ref.read(backupStatusProvider.future);
+    } catch (_) {
+      return;
+    }
+    final sources = ref.read(sourcesProvider).value ?? const <MediaSource>[];
+    final rootPaths = {
+      for (final source in sources) source.id: source.rootPath ?? '',
+    };
+    for (final source in snapshot.sources) {
+      if (!source.autoBackup) continue;
+      final lastRun = source.backupLastRunAt;
+      final needsRun =
+          source.pending > 0 ||
+          lastRun == null ||
+          now.difference(lastRun) > _catchUpInterval;
+      if (!needsRun) continue;
+      await enqueue(
+        sourceId: source.id,
+        label: source.label,
+        rootPath: rootPaths[source.id] ?? '',
+      );
+    }
+  }
+
+  /// Drops the stuck queue entry and starts it again.
+  Future<void> retry() async {
+    final queue = await BackupProgressStore.readQueue();
+    if (queue.isEmpty) return;
+    final first = queue.first;
+    final rootPaths = {
+      for (final source
+          in ref.read(sourcesProvider).value ?? const <MediaSource>[])
+        source.id: source.rootPath ?? '',
+    };
+    await cancel();
+    await enqueue(
+      sourceId: first.sourceId,
+      label: first.label,
+      rootPath: rootPaths[first.sourceId] ?? '',
+    );
   }
 
   Future<void> cancel() async {

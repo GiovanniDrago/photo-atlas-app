@@ -26,6 +26,10 @@ class BackupBanner extends ConsumerWidget {
     final total = progress?.total ?? 0;
     final done = progress?.done ?? 0;
     final queued = state.queued;
+    final stuck = state.waitingTooLong;
+    final title = stuck
+        ? l10n.backupBannerFailed
+        : '$phase · $label${queued > 0 ? ' (+$queued)' : ''}';
     return Material(
       color: scheme.primaryContainer,
       child: SafeArea(
@@ -39,7 +43,7 @@ class BackupBanner extends ConsumerWidget {
             child: Row(
               children: [
                 Icon(
-                  Icons.cloud_upload_outlined,
+                  stuck ? Icons.error_outline : Icons.cloud_upload_outlined,
                   size: 18,
                   color: scheme.onPrimaryContainer,
                 ),
@@ -49,8 +53,7 @@ class BackupBanner extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '$phase · $label'
-                        '${queued > 0 ? ' (+$queued)' : ''}',
+                        title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -72,13 +75,20 @@ class BackupBanner extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (total > 0)
+                if (total > 0 && !stuck)
                   Text(
                     '$done/$total',
                     style: TextStyle(
                       fontSize: 11,
                       color: scheme.onPrimaryContainer,
                     ),
+                  ),
+                if (stuck)
+                  IconButton(
+                    tooltip: l10n.retry,
+                    icon: Icon(Icons.refresh, color: scheme.onPrimaryContainer),
+                    onPressed: () =>
+                        ref.read(backupRunnerProvider.notifier).retry(),
                   ),
                 IconButton(
                   tooltip: l10n.backupStop,

@@ -53,6 +53,20 @@ Future<void> runAutoBackup({
   String? label,
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  /// Closes the run so the in-app banner never stays on "waiting".
+  Future<void> finish({String? error}) async {
+    final current =
+        await BackupProgressStore.read() ??
+        BackupRunProgress(sourceId: sourceId, label: label);
+    await BackupProgressStore.write(
+      current.copyWith(
+        error: error,
+        finishedAtMs: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
   final settings = await AutoBackupService.load();
   if (!manual && !settings.enabled) return;
 
@@ -64,6 +78,7 @@ Future<void> runAutoBackup({
   final session = Supabase.instance.client.auth.currentSession;
   if (session == null) {
     debugPrint('auto backup skipped: no session');
+    await finish(error: 'no_session');
     return;
   }
   final client = ApiClient(baseUrl, token: session.accessToken);
@@ -76,6 +91,7 @@ Future<void> runAutoBackup({
       : await scanner.autoBackupSources();
   if (sources.isEmpty) {
     debugPrint('auto backup: nothing to do');
+    await finish();
     return;
   }
 
@@ -151,12 +167,7 @@ Future<void> runAutoBackup({
     }
   } finally {
     watcher.cancel();
-    final current =
-        await BackupProgressStore.read() ??
-        BackupRunProgress(sourceId: sourceId, label: label);
-    await BackupProgressStore.write(
-      current.copyWith(finishedAtMs: DateTime.now().millisecondsSinceEpoch),
-    );
+    await finish();
   }
   debugPrint('auto backup done (device $deviceId)');
 }

@@ -223,9 +223,41 @@ Future<List<String>> deleteAll(List<LocalMedia> media) async {
     invalidateCache();
     return deleted;
   }
-  final ids = [for (final item in media) item.id];
-  final deleted = await PhotoManager.editor.deleteWithIds(ids);
+  final entities = [
+    for (final item in media)
+      if (item.asset != null) item.asset!,
+  ];
+  final sdk = androidSdkVersion();
+  final trashed = <String>[];
+  if (entities.isNotEmpty && (sdk == null || sdk >= 30)) {
+    // Android 11+ has the system trash (recoverable); older versions do not.
+    try {
+      trashed.addAll(await PhotoManager.editor.moveToTrash(entities));
+    } catch (_) {
+      if (sdk != null) rethrow;
+      // Unknown SDK: fall through to the permanent delete below.
+    }
+  }
+  final remaining = [
+    for (final item in media)
+      if (!trashed.contains(item.id)) item.id,
+  ];
+  final deleted = [...trashed];
+  if (remaining.isNotEmpty && (sdk == null || sdk < 30)) {
+    deleted.addAll(await PhotoManager.editor.deleteWithIds(remaining));
+  }
+  invalidateCache();
   return deleted;
+}
+
+/// Android API level parsed from `Platform.operatingSystemVersion`
+/// (for example `Android 13 (SDK 33)`); `null` when it cannot be read.
+int? androidSdkVersion() {
+  if (!Platform.isAndroid) return null;
+  final match = RegExp(r'SDK (\d+)')
+      .firstMatch(Platform.operatingSystemVersion);
+  if (match == null) return null;
+  return int.tryParse(match.group(1)!);
 }
 
 void invalidateCache() {

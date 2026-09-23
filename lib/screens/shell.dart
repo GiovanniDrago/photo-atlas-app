@@ -1,21 +1,27 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
+import '../providers/backup_runner_provider.dart';
 import 'backup/backup_screen.dart';
 import 'collections/collections_screen.dart';
 import 'gallery/gallery_screen.dart';
 import 'map/map_screen.dart';
 import 'settings/settings_screen.dart';
 
-class AppShell extends StatefulWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends ConsumerState<AppShell>
+    with WidgetsBindingObserver {
   int _index = 0;
+  Timer? _catchUpTimer;
 
   static const List<Widget> _screens = [
     MapScreen(),
@@ -27,6 +33,35 @@ class _AppShellState extends State<AppShell> {
   /// Tabs are built on first visit: no burst of API requests at startup and
   /// the media permission prompt appears only when the gallery is opened.
   final Set<int> _built = {0};
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _catchUpTimer = Timer.periodic(
+      const Duration(minutes: 15),
+      (_) => _catchUp(),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _catchUp());
+  }
+
+  @override
+  void dispose() {
+    _catchUpTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _catchUp();
+  }
+
+  /// Uploads the pending files of the enabled folders while the app is open.
+  void _catchUp() {
+    if (!mounted) return;
+    ref.read(backupRunnerProvider.notifier).catchUp();
+  }
 
   void _select(int index) {
     setState(() {

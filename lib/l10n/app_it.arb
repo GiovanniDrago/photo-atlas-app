@@ -258,7 +258,7 @@
 "galleryDeleteCloud": "Dal cloud",
 "galleryDeleteCloudHint": "Sposta le copie kDrive nel cestino (recuperabili)",
 "galleryDeleteLocal": "Dal dispositivo",
-"galleryDeleteLocalHint": "Rimuove i file dal telefono (cestino di sistema)",
+"galleryDeleteLocalHint": "Rimuove i file dal telefono (cestino di sistema su Android 11+, altrimenti eliminazione definitiva)",
 "galleryDeleteConfirm": "Elimina",
 "galleryUploading": "Caricamento",
 "galleryDeleting": "Eliminazione",
@@ -296,5 +296,7 @@
 "folderUploadedOf": "{uploaded} di {total} caricate",
 "folderEnableBackgroundTitle": "Backup automatico disattivato",
 "folderEnableBackgroundBody": "Attivare il backup in background per controllare automaticamente le cartelle scelte?",
-"backupBannerStarting": "In attesa di avvio…"
+"backupBannerStarting": "In attesa di avvio…",
+"backupBannerFailed": "Avvio non riuscito",
+"folderAutoUploadKeep": "I file già caricati restano su kDrive"
 }

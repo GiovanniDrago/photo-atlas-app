@@ -193,9 +193,12 @@ class _FolderAutoUploadSwitchState
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             else
-              Switch(
-                value: matched?.autoBackup ?? false,
-                onChanged: (value) => _toggle(value, matched),
+              Tooltip(
+                message: l10n.folderAutoUploadKeep,
+                child: Switch(
+                  value: matched?.autoBackup ?? false,
+                  onChanged: (value) => _toggle(value, matched),
+                ),
               ),
           ],
         ),

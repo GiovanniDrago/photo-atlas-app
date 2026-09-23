@@ -88,15 +88,25 @@ class BackupRunProgress {
 class BackupQueueItem {
   final String sourceId;
   final String label;
+  final int enqueuedAtMs;
 
-  const BackupQueueItem({required this.sourceId, required this.label});
+  const BackupQueueItem({
+    required this.sourceId,
+    required this.label,
+    this.enqueuedAtMs = 0,
+  });
 
-  Map<String, dynamic> toJson() => {'source_id': sourceId, 'label': label};
+  Map<String, dynamic> toJson() => {
+    'source_id': sourceId,
+    'label': label,
+    'enqueued_at': enqueuedAtMs,
+  };
 
   factory BackupQueueItem.fromJson(Map<String, dynamic> json) {
     return BackupQueueItem(
       sourceId: (json['source_id'] ?? '') as String,
       label: (json['label'] ?? '') as String,
+      enqueuedAtMs: (json['enqueued_at'] as num?)?.toInt() ?? 0,
     );
   }
 }
