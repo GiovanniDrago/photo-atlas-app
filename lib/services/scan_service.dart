@@ -3,7 +3,12 @@ import 'package:photo_manager/photo_manager.dart';
 import 'scan_models.dart';
 
 export 'scan_models.dart'
-    show ScannedMedia, ScanResult, ScanFolder, ScanPermissionException;
+    show
+        ScannedMedia,
+        ScanResult,
+        ScanFolder,
+        ScanPermissionException,
+        ScanCancelledException;
 
 export 'package:photo_manager/photo_manager.dart'
     show AssetEntity, AssetType, ThumbnailFormat, ThumbnailSize;
