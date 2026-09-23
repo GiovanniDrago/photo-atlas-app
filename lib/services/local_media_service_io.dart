@@ -12,14 +12,22 @@ bool get isSupported => true;
 
 const _cacheTtl = Duration(minutes: 5);
 
+/// The full device list is reused for a short while so provider invalidations
+/// (for example after a backup) do not re-read thousands of assets.
+const _assetsCacheTtl = Duration(minutes: 2);
+
 List<LocalMedia>? _cachedAssets;
+DateTime? _cachedAssetsAt;
 List<LocalMedia>? _cachedFiles;
 DateTime? _cachedAt;
 
 /// Loads the whole device library once, newest first and without duplicates.
 Future<LocalMediaPage> loadAll({required ApiClient client}) async {
   final cached = _cachedAssets;
-  if (cached != null) {
+  final cachedAt = _cachedAssetsAt;
+  if (cached != null &&
+      cachedAt != null &&
+      DateTime.now().difference(cachedAt) < _assetsCacheTtl) {
     return LocalMediaPage(items: cached, total: cached.length, hasMore: false);
   }
   if (ScanService.isAlbumBased) {
@@ -27,6 +35,7 @@ Future<LocalMediaPage> loadAll({required ApiClient client}) async {
     final items = _mapAssets(assets);
     items.sort(_newestFirst);
     _cachedAssets = items;
+    _cachedAssetsAt = DateTime.now();
     return LocalMediaPage(items: items, total: items.length, hasMore: false);
   }
   final files = await _localFiles(client);
@@ -221,6 +230,7 @@ Future<List<String>> deleteAll(List<LocalMedia> media) async {
 
 void invalidateCache() {
   _cachedAssets = null;
+  _cachedAssetsAt = null;
   _cachedFiles = null;
   _cachedAt = null;
 }

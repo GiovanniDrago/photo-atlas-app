@@ -64,6 +64,7 @@ class BackupService {
     var bytes = 0;
     final errors = <String>[];
     final failedIds = <String>{};
+    final claimed = <String>{};
     var cancelled = false;
     try {
       while (true) {
@@ -76,6 +77,7 @@ class BackupService {
           limit: 5,
         )).where((item) => !failedIds.contains(item.id)).toList();
         if (pending.isEmpty) break;
+        claimed.addAll(pending.map((item) => item.id));
         for (final item in pending) {
           if (isCancelled?.call() ?? false) {
             cancelled = true;
@@ -105,6 +107,8 @@ class BackupService {
             failed += 1;
             failedIds.add(item.id);
             errors.add('${item.name}: $error');
+          } finally {
+            claimed.remove(item.id);
           }
         }
         if (cancelled) break;
@@ -118,6 +122,11 @@ class BackupService {
         bytesUploaded: bytes,
         errors: errors.take(20).toList(),
       );
+      if (claimed.isNotEmpty) {
+        try {
+          await client.releaseBackupClaims(claimed.toList());
+        } catch (_) {}
+      }
       onProgress(
         BackupProgress(
           uploaded: uploaded,

@@ -157,3 +157,8 @@ typedef ScanProgressCallback = void Function(int seen, int indexed);
 class ScanPermissionException implements Exception {
   const ScanPermissionException();
 }
+
+/// Thrown internally when a scan is stopped by the caller.
+class ScanCancelledException implements Exception {
+  const ScanCancelledException();
+}

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'l10n/app_localizations.dart';
+import 'navigation.dart';
 import 'providers/auth_provider.dart';
 import 'providers/bootstrap_providers.dart';
 import 'providers/locale_provider.dart';
@@ -15,6 +16,7 @@ import 'screens/auth/recovery_codes_dialog.dart';
 import 'screens/shell.dart';
 import 'services/update_service.dart';
 import 'theme/app_theme.dart';
+import 'widgets/backup_banner.dart';
 
 class PhotoAtlasApp extends ConsumerWidget {
   const PhotoAtlasApp({super.key});
@@ -29,10 +31,17 @@ class PhotoAtlasApp extends ConsumerWidget {
       onGenerateTitle: (context) =>
           AppLocalizations.of(context)?.appTitle ?? 'Photo Atlas',
       debugShowCheckedModeBanner: false,
+      navigatorKey: appNavigatorKey,
       theme: buildAppTheme(themeOption),
       locale: locale,
       supportedLocales: const [Locale('en'), Locale('it')],
       localizationsDelegates: AppLocalizations.localizationsDelegates,
+      builder: (context, child) => Column(
+        children: [
+          const BackupBanner(),
+          Expanded(child: child ?? const SizedBox.shrink()),
+        ],
+      ),
       home: ready.when(
         loading: () => const _SplashScreen(),
         error: (error, stackTrace) => BootstrapErrorScreen(error: '$error'),

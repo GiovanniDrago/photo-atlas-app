@@ -106,6 +106,40 @@ class AutoBackupService {
     );
   }
 
+  static const String manualUniqueName = 'photo-atlas-manual-upload';
+
+  /// Queues a one-off run for a single source. It executes in a foreground
+  /// service, so it keeps going while the app is in the background or closed.
+  static Future<void> registerManualRun({
+    required String sourceId,
+    required String label,
+  }) async {
+    if (!isSupported) return;
+    final l10n = await _localizations();
+    await Workmanager().registerOneOffTask(
+      manualUniqueName,
+      taskName,
+      inputData: {'source_id': sourceId, 'label': label, 'manual': true},
+      existingWorkPolicy: ExistingWorkPolicy.append,
+      constraints: Constraints(networkType: NetworkType.connected),
+      foregroundServiceConfig: ForegroundServiceConfig(
+        notificationTitle: l10n.autoBackupNotificationTitle,
+        notificationText: '${l10n.folderUploading} $label',
+        notificationChannelId: 'photo_atlas_backup',
+        notificationChannelName: l10n.autoBackupTitle,
+        notificationId: 7002,
+        foregroundServiceType: ForegroundServiceType.dataSync,
+      ),
+    );
+  }
+
+  static Future<void> cancelManualRuns() async {
+    if (!isSupported) return;
+    try {
+      await Workmanager().cancelByUniqueName(manualUniqueName);
+    } catch (_) {}
+  }
+
   static Future<bool> isScheduled() async {
     if (!isSupported) return false;
     try {

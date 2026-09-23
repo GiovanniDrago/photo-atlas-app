@@ -295,5 +295,6 @@
 "folderUploading": "Caricamento…",
 "folderUploadedOf": "{uploaded} di {total} caricate",
 "folderEnableBackgroundTitle": "Backup automatico disattivato",
-"folderEnableBackgroundBody": "Attivare il backup in background per controllare automaticamente le cartelle scelte?"
+"folderEnableBackgroundBody": "Attivare il backup in background per controllare automaticamente le cartelle scelte?",
+"backupBannerStarting": "In attesa di avvio…"
 }

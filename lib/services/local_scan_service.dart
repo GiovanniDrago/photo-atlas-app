@@ -65,10 +65,16 @@ class LocalScanService {
     required String sourceId,
     required String rootPath,
     void Function(int seen, int indexed)? onProgress,
+    bool Function()? isCancelled,
   }) async {
     final scanRunId = await client.createScanRun(sourceId);
+    var lastSeen = 0;
+    var lastIndexed = 0;
     try {
       Future<void> onBatch(List<ScannedMedia> batch) async {
+        if (isCancelled?.call() ?? false) {
+          throw const ScanCancelledException();
+        }
         await client.batchMedia(
           sourceId: sourceId,
           scanRunId: scanRunId,
@@ -76,7 +82,12 @@ class LocalScanService {
         );
       }
 
-      final progress = onProgress ?? (int seen, int indexed) {};
+      void progress(int seen, int indexed) {
+        lastSeen = seen;
+        lastIndexed = indexed;
+        onProgress?.call(seen, indexed);
+      }
+
       final albumId = await resolveAlbumId(rootPath);
       if (rootPath.startsWith(_albumPrefix) && albumId == null) {
         await client.patchScanRun(
@@ -105,6 +116,16 @@ class LocalScanService {
         filesIndexed: result.indexed,
       );
       return result;
+    } on ScanCancelledException {
+      try {
+        await client.patchScanRun(
+          scanRunId,
+          status: 'cancelled',
+          filesSeen: lastSeen,
+          filesIndexed: lastIndexed,
+        );
+      } catch (_) {}
+      return ScanResult(filesSeen: lastSeen, indexed: lastIndexed);
     } catch (error) {
       try {
         await client.patchScanRun(

@@ -6,17 +6,17 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/backup.dart';
 import '../../models/source.dart';
+import '../../providers/backup_runner_provider.dart';
 import '../../providers/collections_providers.dart';
-import '../../providers/gallery_providers.dart';
 import '../../providers/library_providers.dart';
 import '../../services/auto_backup_service.dart';
-import '../../services/backup_service.dart';
 import '../../services/device_service.dart';
 import '../../services/local_scan_service.dart';
 
 /// Enables the automatic upload of a device folder. Turning it on indexes the
 /// folder (scan + database census) and uploads everything it contains, without
-/// subfolders. The background job then keeps checking the same sources.
+/// subfolders, in a foreground service that keeps running while the app is in
+/// the background. The background job then keeps checking the same sources.
 class FolderAutoUploadSwitch extends ConsumerStatefulWidget {
   final String albumId;
   final String label;
@@ -38,9 +38,7 @@ class FolderAutoUploadSwitch extends ConsumerStatefulWidget {
 
 class _FolderAutoUploadSwitchState
     extends ConsumerState<FolderAutoUploadSwitch> {
-  bool _busy = false;
-  String? _busyLabel;
-  double? _progress;
+  bool _preparing = false;
 
   MediaSource? _matchedSource(List<MediaSource> sources) {
     return matchSourceForFolder(
@@ -60,14 +58,15 @@ class _FolderAutoUploadSwitchState
     return null;
   }
 
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _toggle(bool value, MediaSource? matched) async {
-    final l10n = AppLocalizations.of(context)!;
-    setState(() {
-      _busy = true;
-      _busyLabel = value ? l10n.folderScanning : null;
-      _progress = null;
-    });
     final client = ref.read(apiClientProvider);
+    setState(() => _preparing = true);
     try {
       if (!value) {
         if (matched != null) {
@@ -76,54 +75,28 @@ class _FolderAutoUploadSwitchState
         return;
       }
       final deviceId = await DeviceService.ensureRegistered(client);
-      final scanner = LocalScanService(client);
       final sourceId =
           matched?.id ??
-          await scanner.ensureAlbumSource(
+          await LocalScanService(client).ensureAlbumSource(
             albumId: widget.albumId,
             label: widget.label,
             deviceId: deviceId,
           );
       await client.updateSource(sourceId, autoBackup: true);
       await _maybeEnableBackground();
-
-      final rootPath = matched?.rootPath ?? widget.rootPath;
-      await scanner.scanSource(
-        sourceId: sourceId,
-        rootPath: rootPath,
-        onProgress: (seen, indexed) {
-          if (mounted) setState(() => _busyLabel = l10n.folderScanning);
-        },
-      );
       if (!mounted) return;
-      setState(() => _busyLabel = l10n.folderUploading);
-      await BackupService(client).runBackup(
-        sourceId: sourceId,
-        onProgress: (progress) {
-          if (!mounted) return;
-          setState(() {
-            _busyLabel = l10n.folderUploading;
-            _progress = progress.total == 0
-                ? null
-                : ((progress.uploaded + progress.failed) / progress.total)
-                      .clamp(0.0, 1.0);
-          });
-        },
-      );
+      await ref
+          .read(backupRunnerProvider.notifier)
+          .enqueue(
+            sourceId: sourceId,
+            label: widget.label,
+            rootPath: matched?.rootPath ?? widget.rootPath,
+          );
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
-      }
+      _snack('$error');
     } finally {
-      if (mounted) {
-        setState(() {
-          _busy = false;
-          _busyLabel = null;
-          _progress = null;
-        });
-      }
-      _invalidate();
+      if (mounted) setState(() => _preparing = false);
+      ref.invalidate(sourcesProvider);
     }
   }
 
@@ -152,15 +125,9 @@ class _FolderAutoUploadSwitchState
     try {
       await Permission.notification.request();
     } catch (_) {}
-    await AutoBackupService.save(settings.copyWith(enabled: true));
-    await AutoBackupService.apply(settings.copyWith(enabled: true));
-  }
-
-  void _invalidate() {
-    ref.invalidate(sourcesProvider);
-    ref.invalidate(backupStatusProvider);
-    ref.invalidate(deviceFoldersProvider);
-    ref.invalidate(galleryProvider);
+    final updated = settings.copyWith(enabled: true);
+    await AutoBackupService.save(updated);
+    await AutoBackupService.apply(updated);
   }
 
   String _statusLine(AppLocalizations l10n, BackupSourceStatus status) {
@@ -182,6 +149,32 @@ class _FolderAutoUploadSwitchState
     final sources = ref.watch(sourcesProvider).value ?? const <MediaSource>[];
     final matched = _matchedSource(sources);
     final status = _statusFor(matched?.id);
+    final runner = ref.watch(backupRunnerProvider);
+    final runningForThisFolder =
+        matched != null && runner.progress?.sourceId == matched.id;
+
+    if (runningForThisFolder) {
+      final progress = runner.progress!;
+      final total = progress.total;
+      final done = progress.done;
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              progress.scanning ? l10n.folderScanning : l10n.folderUploading,
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+            const SizedBox(height: 4),
+            LinearProgressIndicator(
+              value: total == 0 ? null : (done / total).clamp(0.0, 1.0),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -193,7 +186,7 @@ class _FolderAutoUploadSwitchState
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
-            if (_busy)
+            if (_preparing)
               const SizedBox(
                 width: 18,
                 height: 18,
@@ -206,22 +199,7 @@ class _FolderAutoUploadSwitchState
               ),
           ],
         ),
-        if (_busy)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  _busyLabel ?? '',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-                const SizedBox(height: 4),
-                LinearProgressIndicator(value: _progress),
-              ],
-            ),
-          )
-        else if (widget.showStatus && status != null)
+        if (widget.showStatus && status != null)
           Text(
             _statusLine(l10n, status),
             style: Theme.of(context).textTheme.labelSmall

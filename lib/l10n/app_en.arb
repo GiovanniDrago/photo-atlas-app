@@ -790,5 +790,6 @@
 "folderUploadedOf": "{uploaded} of {total} uploaded",
 "folderEnableBackgroundTitle": "Automatic backup is off",
 "folderEnableBackgroundBody": "Turn on the background backup so the folders you selected are checked automatically?",
-"@folderUploadedOf": {"placeholders": {"uploaded": {"type": "int"}, "total": {"type": "int"}}}
+"@folderUploadedOf": {"placeholders": {"uploaded": {"type": "int"}, "total": {"type": "int"}}},
+"backupBannerStarting": "Waiting to start…"
 }

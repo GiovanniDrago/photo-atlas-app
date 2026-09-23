@@ -459,6 +459,17 @@ class ApiClient {
         .toList();
   }
 
+  /// Returns claims taken by an interrupted run to the pending queue.
+  Future<int> releaseBackupClaims(List<String> ids) async {
+    if (ids.isEmpty) return 0;
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/backup/release'),
+      body: {'ids': ids},
+    );
+    return asInt(body['released']) ?? 0;
+  }
+
   Future<List<VerifyQueueItem>> verifyQueue({
     String? sourceId,
     int limit = 100,
