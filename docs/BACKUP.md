@@ -56,6 +56,12 @@ notification) that scans the selected folders for new media and uploads everythi
   technical log of the run, the list of files waiting for upload (read-only, no claims) and the
   actions: **Backup now** (runs in the app), **Retry in background**, **Cancel** (releases the
   claims, so the next run retries immediately), **Disable battery optimization**.
+- Before a run starts the app checks the photo permission in the foreground (the background job has
+  no Activity and cannot show the system prompt): if it is missing the run does not start and the
+  app offers the system settings shortcut. During background runs the scan never asks for the
+  permission, so the plugin cannot crash on a missing Activity.
+- Scans are resilient: a page of the media library that cannot be read (broken MediaStore row) is
+  skipped and counted in the log instead of failing the whole folder.
 - The hand-off is self-healing: if the background job has not written anything 60 seconds after the
   app went to the background, the run resumes in the app. A watchdog closes any run that has not
   been updated for more than 3 minutes (with `error: stalled` in the log), so the bar never stays

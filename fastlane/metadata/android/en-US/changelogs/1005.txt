@@ -1,0 +1,5 @@
+Fixed the NullPointerException that could abort the scan of a folder in background runs: the photo
+permission is now checked in the foreground before a run starts (with a shortcut to the system
+settings when it is missing) and background scans never ask for it, which is what crashed the
+plugin without an Activity. Scans are also resilient: a page of the media library that cannot be
+read is skipped and reported in the log instead of failing the whole folder.
