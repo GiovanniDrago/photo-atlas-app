@@ -7,6 +7,7 @@ import '../models/backup.dart';
 import '../services/auto_backup_service.dart';
 import '../services/backup_progress_store.dart';
 import '../services/backup_service.dart';
+import '../services/local_media_service.dart';
 import '../services/local_scan_service.dart';
 import 'collections_providers.dart';
 import 'gallery_providers.dart';
@@ -76,15 +77,21 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     _startPolling();
   }
 
-  Future<void> enqueue({
+  /// Returns false when the media permission is missing: the run does not
+  /// start and the caller shows the settings shortcut.
+  Future<bool> enqueue({
     required String sourceId,
     required String label,
     required String rootPath,
   }) async {
+    if (!await LocalMediaService.ensurePhotoPermission()) {
+      await BackupRunLog.add('permesso foto mancante: il run non parte');
+      return false;
+    }
     final queue = await BackupProgressStore.readQueue();
     if (queue.any((item) => item.sourceId == sourceId) ||
         state.progress?.sourceId == sourceId) {
-      return;
+      return true;
     }
     queue.add(
       BackupQueueItem(
@@ -101,8 +108,9 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     );
     _startPolling();
     final active = await BackupProgressStore.read();
-    if (active != null && !active.finished) return;
+    if (active != null && !active.finished) return true;
     await _startNext(queue.first);
+    return true;
   }
 
   /// Starts one queued folder: in this process while the app is open, in the
@@ -150,6 +158,10 @@ class BackupRunner extends Notifier<BackupRunnerState> {
   Future<void> catchUp() async {
     if (!AutoBackupService.isSupported) return;
     if (state.active) return;
+    if (!await LocalMediaService.ensurePhotoPermission()) {
+      await BackupRunLog.add('catch-up saltato: permesso foto mancante');
+      return;
+    }
     final now = DateTime.now();
     final last = _lastCatchUp;
     if (last != null && now.difference(last) < _catchUpInterval) return;
@@ -203,29 +215,33 @@ class BackupRunner extends Notifier<BackupRunnerState> {
   }
 
   /// Starts the first queued folder right away, in this process.
-  Future<void> runNow() async {
-    if (state.progress != null) return;
+  Future<bool> runNow() async {
+    if (state.progress != null) return true;
+    if (!await LocalMediaService.ensurePhotoPermission()) return false;
     final queue = await BackupProgressStore.readQueue();
-    if (queue.isEmpty) return;
+    if (queue.isEmpty) return true;
     await BackupProgressStore.clearCancel();
     if (AutoBackupService.isSupported) {
       await AutoBackupService.cancelManualRuns();
     }
     await BackupRunLog.add('avvio manuale: ${queue.first.label}');
     await _startNext(queue.first);
+    return true;
   }
 
   /// Sends the first queued folder to the background job again.
-  Future<void> retryBackground() async {
+  Future<bool> retryBackground() async {
+    if (!await LocalMediaService.ensurePhotoPermission()) return false;
     final queue = await BackupProgressStore.readQueue();
-    if (queue.isEmpty) return;
+    if (queue.isEmpty) return true;
     await BackupProgressStore.clearCancel();
-    if (!AutoBackupService.isSupported) return;
+    if (!AutoBackupService.isSupported) return true;
     await BackupRunLog.add('riprovo in background: ${queue.first.label}');
     await AutoBackupService.registerManualRun(
       sourceId: queue.first.sourceId,
       label: queue.first.label,
     );
+    return true;
   }
 
   Future<void> cancel() async {
@@ -305,12 +321,16 @@ class BackupRunner extends Notifier<BackupRunnerState> {
         sourceId: sourceId,
         rootPath: rootPath,
         isCancelled: stop,
+        ensurePermission: _isForeground,
         onProgress: (seen, indexed) {
           progress = progress.copyWith(total: seen);
           unawaited(BackupProgressStore.write(progress));
         },
       );
-      await BackupRunLog.add('scansione: ${scan.filesSeen} file');
+      await BackupRunLog.add(
+        'scansione: ${scan.filesSeen} file'
+        '${scan.skippedPages > 0 ? ' (${scan.skippedPages} pagine saltate)' : ''}',
+      );
       if (!stop()) {
         progress = progress.copyWith(
           phase: 'uploading',

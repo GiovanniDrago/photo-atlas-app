@@ -6,17 +6,22 @@ bool get isSupported => false;
 
 bool get isAlbumBased => false;
 
-Future<List<ScanFolder>> listFolders() async => const [];
+Future<List<ScanFolder>> listFolders({bool ensurePermission = true}) async =>
+    const [];
 
 Future<AssetPage> folderPage({
   required String albumId,
   required int page,
   required int size,
+  bool ensurePermission = true,
 }) async {
   return const AssetPage(assets: [], total: 0);
 }
 
-Future<List<AssetEntity>> recentAssets({int limit = 6}) async => const [];
+Future<List<AssetEntity>> recentAssets({
+  int limit = 6,
+  bool ensurePermission = true,
+}) async => const [];
 
 Future<ScanResult> scanDirectory({
   required String directoryPath,
@@ -32,15 +37,21 @@ Future<ScanResult> scanAlbum({
   required String albumId,
   required ScanBatchCallback onBatch,
   required ScanProgressCallback onProgress,
+  bool ensurePermission = true,
 }) async {
   throw UnsupportedError(
     'Local folder scanning is not available on the web. Use kDrive or the Android/Linux app.',
   );
 }
 
-Future<List<AssetEntity>> listAllAssetsOnce() async => const [];
+Future<List<AssetEntity>> listAllAssetsOnce({
+  bool ensurePermission = true,
+}) async => const [];
 
-Future<String?> findAlbumIdByName(String name) async => null;
+Future<String?> findAlbumIdByName(
+  String name, {
+  bool ensurePermission = true,
+}) async => null;
 
 Future<ScannedMedia?> buildScannedMedia(AssetEntity asset) async => null;
 

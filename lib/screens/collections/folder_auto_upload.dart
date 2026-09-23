@@ -12,6 +12,7 @@ import '../../providers/library_providers.dart';
 import '../../services/auto_backup_service.dart';
 import '../../services/device_service.dart';
 import '../../services/local_scan_service.dart';
+import '../../services/scan_service.dart';
 
 /// Enables the automatic upload of a device folder. Turning it on indexes the
 /// folder (scan + database census) and uploads everything it contains, without
@@ -85,19 +86,45 @@ class _FolderAutoUploadSwitchState
       await client.updateSource(sourceId, autoBackup: true);
       await _maybeEnableBackground();
       if (!mounted) return;
-      await ref
+      final started = await ref
           .read(backupRunnerProvider.notifier)
           .enqueue(
             sourceId: sourceId,
             label: widget.label,
             rootPath: matched?.rootPath ?? widget.rootPath,
           );
+      if (!started && mounted) await _showPermissionDialog();
     } catch (error) {
       _snack('$error');
     } finally {
       if (mounted) setState(() => _preparing = false);
       ref.invalidate(sourcesProvider);
     }
+  }
+
+  Future<void> _showPermissionDialog() async {
+    final l10n = AppLocalizations.of(context)!;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.backupNoPermission),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l10n.close),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              try {
+                await ScanService.openSettings();
+              } catch (_) {}
+            },
+            child: Text(l10n.galleryOpenSettings),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _maybeEnableBackground() async {

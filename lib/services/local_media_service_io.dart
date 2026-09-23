@@ -22,6 +22,20 @@ List<LocalMedia>? _cachedFiles;
 DateTime? _cachedAt;
 
 /// Loads the whole device library once, newest first and without duplicates.
+Future<bool> ensurePhotoPermission() async {
+  if (!ScanService.isAlbumBased) return true;
+  try {
+    await ScanService.listAllAssetsOnce(ensurePermission: true);
+    return true;
+  } on ScanPermissionException {
+    return false;
+  } catch (_) {
+    // Other failures (for example the plugin not ready) are not permission
+    // problems: let the run try.
+    return true;
+  }
+}
+
 Future<LocalMediaPage> loadAll({required ApiClient client}) async {
   final cached = _cachedAssets;
   final cachedAt = _cachedAssetsAt;

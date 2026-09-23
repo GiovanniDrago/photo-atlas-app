@@ -142,13 +142,15 @@ Future<void> runAutoBackup({
             sourceId: source.id,
             rootPath: rootPath,
             isCancelled: stop,
+            ensurePermission: false,
             onProgress: (seen, indexed) {
               progress = progress.copyWith(total: seen);
               unawaited(BackupProgressStore.write(progress));
             },
           );
           await BackupRunLog.add(
-            'scansione completata: ${source.label} (${scan.filesSeen} file)',
+            'scansione completata: ${source.label} (${scan.filesSeen} file'
+            '${scan.skippedPages > 0 ? ', ${scan.skippedPages} pagine saltate' : ''})',
           );
         } catch (error) {
           debugPrint('auto backup: scan failed for ${source.label}: $error');

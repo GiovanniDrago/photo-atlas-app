@@ -19,18 +19,25 @@ const _permissionRequest = PermissionRequestOption(
   ),
 );
 
-const _thumbnailSize = ThumbnailSize.square(320);
-const _thumbnailQuality = 75;
-const _maxThumbnailBytes = 200 * 1024;
-
-Future<List<ScanFolder>> listFolders() async {
-  if (!Platform.isAndroid) return const [];
+/// Requests the media permission, unless the caller knows it is not possible
+/// (background runs have no Activity and the request would crash the plugin).
+Future<void> _ensurePermission({bool request = true}) async {
+  if (!request) return;
   final permission = await PhotoManager.requestPermissionExtend(
     requestOption: _permissionRequest,
   );
   if (!permission.isAuth && !permission.hasAccess) {
     throw const ScanPermissionException();
   }
+}
+
+const _thumbnailSize = ThumbnailSize.square(320);
+const _thumbnailQuality = 75;
+const _maxThumbnailBytes = 200 * 1024;
+
+Future<List<ScanFolder>> listFolders({bool ensurePermission = true}) async {
+  if (!Platform.isAndroid) return const [];
+  await _ensurePermission(request: ensurePermission);
   final paths = await PhotoManager.getAssetPathList(
     type: RequestType.common,
     onlyAll: false,
@@ -40,7 +47,12 @@ Future<List<ScanFolder>> listFolders() async {
   for (final path in paths) {
     // The "Recent" pseudo album is not a folder.
     if (path.isAll) continue;
-    final count = await path.assetCountAsync;
+    int count;
+    try {
+      count = await path.assetCountAsync;
+    } catch (_) {
+      continue;
+    }
     if (count == 0) continue;
     var relative = path.name;
     try {
@@ -64,14 +76,10 @@ Future<AssetPage> folderPage({
   required String albumId,
   required int page,
   required int size,
+  bool ensurePermission = true,
 }) async {
   if (!Platform.isAndroid) return const AssetPage(assets: [], total: 0);
-  final permission = await PhotoManager.requestPermissionExtend(
-    requestOption: _permissionRequest,
-  );
-  if (!permission.isAuth && !permission.hasAccess) {
-    throw const ScanPermissionException();
-  }
+  await _ensurePermission(request: ensurePermission);
   final paths = await PhotoManager.getAssetPathList(
     type: RequestType.common,
     onlyAll: false,
@@ -94,14 +102,12 @@ Future<AssetPage> folderPage({
 }
 
 /// The newest assets of the whole library (used by the collections preview).
-Future<List<AssetEntity>> recentAssets({int limit = 6}) async {
+Future<List<AssetEntity>> recentAssets({
+  int limit = 6,
+  bool ensurePermission = true,
+}) async {
   if (!Platform.isAndroid) return const [];
-  final permission = await PhotoManager.requestPermissionExtend(
-    requestOption: _permissionRequest,
-  );
-  if (!permission.isAuth && !permission.hasAccess) {
-    throw const ScanPermissionException();
-  }
+  await _ensurePermission(request: ensurePermission);
   final paths = await PhotoManager.getAssetPathList(
     type: RequestType.common,
     onlyAll: true,
@@ -111,14 +117,12 @@ Future<List<AssetEntity>> recentAssets({int limit = 6}) async {
   return paths.first.getAssetListRange(start: 0, end: limit);
 }
 
-Future<String?> findAlbumIdByName(String name) async {
+Future<String?> findAlbumIdByName(
+  String name, {
+  bool ensurePermission = true,
+}) async {
   if (!Platform.isAndroid) return null;
-  final permission = await PhotoManager.requestPermissionExtend(
-    requestOption: _permissionRequest,
-  );
-  if (!permission.isAuth && !permission.hasAccess) {
-    throw const ScanPermissionException();
-  }
+  await _ensurePermission(request: ensurePermission);
   final paths = await PhotoManager.getAssetPathList(
     type: RequestType.common,
     onlyAll: false,
@@ -133,13 +137,9 @@ Future<ScanResult> scanAlbum({
   required String albumId,
   required ScanBatchCallback onBatch,
   required ScanProgressCallback onProgress,
+  bool ensurePermission = true,
 }) async {
-  final permission = await PhotoManager.requestPermissionExtend(
-    requestOption: _permissionRequest,
-  );
-  if (!permission.isAuth && !permission.hasAccess) {
-    throw const ScanPermissionException();
-  }
+  await _ensurePermission(request: ensurePermission);
   final paths = await PhotoManager.getAssetPathList(
     type: RequestType.common,
     onlyAll: false,
@@ -158,12 +158,21 @@ Future<ScanResult> scanAlbum({
   final total = await album.assetCountAsync;
   var seen = 0;
   var indexed = 0;
+  var skippedPages = 0;
   final batch = <ScannedMedia>[];
   const pageSize = 200;
 
   for (var start = 0; start < total; start += pageSize) {
     final end = (start + pageSize > total) ? total : start + pageSize;
-    final assets = await album.getAssetListRange(start: start, end: end);
+    List<AssetEntity> assets;
+    try {
+      assets = await album.getAssetListRange(start: start, end: end);
+    } catch (_) {
+      // A page that cannot be read (broken MediaStore row) must not stop the
+      // whole folder: skip it and keep going.
+      skippedPages += 1;
+      continue;
+    }
     for (final asset in assets) {
       if (asset.type == AssetType.audio || asset.type == AssetType.other) {
         continue;
@@ -211,7 +220,11 @@ Future<ScanResult> scanAlbum({
     await onBatch(batch);
   }
   onProgress(seen, indexed);
-  return ScanResult(filesSeen: seen, indexed: indexed);
+  return ScanResult(
+    filesSeen: seen,
+    indexed: indexed,
+    skippedPages: skippedPages,
+  );
 }
 
 Future<ScanResult> scanDirectory({
@@ -300,14 +313,11 @@ FilterOptionGroup _galleryFilterOption() {
 }
 
 /// The whole device media library in a single query, newest first.
-Future<List<AssetEntity>> listAllAssetsOnce() async {
+Future<List<AssetEntity>> listAllAssetsOnce({
+  bool ensurePermission = true,
+}) async {
   if (!Platform.isAndroid) return const [];
-  final permission = await PhotoManager.requestPermissionExtend(
-    requestOption: _permissionRequest,
-  );
-  if (!permission.isAuth && !permission.hasAccess) {
-    throw const ScanPermissionException();
-  }
+  await _ensurePermission(request: ensurePermission);
   final paths = await PhotoManager.getAssetPathList(
     type: RequestType.common,
     onlyAll: true,

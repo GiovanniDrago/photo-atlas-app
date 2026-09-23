@@ -4,6 +4,8 @@ import 'local_media_service.dart';
 
 bool get isSupported => false;
 
+Future<bool> ensurePhotoPermission() async => true;
+
 Future<LocalMediaPage> loadAll({required ApiClient client}) async {
   return const LocalMediaPage(items: [], total: 0, hasMore: false);
 }

@@ -148,7 +148,15 @@ class ScanResult {
   final int filesSeen;
   final int indexed;
 
-  const ScanResult({required this.filesSeen, required this.indexed});
+  /// Pages of the media library that could not be read (for example a broken
+  /// row in the MediaStore): the scan skips them and keeps going.
+  final int skippedPages;
+
+  const ScanResult({
+    required this.filesSeen,
+    required this.indexed,
+    this.skippedPages = 0,
+  });
 }
 
 typedef ScanBatchCallback = Future<void> Function(List<ScannedMedia> batch);

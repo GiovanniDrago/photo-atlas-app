@@ -816,5 +816,6 @@
 "@backupSheetFilesCount": {"placeholders": {"count": {"type": "int"}, "size": {"type": "String"}}},
 "backupSheetScanning": "Scanning the folder…",
 "backupSheetError": "Error",
-"backupJobStateLast": "last registered job"
+"backupJobStateLast": "last registered job",
+"backupNoPermission": "Photo permission missing: open the system settings to allow it"
 }

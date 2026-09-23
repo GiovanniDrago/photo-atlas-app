@@ -21,6 +21,10 @@ class LocalMediaPage {
 class LocalMediaService {
   static bool get isSupported => impl.isSupported;
 
+  /// Verifies (and asks for) the media permission from the foreground: the
+  /// background runs cannot show the system prompt.
+  static Future<bool> ensurePhotoPermission() => impl.ensurePhotoPermission();
+
   /// Loads the whole device library once, newest first and without
   /// duplicates (the platform paging is not stable without an explicit order).
   static Future<LocalMediaPage> loadAll({required ApiClient client}) {

@@ -66,6 +66,7 @@ class LocalScanService {
     required String rootPath,
     void Function(int seen, int indexed)? onProgress,
     bool Function()? isCancelled,
+    bool ensurePermission = true,
   }) async {
     var root = rootPath;
     if (root.isEmpty) {
@@ -104,7 +105,10 @@ class LocalScanService {
         onProgress?.call(seen, indexed);
       }
 
-      final albumId = await resolveAlbumId(root);
+      final albumId = await resolveAlbumId(
+        root,
+        ensurePermission: ensurePermission,
+      );
       if (root.startsWith(_albumPrefix) && albumId == null) {
         await client.patchScanRun(
           scanRunId,
@@ -119,6 +123,7 @@ class LocalScanService {
               albumId: albumId,
               onBatch: onBatch,
               onProgress: progress,
+              ensurePermission: ensurePermission,
             )
           : await ScanService.scanDirectory(
               directoryPath: root,
@@ -154,12 +159,18 @@ class LocalScanService {
     }
   }
 
-  Future<String?> resolveAlbumId(String rootPath) async {
+  Future<String?> resolveAlbumId(
+    String rootPath, {
+    bool ensurePermission = true,
+  }) async {
     if (!ScanService.isAlbumBased) return null;
     if (rootPath.startsWith(_albumPathPrefix)) {
       final folder = rootPath.substring(_albumPathPrefix.length);
       if (folder.isEmpty) return null;
-      return ScanService.findAlbumIdByName(folder);
+      return ScanService.findAlbumIdByName(
+        folder,
+        ensurePermission: ensurePermission,
+      );
     }
     if (rootPath.startsWith(_albumPrefix)) {
       final albumId = rootPath.substring(_albumPrefix.length);

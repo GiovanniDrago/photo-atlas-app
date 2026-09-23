@@ -9,6 +9,7 @@ import '../../models/media_item.dart';
 import '../../providers/backup_runner_provider.dart';
 import '../../providers/collections_providers.dart';
 import '../../services/auto_backup_service.dart';
+import '../../services/scan_service.dart';
 import 'backup_screen.dart';
 
 Future<void> showBackupRunSheet(BuildContext context) {
@@ -138,7 +139,8 @@ class _BackupRunSheetState extends ConsumerState<_BackupRunSheet> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '${l10n.backupSheetError}: ${progress!.error}',
+                          '${l10n.backupSheetError}: '
+                          '${progress!.error!.split('\n').first}',
                           style: TextStyle(
                             color: scheme.onErrorContainer,
                             fontSize: 12,
@@ -310,18 +312,28 @@ class _BackupRunSheetState extends ConsumerState<_BackupRunSheet> {
                     onPressed: progress != null
                         ? null
                         : () async {
-                            await ref
+                            final started = await ref
                                 .read(backupRunnerProvider.notifier)
                                 .runNow();
-                            if (context.mounted) Navigator.of(context).pop();
+                            if (!context.mounted) return;
+                            if (!started) {
+                              await _showPermissionDialog(context);
+                              return;
+                            }
+                            Navigator.of(context).pop();
                           },
                     icon: const Icon(Icons.play_arrow),
                     label: Text(l10n.backupNow),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () => ref
-                        .read(backupRunnerProvider.notifier)
-                        .retryBackground(),
+                    onPressed: () async {
+                      final started = await ref
+                          .read(backupRunnerProvider.notifier)
+                          .retryBackground();
+                      if (!started && context.mounted) {
+                        await _showPermissionDialog(context);
+                      }
+                    },
                     icon: const Icon(Icons.cloud_queue),
                     label: Text(l10n.backupRetryBackground),
                   ),
@@ -400,4 +412,29 @@ class _PendingRow extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _showPermissionDialog(BuildContext context) async {
+  final l10n = AppLocalizations.of(context)!;
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(l10n.backupNoPermission),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: Text(l10n.close),
+        ),
+        FilledButton(
+          onPressed: () async {
+            Navigator.of(dialogContext).pop();
+            try {
+              await ScanService.openSettings();
+            } catch (_) {}
+          },
+          child: Text(l10n.galleryOpenSettings),
+        ),
+      ],
+    ),
+  );
 }

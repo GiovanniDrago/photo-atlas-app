@@ -319,5 +319,6 @@
 "backupOpenScreen": "Apri la schermata Backup",
 "backupSheetScanning": "Scansione della cartella…",
 "backupSheetError": "Errore",
-"backupJobStateLast": "ultimo job registrato"
+"backupJobStateLast": "ultimo job registrato",
+"backupNoPermission": "Permesso foto mancante: aprilo dalle impostazioni di sistema"
 }

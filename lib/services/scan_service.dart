@@ -22,20 +22,30 @@ class ScanService {
 
   static bool get isAlbumBased => impl.isAlbumBased;
 
-  static Future<List<ScanFolder>> listFolders() => impl.listFolders();
+  static Future<List<ScanFolder>> listFolders({bool ensurePermission = true}) =>
+      impl.listFolders(ensurePermission: ensurePermission);
 
   /// One page of a single device folder (no subfolders).
   static Future<AssetPage> folderPage({
     required String albumId,
     required int page,
     required int size,
+    bool ensurePermission = true,
   }) {
-    return impl.folderPage(albumId: albumId, page: page, size: size);
+    return impl.folderPage(
+      albumId: albumId,
+      page: page,
+      size: size,
+      ensurePermission: ensurePermission,
+    );
   }
 
   /// The newest assets of the device, used by the collections preview.
-  static Future<List<AssetEntity>> recentAssets({int limit = 6}) {
-    return impl.recentAssets(limit: limit);
+  static Future<List<AssetEntity>> recentAssets({
+    int limit = 6,
+    bool ensurePermission = true,
+  }) {
+    return impl.recentAssets(limit: limit, ensurePermission: ensurePermission);
   }
 
   static Future<ScanResult> scanDirectory({
@@ -54,20 +64,27 @@ class ScanService {
     required String albumId,
     required ScanBatchCallback onBatch,
     required ScanProgressCallback onProgress,
+    bool ensurePermission = true,
   }) {
     return impl.scanAlbum(
       albumId: albumId,
       onBatch: onBatch,
       onProgress: onProgress,
+      ensurePermission: ensurePermission,
     );
   }
 
-  static Future<List<AssetEntity>> listAllAssetsOnce() {
-    return impl.listAllAssetsOnce();
+  static Future<List<AssetEntity>> listAllAssetsOnce({
+    bool ensurePermission = true,
+  }) {
+    return impl.listAllAssetsOnce(ensurePermission: ensurePermission);
   }
 
-  static Future<String?> findAlbumIdByName(String name) {
-    return impl.findAlbumIdByName(name);
+  static Future<String?> findAlbumIdByName(
+    String name, {
+    bool ensurePermission = true,
+  }) {
+    return impl.findAlbumIdByName(name, ensurePermission: ensurePermission);
   }
 
   static Future<ScannedMedia?> buildScannedMedia(AssetEntity asset) {
