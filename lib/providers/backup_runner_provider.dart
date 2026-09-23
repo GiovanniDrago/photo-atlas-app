@@ -109,7 +109,7 @@ class BackupRunner extends Notifier<BackupRunnerState> {
   /// Starts one queued folder: in this process while the app is open, in the
   /// background job otherwise. Only one run at a time.
   Future<void> _startNext(BackupQueueItem item) async {
-    final rootPath = _rootPaths()[item.sourceId] ?? '';
+    final rootPath = (await _rootPaths())[item.sourceId] ?? '';
     if (!AutoBackupService.isSupported) {
       unawaited(
         runInApp(
@@ -162,10 +162,7 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     } catch (_) {
       return;
     }
-    final sources = ref.read(sourcesProvider).value ?? const <MediaSource>[];
-    final rootPaths = {
-      for (final source in sources) source.id: source.rootPath ?? '',
-    };
+    final rootPaths = await _rootPaths();
     for (final source in snapshot.sources) {
       if (!source.autoBackup) continue;
       final lastRun = source.backupLastRunAt;
@@ -182,12 +179,14 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     }
   }
 
-  Map<String, String> _rootPaths() {
-    return {
-      for (final source
-          in ref.read(sourcesProvider).value ?? const <MediaSource>[])
-        source.id: source.rootPath ?? '',
-    };
+  /// Source id -> root path, waiting for the list when it is not loaded yet.
+  Future<Map<String, String>> _rootPaths() async {
+    try {
+      final sources = await ref.read(sourcesProvider.future);
+      return {for (final source in sources) source.id: source.rootPath ?? ''};
+    } catch (_) {
+      return const {};
+    }
   }
 
   /// Drops the stuck queue entry and starts it again in the background.
@@ -195,11 +194,12 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     final queue = await BackupProgressStore.readQueue();
     if (queue.isEmpty) return;
     final first = queue.first;
+    final rootPaths = await _rootPaths();
     await cancel();
     await enqueue(
       sourceId: first.sourceId,
       label: first.label,
-      rootPath: _rootPaths()[first.sourceId] ?? '',
+      rootPath: rootPaths[first.sourceId] ?? '',
     );
   }
 
@@ -235,6 +235,12 @@ class BackupRunner extends Notifier<BackupRunnerState> {
       await AutoBackupService.cancelManualRuns();
     }
     await BackupProgressStore.writeQueue(const []);
+    final current = await BackupProgressStore.read();
+    if (current != null && !current.finished) {
+      await BackupProgressStore.write(
+        current.copyWith(finishedAtMs: DateTime.now().millisecondsSinceEpoch),
+      );
+    }
     state = BackupRunnerState(progress: state.progress, queue: const []);
     _startPolling();
   }
@@ -249,16 +255,36 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     bool handoffOnBackground = true,
   }) async {
     final client = ref.read(apiClientProvider);
+    var autoResumed = false;
     final watcher = _LifecycleWatcher(() {
       if (!handoffOnBackground) return;
-      unawaited(
-        AutoBackupService.registerManualRun(sourceId: sourceId, label: label),
-      );
-      unawaited(
-        BackupRunLog.add(
+      unawaited(() async {
+        await BackupRunLog.add(
           'app in background: il run continua nel foreground service',
-        ),
-      );
+        );
+        await AutoBackupService.registerManualRun(
+          sourceId: sourceId,
+          label: label,
+        );
+        final handoffAt = DateTime.now().millisecondsSinceEpoch;
+        await Future<void>.delayed(const Duration(seconds: 60));
+        final current = await BackupProgressStore.read();
+        final alive =
+            current != null &&
+            !current.finished &&
+            current.updatedAtMs > handoffAt;
+        if (alive || autoResumed) return;
+        autoResumed = true;
+        await BackupRunLog.add(
+          'il job in background non è partito: riprendo in-app',
+        );
+        await runInApp(
+          sourceId: sourceId,
+          label: label,
+          rootPath: rootPath,
+          handoffOnBackground: false,
+        );
+      }());
     });
     WidgetsBinding.instance.addObserver(watcher);
     var cancelled = false;
@@ -342,9 +368,25 @@ class BackupRunner extends Notifier<BackupRunnerState> {
   }
 
   Future<void> _poll() async {
-    final progress = await BackupProgressStore.read();
+    var progress = await BackupProgressStore.read();
     final queue = await BackupProgressStore.readQueue();
     final log = await BackupRunLog.read();
+    if (progress != null && !progress.finished) {
+      final last = progress.updatedAtMs != 0
+          ? progress.updatedAtMs
+          : progress.startedAtMs;
+      final age = DateTime.now().millisecondsSinceEpoch - last;
+      if (last != 0 && age > 180000) {
+        await BackupRunLog.add('run fermo da oltre 3 minuti: lo chiudo');
+        await BackupProgressStore.write(
+          progress.copyWith(
+            error: 'stalled',
+            finishedAtMs: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+        progress = await BackupProgressStore.read();
+      }
+    }
     if (progress != null && progress.finished) {
       final error = progress.error;
       await BackupProgressStore.clear();

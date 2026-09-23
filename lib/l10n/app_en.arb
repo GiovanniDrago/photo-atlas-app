@@ -813,5 +813,8 @@
 "backupRetryBackground": "Retry in background",
 "backupOpenScreen": "Open the Backup screen",
 "@backupQueueCount": {"placeholders": {"count": {"type": "int"}}},
-"@backupSheetFilesCount": {"placeholders": {"count": {"type": "int"}, "size": {"type": "String"}}}
+"@backupSheetFilesCount": {"placeholders": {"count": {"type": "int"}, "size": {"type": "String"}}},
+"backupSheetScanning": "Scanning the folder…",
+"backupSheetError": "Error",
+"backupJobStateLast": "last registered job"
 }

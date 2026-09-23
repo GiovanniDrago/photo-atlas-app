@@ -119,6 +119,36 @@ class _BackupRunSheetState extends ConsumerState<_BackupRunSheet> {
                 '${(progress?.failed ?? 0) > 0 ? ' · ${l10n.backupFailedCount(progress!.failed)}' : ''}',
                 style: Theme.of(context).textTheme.labelSmall,
               ),
+              if ((progress?.error ?? '').isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: scheme.errorContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: scheme.onErrorContainer,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${l10n.backupSheetError}: ${progress!.error}',
+                          style: TextStyle(
+                            color: scheme.onErrorContainer,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (state.waitingTooLong) ...[
                 const SizedBox(height: 12),
                 Container(
@@ -181,7 +211,8 @@ class _BackupRunSheetState extends ConsumerState<_BackupRunSheet> {
                       future: _workInfo,
                       builder: (context, snapshot) => Text(
                         '${l10n.backupJobState}: '
-                        '${_workStateLabel(l10n, snapshot.data)}',
+                        '${_workStateLabel(l10n, snapshot.data)}'
+                        ' · ${l10n.backupJobStateLast}',
                         style: Theme.of(context).textTheme.labelSmall,
                       ),
                     ),
@@ -213,35 +244,41 @@ class _BackupRunSheetState extends ConsumerState<_BackupRunSheet> {
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 4),
-                pendingAsync.when(
-                  data: (page) {
-                    final bytes = page.items.fold<int>(
-                      0,
-                      (sum, item) => sum + (item.sizeBytes ?? 0),
-                    );
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${l10n.backupSheetFilesCount(page.total, _formatBytes(bytes))}'
-                          '\n${l10n.backupSheetScanNote}',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 8),
-                        for (final item in page.items)
-                          _PendingRow(item: item, formatBytes: _formatBytes),
-                      ],
-                    );
-                  },
-                  loading: () => const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: LinearProgressIndicator(),
-                  ),
-                  error: (error, stackTrace) => Text(
-                    l10n.errorLoading,
+                if (progress?.scanning == true)
+                  Text(
+                    l10n.backupSheetScanning,
                     style: Theme.of(context).textTheme.bodySmall,
+                  )
+                else
+                  pendingAsync.when(
+                    data: (page) {
+                      final bytes = page.items.fold<int>(
+                        0,
+                        (sum, item) => sum + (item.sizeBytes ?? 0),
+                      );
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${l10n.backupSheetFilesCount(page.total, _formatBytes(bytes))}'
+                            '\n${l10n.backupSheetScanNote}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 8),
+                          for (final item in page.items)
+                            _PendingRow(item: item, formatBytes: _formatBytes),
+                        ],
+                      );
+                    },
+                    loading: () => const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: LinearProgressIndicator(),
+                    ),
+                    error: (error, stackTrace) => Text(
+                      l10n.errorLoading,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ),
-                ),
               ],
               const SizedBox(height: 12),
               ExpansionTile(

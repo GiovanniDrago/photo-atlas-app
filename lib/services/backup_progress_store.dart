@@ -16,6 +16,10 @@ class BackupRunProgress {
   final int? finishedAtMs;
   final String? error;
 
+  /// Last time the entry was written: the app uses it to tell whether the run
+  /// (in-app or in the background isolate) is still alive.
+  final int updatedAtMs;
+
   const BackupRunProgress({
     this.sourceId,
     this.label,
@@ -27,6 +31,7 @@ class BackupRunProgress {
     this.startedAtMs = 0,
     this.finishedAtMs,
     this.error,
+    this.updatedAtMs = 0,
   });
 
   bool get finished => finishedAtMs != null;
@@ -41,6 +46,7 @@ class BackupRunProgress {
     String? currentName,
     int? finishedAtMs,
     String? error,
+    int? updatedAtMs,
   }) {
     return BackupRunProgress(
       sourceId: sourceId,
@@ -53,6 +59,7 @@ class BackupRunProgress {
       startedAtMs: startedAtMs,
       finishedAtMs: finishedAtMs ?? this.finishedAtMs,
       error: error ?? this.error,
+      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
     );
   }
 
@@ -67,6 +74,7 @@ class BackupRunProgress {
     'started_at': startedAtMs,
     'finished_at': finishedAtMs,
     'error': error,
+    'updated_at': updatedAtMs,
   };
 
   factory BackupRunProgress.fromJson(Map<String, dynamic> json) {
@@ -81,6 +89,7 @@ class BackupRunProgress {
       startedAtMs: (json['started_at'] as num?)?.toInt() ?? 0,
       finishedAtMs: (json['finished_at'] as num?)?.toInt(),
       error: json['error'] as String?,
+      updatedAtMs: (json['updated_at'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -171,7 +180,10 @@ class BackupProgressStore {
   static Future<void> write(BackupRunProgress progress) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_progressKey, jsonEncode(progress.toJson()));
+      final stamped = progress.copyWith(
+        updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+      );
+      await prefs.setString(_progressKey, jsonEncode(stamped.toJson()));
     } catch (_) {}
   }
 

@@ -67,6 +67,22 @@ class LocalScanService {
     void Function(int seen, int indexed)? onProgress,
     bool Function()? isCancelled,
   }) async {
+    var root = rootPath;
+    if (root.isEmpty) {
+      // The caller may not know the path yet (for example a catch-up run at
+      // app start): read it from the source on the server.
+      try {
+        for (final source in await client.sources()) {
+          if (source.id == sourceId) {
+            root = source.rootPath ?? '';
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+    if (root.isEmpty) {
+      throw ArgumentError('Source $sourceId has no path to scan');
+    }
     final scanRunId = await client.createScanRun(sourceId);
     var lastSeen = 0;
     var lastIndexed = 0;
@@ -88,8 +104,8 @@ class LocalScanService {
         onProgress?.call(seen, indexed);
       }
 
-      final albumId = await resolveAlbumId(rootPath);
-      if (rootPath.startsWith(_albumPrefix) && albumId == null) {
+      final albumId = await resolveAlbumId(root);
+      if (root.startsWith(_albumPrefix) && albumId == null) {
         await client.patchScanRun(
           scanRunId,
           status: 'completed',
@@ -105,7 +121,7 @@ class LocalScanService {
               onProgress: progress,
             )
           : await ScanService.scanDirectory(
-              directoryPath: rootPath,
+              directoryPath: root,
               onBatch: onBatch,
               onProgress: progress,
             );

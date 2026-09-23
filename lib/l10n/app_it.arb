@@ -316,5 +316,8 @@
 "backupSheetScanNote": "Più i file nuovi trovati dalla scansione.",
 "backupSheetLog": "Dettagli tecnici",
 "backupRetryBackground": "Riprova in background",
-"backupOpenScreen": "Apri la schermata Backup"
+"backupOpenScreen": "Apri la schermata Backup",
+"backupSheetScanning": "Scansione della cartella…",
+"backupSheetError": "Errore",
+"backupJobStateLast": "ultimo job registrato"
 }
