@@ -1,0 +1,6 @@
+Fixed the "Directory not found" error when a folder is queued before its source path is known: the
+path is now resolved from the server. Runs that stop updating are closed automatically after three
+minutes, and if the background job does not take over within a minute after the app goes to the
+background the run resumes in the app, so the progress bar never stays on screen. The X on the bar
+now stops the run and closes it immediately, and the detail sheet shows the run error, the scanning
+state and which job state it is reporting.

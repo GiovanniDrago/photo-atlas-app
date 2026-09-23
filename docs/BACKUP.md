@@ -56,6 +56,10 @@ notification) that scans the selected folders for new media and uploads everythi
   technical log of the run, the list of files waiting for upload (read-only, no claims) and the
   actions: **Backup now** (runs in the app), **Retry in background**, **Cancel** (releases the
   claims, so the next run retries immediately), **Disable battery optimization**.
+- The hand-off is self-healing: if the background job has not written anything 60 seconds after the
+  app went to the background, the run resumes in the app. A watchdog closes any run that has not
+  been updated for more than 3 minutes (with `error: stalled` in the log), so the bar never stays
+  on screen. The **X** on the bar stops the run and closes it right away.
 - The sheet also shows the pending files: `GET /api/media?source_id=…&backup_status=none,pending,uploading,failed`
   (unlike `/api/backup/pending` this takes no claim, so it is safe to show).
 - While the app is open the enabled folders are also checked on open, on returning to the app and
