@@ -232,7 +232,7 @@ Future<List<String>> deleteAll(List<LocalMedia> media) async {
   if (entities.isNotEmpty && (sdk == null || sdk >= 30)) {
     // Android 11+ has the system trash (recoverable); older versions do not.
     try {
-      trashed.addAll(await PhotoManager.editor.moveToTrash(entities));
+      trashed.addAll(await PhotoManager.editor.android.moveToTrash(entities));
     } catch (_) {
       if (sdk != null) rethrow;
       // Unknown SDK: fall through to the permanent delete below.
