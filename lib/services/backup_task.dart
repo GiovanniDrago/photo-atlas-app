@@ -25,19 +25,24 @@ void backupCallbackDispatcher() {
     final manual = inputData?['manual'] == true;
     final label = inputData?['label'] as String?;
     try {
+      await BackupRunLog.add(
+        'job avviato (${manual ? 'manuale' : 'periodico'}'
+        '${sourceId == null ? '' : ', sorgente $sourceId'})',
+      );
       await runAutoBackup(sourceId: sourceId, manual: manual, label: label);
       return true;
     } catch (error) {
       debugPrint('auto backup failed: $error');
-      final progress = await BackupProgressStore.read();
-      if (progress != null) {
-        await BackupProgressStore.write(
-          progress.copyWith(
-            error: '$error',
-            finishedAtMs: DateTime.now().millisecondsSinceEpoch,
-          ),
-        );
-      }
+      await BackupRunLog.add('errore: $error');
+      final progress =
+          await BackupProgressStore.read() ??
+          BackupRunProgress(sourceId: sourceId, label: label);
+      await BackupProgressStore.write(
+        progress.copyWith(
+          error: '$error',
+          finishedAtMs: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
       return false;
     }
   });
@@ -68,16 +73,21 @@ Future<void> runAutoBackup({
   }
 
   final settings = await AutoBackupService.load();
-  if (!manual && !settings.enabled) return;
+  if (!manual && !settings.enabled) {
+    await BackupRunLog.add('job periodico saltato: automatico disattivato');
+    return;
+  }
 
   final prefs = await SharedPreferences.getInstance();
   final baseUrl =
       prefs.getString('api_base_url') ?? platformDefaultApiBaseUrl();
+  await BackupRunLog.add('server: $baseUrl');
   final config = await ApiClient(baseUrl).apiConfig();
   await SupabaseBootstrap.ensure(config);
   final session = Supabase.instance.client.auth.currentSession;
   if (session == null) {
     debugPrint('auto backup skipped: no session');
+    await BackupRunLog.add('nessuna sessione Supabase nel job');
     await finish(error: 'no_session');
     return;
   }
@@ -91,6 +101,7 @@ Future<void> runAutoBackup({
       : await scanner.autoBackupSources();
   if (sources.isEmpty) {
     debugPrint('auto backup: nothing to do');
+    await BackupRunLog.add('nessuna cartella da processare');
     await finish();
     return;
   }
@@ -123,10 +134,11 @@ Future<void> runAutoBackup({
         startedAtMs: DateTime.now().millisecondsSinceEpoch,
       );
       await BackupProgressStore.write(progress);
+      await BackupRunLog.add('scansione: ${source.label}');
       final rootPath = source.rootPath;
       if (rootPath != null && ScanService.isSupported) {
         try {
-          await scanner.scanSource(
+          final scan = await scanner.scanSource(
             sourceId: source.id,
             rootPath: rootPath,
             isCancelled: stop,
@@ -135,8 +147,12 @@ Future<void> runAutoBackup({
               unawaited(BackupProgressStore.write(progress));
             },
           );
+          await BackupRunLog.add(
+            'scansione completata: ${source.label} (${scan.filesSeen} file)',
+          );
         } catch (error) {
           debugPrint('auto backup: scan failed for ${source.label}: $error');
+          await BackupRunLog.add('scansione fallita: $error');
         }
       }
       if (stop()) break;
@@ -161,8 +177,10 @@ Future<void> runAutoBackup({
             unawaited(BackupProgressStore.write(progress));
           },
         );
+        await BackupRunLog.add('upload completato: ${source.label}');
       } catch (error) {
         debugPrint('auto backup: uploads failed for ${source.label}: $error');
+        await BackupRunLog.add('upload fallito: $error');
       }
     }
   } finally {

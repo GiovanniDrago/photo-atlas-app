@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../navigation.dart';
 import '../providers/backup_runner_provider.dart';
-import '../screens/backup/backup_screen.dart';
+import '../screens/backup/backup_run_sheet.dart';
 
 /// Thin progress bar shown above every screen while a folder backup runs.
 class BackupBanner extends ConsumerWidget {
@@ -35,9 +35,10 @@ class BackupBanner extends ConsumerWidget {
       child: SafeArea(
         bottom: false,
         child: InkWell(
-          onTap: () => appNavigatorKey.currentState?.push(
-            MaterialPageRoute(builder: (_) => const BackupScreen()),
-          ),
+          onTap: () {
+            final context = appNavigatorKey.currentContext;
+            if (context != null) showBackupRunSheet(context);
+          },
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
             child: Row(
@@ -85,10 +86,13 @@ class BackupBanner extends ConsumerWidget {
                   ),
                 if (stuck)
                   IconButton(
-                    tooltip: l10n.retry,
-                    icon: Icon(Icons.refresh, color: scheme.onPrimaryContainer),
+                    tooltip: l10n.backupNow,
+                    icon: Icon(
+                      Icons.play_arrow,
+                      color: scheme.onPrimaryContainer,
+                    ),
                     onPressed: () =>
-                        ref.read(backupRunnerProvider.notifier).retry(),
+                        ref.read(backupRunnerProvider.notifier).runNow(),
                   ),
                 IconButton(
                   tooltip: l10n.backupStop,

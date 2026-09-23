@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/backup.dart';
@@ -15,8 +16,13 @@ import 'library_providers.dart';
 class BackupRunnerState {
   final BackupRunProgress? progress;
   final List<BackupQueueItem> queue;
+  final List<String> log;
 
-  const BackupRunnerState({this.progress, this.queue = const []});
+  const BackupRunnerState({
+    this.progress,
+    this.queue = const [],
+    this.log = const [],
+  });
 
   bool get active => progress != null || queue.isNotEmpty;
   bool get starting => progress == null && queue.isNotEmpty;
@@ -63,7 +69,11 @@ class BackupRunner extends Notifier<BackupRunnerState> {
       _invalidateAll();
       return;
     }
-    state = BackupRunnerState(progress: progress, queue: queue);
+    state = BackupRunnerState(
+      progress: progress,
+      queue: queue,
+      log: await BackupRunLog.read(),
+    );
     _startPolling();
   }
 
@@ -87,14 +97,31 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     await BackupProgressStore.writeQueue(queue);
     state = BackupRunnerState(progress: state.progress, queue: queue);
     _startPolling();
-    if (AutoBackupService.isSupported) {
-      await AutoBackupService.registerManualRun(
-        sourceId: sourceId,
-        label: label,
+    if (!AutoBackupService.isSupported) {
+      unawaited(
+        runInApp(
+          sourceId: sourceId,
+          label: label,
+          rootPath: rootPath,
+          handoffOnBackground: false,
+        ),
       );
       return;
     }
-    unawaited(_runInline(sourceId: sourceId, label: label, rootPath: rootPath));
+    if (_isForeground) {
+      // While the app is open the run happens in this process: it starts at
+      // once and the progress is visible immediately.
+      unawaited(runInApp(sourceId: sourceId, label: label, rootPath: rootPath));
+      return;
+    }
+    await AutoBackupService.registerManualRun(sourceId: sourceId, label: label);
+  }
+
+  bool get _isForeground {
+    final state = WidgetsBinding.instance.lifecycleState;
+    return state == null ||
+        state == AppLifecycleState.resumed ||
+        state == AppLifecycleState.inactive;
   }
 
   /// Starts the folders enabled for automatic upload that still have pending
@@ -135,21 +162,53 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     }
   }
 
-  /// Drops the stuck queue entry and starts it again.
-  Future<void> retry() async {
-    final queue = await BackupProgressStore.readQueue();
-    if (queue.isEmpty) return;
-    final first = queue.first;
-    final rootPaths = {
+  Map<String, String> _rootPaths() {
+    return {
       for (final source
           in ref.read(sourcesProvider).value ?? const <MediaSource>[])
         source.id: source.rootPath ?? '',
     };
+  }
+
+  /// Drops the stuck queue entry and starts it again in the background.
+  Future<void> retry() async {
+    final queue = await BackupProgressStore.readQueue();
+    if (queue.isEmpty) return;
+    final first = queue.first;
     await cancel();
     await enqueue(
       sourceId: first.sourceId,
       label: first.label,
-      rootPath: rootPaths[first.sourceId] ?? '',
+      rootPath: _rootPaths()[first.sourceId] ?? '',
+    );
+  }
+
+  /// Starts the first queued folder right away, in this process.
+  Future<void> runNow() async {
+    final queue = await BackupProgressStore.readQueue();
+    if (queue.isEmpty) return;
+    final first = queue.first;
+    await BackupProgressStore.clearCancel();
+    if (AutoBackupService.isSupported) {
+      await AutoBackupService.cancelManualRuns();
+    }
+    await runInApp(
+      sourceId: first.sourceId,
+      label: first.label,
+      rootPath: _rootPaths()[first.sourceId] ?? '',
+    );
+  }
+
+  /// Sends the first queued folder to the background job again.
+  Future<void> retryBackground() async {
+    final queue = await BackupProgressStore.readQueue();
+    if (queue.isEmpty) return;
+    await BackupProgressStore.clearCancel();
+    if (!AutoBackupService.isSupported) return;
+    await BackupRunLog.add('riprovo in background: ${queue.first.label}');
+    await AutoBackupService.registerManualRun(
+      sourceId: queue.first.sourceId,
+      label: queue.first.label,
     );
   }
 
@@ -163,13 +222,34 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     _startPolling();
   }
 
-  /// Desktop fallback: no WorkManager, the run happens in the app process.
-  Future<void> _runInline({
+  /// Runs scan + upload in the app process. When the app goes to the
+  /// background the run is handed over to the foreground service job (the
+  /// atomic claims on the server make sure no file is uploaded twice).
+  Future<void> runInApp({
     required String sourceId,
     required String label,
     required String rootPath,
+    bool handoffOnBackground = true,
   }) async {
     final client = ref.read(apiClientProvider);
+    final watcher = _LifecycleWatcher(() {
+      if (!handoffOnBackground) return;
+      unawaited(
+        AutoBackupService.registerManualRun(sourceId: sourceId, label: label),
+      );
+      unawaited(
+        BackupRunLog.add(
+          'app in background: il run continua nel foreground service',
+        ),
+      );
+    });
+    WidgetsBinding.instance.addObserver(watcher);
+    var cancelled = false;
+    final cancelWatcher = Timer.periodic(const Duration(seconds: 2), (_) async {
+      if (await BackupProgressStore.cancelRequested()) cancelled = true;
+    });
+    bool stop() => cancelled || watcher.backgrounded;
+
     var progress = BackupRunProgress(
       sourceId: sourceId,
       label: label,
@@ -177,40 +257,57 @@ class BackupRunner extends Notifier<BackupRunnerState> {
       startedAtMs: DateTime.now().millisecondsSinceEpoch,
     );
     await BackupProgressStore.write(progress);
+    await BackupRunLog.add('run in-app: $label');
     try {
-      await LocalScanService(client).scanSource(
+      final scan = await LocalScanService(client).scanSource(
         sourceId: sourceId,
         rootPath: rootPath,
+        isCancelled: stop,
         onProgress: (seen, indexed) {
           progress = progress.copyWith(total: seen);
           unawaited(BackupProgressStore.write(progress));
         },
       );
-      progress = progress.copyWith(
-        phase: 'uploading',
-        uploaded: 0,
-        failed: 0,
-        total: 0,
-      );
-      await BackupProgressStore.write(progress);
-      await BackupService(client).runBackup(
-        sourceId: sourceId,
-        onProgress: (value) {
-          progress = progress.copyWith(
-            uploaded: value.uploaded,
-            failed: value.failed,
-            total: value.total,
-            currentName: value.currentName,
-          );
-          unawaited(BackupProgressStore.write(progress));
-        },
-      );
+      await BackupRunLog.add('scansione: ${scan.filesSeen} file');
+      if (!stop()) {
+        progress = progress.copyWith(
+          phase: 'uploading',
+          uploaded: 0,
+          failed: 0,
+          total: 0,
+        );
+        await BackupProgressStore.write(progress);
+        await BackupRunLog.add('upload: $label');
+        await BackupService(client).runBackup(
+          sourceId: sourceId,
+          isCancelled: stop,
+          onProgress: (value) {
+            progress = progress.copyWith(
+              uploaded: value.uploaded,
+              failed: value.failed,
+              total: value.total,
+              currentName: value.currentName,
+            );
+            unawaited(BackupProgressStore.write(progress));
+          },
+        );
+        await BackupRunLog.add('upload terminato: $label');
+      }
     } catch (error) {
       progress = progress.copyWith(error: '$error');
+      await BackupRunLog.add('errore: $error');
     } finally {
-      await BackupProgressStore.write(
-        progress.copyWith(finishedAtMs: DateTime.now().millisecondsSinceEpoch),
-      );
+      cancelWatcher.cancel();
+      WidgetsBinding.instance.removeObserver(watcher);
+      if (watcher.backgrounded && handoffOnBackground) {
+        await BackupRunLog.add('run in-app sospeso (continua in background)');
+      } else {
+        await BackupProgressStore.write(
+          progress.copyWith(
+            finishedAtMs: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+      }
     }
   }
 
@@ -230,15 +327,16 @@ class BackupRunner extends Notifier<BackupRunnerState> {
   Future<void> _poll() async {
     final progress = await BackupProgressStore.read();
     final queue = await BackupProgressStore.readQueue();
+    final log = await BackupRunLog.read();
     if (progress != null && progress.finished) {
       _stopPolling();
-      state = const BackupRunnerState();
+      state = BackupRunnerState(log: log);
       await BackupProgressStore.clear();
       await BackupProgressStore.writeQueue(const []);
       _invalidateAll();
       return;
     }
-    state = BackupRunnerState(progress: progress, queue: queue);
+    state = BackupRunnerState(progress: progress, queue: queue, log: log);
     if (progress == null && queue.isEmpty) _stopPolling();
   }
 
@@ -254,3 +352,20 @@ class BackupRunner extends Notifier<BackupRunnerState> {
 final backupRunnerProvider = NotifierProvider<BackupRunner, BackupRunnerState>(
   BackupRunner.new,
 );
+
+class _LifecycleWatcher with WidgetsBindingObserver {
+  _LifecycleWatcher(this.onBackground);
+
+  final VoidCallback onBackground;
+  bool backgrounded = false;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      if (backgrounded) return;
+      backgrounded = true;
+      onBackground();
+    }
+  }
+}

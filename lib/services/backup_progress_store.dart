@@ -111,6 +111,45 @@ class BackupQueueItem {
   }
 }
 
+/// Bounded technical log of the backup runs, shown in the detail sheet.
+class BackupRunLog {
+  static const _key = 'backup_run_log';
+  static const maxLines = 50;
+
+  static Future<List<String>> read() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getStringList(_key) ?? const [];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  static Future<void> clear() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_key);
+    } catch (_) {}
+  }
+
+  static Future<void> add(String message) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lines = prefs.getStringList(_key) ?? <String>[];
+      final now = DateTime.now();
+      final stamp =
+          '${now.hour.toString().padLeft(2, '0')}:'
+          '${now.minute.toString().padLeft(2, '0')}:'
+          '${now.second.toString().padLeft(2, '0')}';
+      lines.add('$stamp $message');
+      if (lines.length > maxLines) {
+        lines.removeRange(0, lines.length - maxLines);
+      }
+      await prefs.setStringList(_key, lines);
+    } catch (_) {}
+  }
+}
+
 class BackupProgressStore {
   static const _progressKey = 'backup_run_progress';
   static const _cancelKey = 'backup_cancel_requested';

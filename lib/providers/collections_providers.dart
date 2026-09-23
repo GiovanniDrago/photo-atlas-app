@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/backup.dart';
 import '../models/gallery_entry.dart';
 import '../models/media_item.dart';
+import '../services/api_client.dart';
 import '../services/local_media_service.dart';
 import '../services/scan_models.dart';
 import '../services/scan_service.dart';
@@ -28,6 +29,20 @@ final folderThumbProvider = FutureProvider.family<List<AssetEntity>, String>((
 ) async {
   final page = await ScanService.folderPage(albumId: albumId, page: 0, size: 1);
   return page.assets;
+});
+
+/// Read-only list of the files waiting for upload in a source. Unlike
+/// `GET /api/backup/pending` it takes no claim, so it is safe to show.
+final backupPendingPreviewProvider = FutureProvider.family<MediaPage, String>((
+  ref,
+  sourceId,
+) async {
+  final client = ref.watch(apiClientProvider);
+  return client.media(
+    sourceId: sourceId,
+    backupStatus: 'none,pending,uploading,failed',
+    limit: 50,
+  );
 });
 
 /// The newest items (device + cloud) shown in the collections timeline card.
