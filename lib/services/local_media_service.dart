@@ -21,6 +21,11 @@ class LocalMediaPage {
 class LocalMediaService {
   static bool get isSupported => impl.isSupported;
 
+  /// Device files indexed by `name|size` (see [mergeCloudWithDevice]).
+  static Future<Map<String, LocalMedia>> deviceIndex({ApiClient? client}) {
+    return impl.deviceIndex(client: client);
+  }
+
   /// Verifies (and asks for) the media permission from the foreground: the
   /// background runs cannot show the system prompt.
   static Future<bool> ensurePhotoPermission() => impl.ensurePhotoPermission();

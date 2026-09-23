@@ -8,6 +8,9 @@ class LocalMedia {
   final String id;
   final String name;
   final String? path;
+
+  /// Folder of the file on the device (for example `DCIM/Camera`).
+  final String? relativePath;
   final String mediaType;
   final int? sizeBytes;
   final DateTime? takenAt;
@@ -23,6 +26,7 @@ class LocalMedia {
     required this.name,
     required this.mediaType,
     this.path,
+    this.relativePath,
     this.sizeBytes,
     this.takenAt,
     this.modifiedAt,

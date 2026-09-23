@@ -14,7 +14,9 @@ import '../../providers/library_providers.dart';
 import '../../services/export_service.dart';
 import '../../services/gallery_actions_service.dart';
 import '../../services/scan_service.dart';
+import '../../widgets/delete_media_dialog.dart';
 import '../../widgets/gallery_tile.dart';
+import '../../widgets/media_action_bar.dart';
 import 'gallery_geometry.dart';
 import 'media_viewer_screen.dart';
 
@@ -314,10 +316,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     final l10n = AppLocalizations.of(context)!;
     final entries = _selectedEntries;
     if (entries.isEmpty) return;
-    final options = await showDialog<_DeleteOptions>(
-      context: context,
-      builder: (context) => _DeleteDialog(entries: entries),
-    );
+    final options = await showDeleteMediaDialog(context, entries);
     if (options == null || !mounted) return;
     if (!options.cloud && !options.local) return;
     setState(() {
@@ -670,47 +669,24 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     final canDelete = entries.any(
       (entry) => entry.canDeleteCloud || entry.canDeleteLocal,
     );
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextButton.icon(
-                onPressed: canUpload ? _runUpload : null,
-                icon: const Icon(Icons.cloud_upload_outlined),
-                label: Text(
-                  l10n.galleryUpload,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-            Expanded(
-              child: TextButton.icon(
-                onPressed: canShare ? _runShare : null,
-                icon: const Icon(Icons.share_outlined),
-                label: Text(
-                  l10n.galleryShare,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-            Expanded(
-              child: TextButton.icon(
-                onPressed: canDelete ? _runDelete : null,
-                icon: const Icon(Icons.delete_outline),
-                label: Text(
-                  l10n.galleryDelete,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          ],
+    return MediaActionBar(
+      actions: [
+        MediaActionButton(
+          icon: Icons.cloud_upload_outlined,
+          label: l10n.galleryUpload,
+          onPressed: canUpload ? _runUpload : null,
         ),
-      ),
+        MediaActionButton(
+          icon: Icons.share_outlined,
+          label: l10n.galleryShare,
+          onPressed: canShare ? _runShare : null,
+        ),
+        MediaActionButton(
+          icon: Icons.delete_outline,
+          label: l10n.galleryDelete,
+          onPressed: canDelete ? _runDelete : null,
+        ),
+      ],
     );
   }
 
@@ -772,86 +748,6 @@ class _PermissionBanner extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _DeleteOptions {
-  final bool cloud;
-  final bool local;
-
-  const _DeleteOptions({required this.cloud, required this.local});
-}
-
-class _DeleteDialog extends StatefulWidget {
-  final List<GalleryEntry> entries;
-
-  const _DeleteDialog({required this.entries});
-
-  @override
-  State<_DeleteDialog> createState() => _DeleteDialogState();
-}
-
-class _DeleteDialogState extends State<_DeleteDialog> {
-  late bool _cloud;
-  late bool _local;
-
-  bool get _canCloud => widget.entries.any((entry) => entry.canDeleteCloud);
-  bool get _canLocal => widget.entries.any((entry) => entry.canDeleteLocal);
-
-  @override
-  void initState() {
-    super.initState();
-    _cloud = _canCloud;
-    _local = _canLocal;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final nothingSelected = !_cloud && !_local;
-    return AlertDialog(
-      title: Text(l10n.galleryDeleteTitle),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CheckboxListTile(
-            value: _cloud,
-            onChanged: _canCloud
-                ? (value) => setState(() => _cloud = value ?? false)
-                : null,
-            title: Text(l10n.galleryDeleteCloud),
-            subtitle: Text(l10n.galleryDeleteCloudHint),
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-          ),
-          CheckboxListTile(
-            value: _local,
-            onChanged: _canLocal
-                ? (value) => setState(() => _local = value ?? false)
-                : null,
-            title: Text(l10n.galleryDeleteLocal),
-            subtitle: Text(l10n.galleryDeleteLocalHint),
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          onPressed: nothingSelected
-              ? null
-              : () =>
-                    Navigator.of(context)
-                        .pop(_DeleteOptions(cloud: _cloud, local: _local)),
-          child: Text(l10n.galleryDeleteConfirm),
-        ),
-      ],
     );
   }
 }

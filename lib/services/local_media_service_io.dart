@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:photo_manager/photo_manager.dart';
@@ -122,6 +123,7 @@ List<LocalMedia> _mapAssets(List<AssetEntity> assets) {
       LocalMedia(
         id: asset.id,
         name: asset.title ?? asset.id,
+        relativePath: asset.relativePath,
         mediaType: isVideo ? 'video' : 'image',
         takenAt: asset.createDateTime,
         modifiedAt: asset.modifiedDateTime,
@@ -203,6 +205,40 @@ Future<List<LocalMedia>> _localFiles(ApiClient client) async {
 Future<String?> localPath(LocalMedia media) async {
   if (!ScanService.isAlbumBased) return media.path;
   return ScanService.localFilePath(externalKey: media.id, path: media.path);
+}
+
+/// `name|size` -> device file, to match indexed items with the local copies.
+/// The device list is loaded in the background when it is not cached yet: the
+/// caller gets an empty index now and a populated one next time.
+Future<Map<String, LocalMedia>> deviceIndex({ApiClient? client}) async {
+  if (!ScanService.isAlbumBased) return const {};
+  final assets = _cachedAssets;
+  final cachedAt = _cachedAssetsAt;
+  if (assets != null &&
+      cachedAt != null &&
+      DateTime.now().difference(cachedAt) < _assetsCacheTtl) {
+    return _buildIndex(assets);
+  }
+  if (client != null) {
+    // Load in the background: the caller keeps going cloud-only and the next
+    // call finds the index ready.
+    unawaited(
+      loadAll(client: client).catchError(
+        (_) => const LocalMediaPage(items: [], total: 0, hasMore: false),
+      ),
+    );
+  }
+  return const {};
+}
+
+Map<String, LocalMedia> _buildIndex(List<LocalMedia> assets) {
+  final index = <String, LocalMedia>{};
+  for (final media in assets) {
+    final size = media.sizeBytes;
+    if (size == null || size <= 0 || media.name.isEmpty) continue;
+    index.putIfAbsent('${media.name}|$size', () => media);
+  }
+  return index;
 }
 
 Future<({double lat, double lon})?> location(LocalMedia media) async {

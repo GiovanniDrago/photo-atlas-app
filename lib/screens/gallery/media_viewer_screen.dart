@@ -10,10 +10,14 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/gallery_entry.dart';
 import '../../models/media_item.dart';
+import '../../providers/collections_providers.dart';
+import '../../providers/gallery_providers.dart';
 import '../../providers/library_providers.dart';
+import '../../services/folder_launcher.dart';
 import '../../services/gallery_actions_service.dart';
 import '../../services/local_media_service.dart';
 import '../../services/scan_service.dart';
+import '../../widgets/delete_media_dialog.dart';
 import '../../widgets/local_file_image.dart';
 
 enum MediaViewerResult { select }
@@ -24,10 +28,17 @@ class MediaViewerScreen extends ConsumerStatefulWidget {
   final List<GalleryEntry> entries;
   final int initialIndex;
 
+  /// Called when the last (or first) item is reached, to continue with the
+  /// next (or previous) time bucket.
+  final Future<List<GalleryEntry>> Function()? loadNext;
+  final Future<List<GalleryEntry>> Function()? loadPrevious;
+
   const MediaViewerScreen({
     super.key,
     required this.entries,
     this.initialIndex = 0,
+    this.loadNext,
+    this.loadPrevious,
   });
 
   @override
@@ -36,15 +47,56 @@ class MediaViewerScreen extends ConsumerStatefulWidget {
 
 class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   late final PageController _controller;
+  late final List<GalleryEntry> _entries;
   late int _index;
   final Map<String, Future<({double lat, double lon})?>> _locations = {};
   bool _sharing = false;
+  bool _busy = false;
+  bool _loadingNext = false;
+  bool _loadingPrevious = false;
 
   @override
   void initState() {
     super.initState();
-    _index = widget.initialIndex.clamp(0, widget.entries.length - 1);
+    _entries = List.of(widget.entries);
+    _index = widget.initialIndex.clamp(0, _entries.length - 1);
     _controller = PageController(initialPage: _index);
+  }
+
+  Future<void> _maybeLoadNext() async {
+    final loader = widget.loadNext;
+    if (loader == null || _loadingNext || _index < _entries.length - 1) return;
+    _loadingNext = true;
+    try {
+      final items = await loader();
+      if (!mounted || items.isEmpty) return;
+      setState(() => _entries.addAll(items));
+    } catch (_) {
+    } finally {
+      _loadingNext = false;
+    }
+  }
+
+  Future<void> _maybeLoadPrevious() async {
+    final loader = widget.loadPrevious;
+    if (loader == null || _loadingPrevious || _index > 0) return;
+    _loadingPrevious = true;
+    try {
+      final items = await loader();
+      if (!mounted || items.isEmpty) return;
+      setState(() {
+        _entries.insertAll(0, items);
+        _index += items.length;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _controller.hasClients) {
+          _controller.jumpToPage(_index);
+        }
+      });
+    } catch (_) {
+    } finally {
+      _loadingPrevious = false;
+    }
   }
 
   @override
@@ -53,7 +105,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     super.dispose();
   }
 
-  GalleryEntry get _entry => widget.entries[_index];
+  GalleryEntry get _entry => _entries[_index];
 
   Future<({double lat, double lon})?> _locationOf(GalleryEntry entry) {
     return _locations.putIfAbsent(entry.key, () => _loadLocation(entry));
@@ -91,6 +143,77 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     final box = context.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return null;
     return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  Future<void> _upload() async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _busy = true);
+    try {
+      final result = await GalleryActionsService(ref.read(apiClientProvider))
+          .upload([_entry]);
+      if (!mounted) return;
+      _snack(
+        result.failed > 0
+            ? l10n.galleryUploadedFailed(result.uploaded, result.failed)
+            : l10n.galleryUploadedCount(result.uploaded),
+      );
+    } catch (error) {
+      if (mounted) _snack('$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+      _invalidateLibrary();
+    }
+  }
+
+  Future<void> _delete() async {
+    final l10n = AppLocalizations.of(context)!;
+    final options = await showDeleteMediaDialog(context, [_entry]);
+    if (options == null || !mounted) return;
+    if (!options.cloud && !options.local) return;
+    setState(() => _busy = true);
+    try {
+      final result = await GalleryActionsService(ref.read(apiClientProvider))
+          .delete([_entry], cloud: options.cloud, local: options.local);
+      if (!mounted) return;
+      _snack(
+        result.failed > 0
+            ? l10n.galleryDeletedFailed(result.failed)
+            : l10n.galleryDeleted(
+                result.localDeleted + result.indexDeleted + result.reset,
+              ),
+      );
+    } catch (error) {
+      if (mounted) _snack('$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+      _invalidateLibrary();
+    }
+  }
+
+  void _invalidateLibrary() {
+    ref.invalidate(galleryProvider);
+    ref.invalidate(timelineProvider);
+    ref.invalidate(timelineItemsProvider);
+    ref.invalidate(backupStatusProvider);
+    ref.invalidate(sourcesProvider);
+  }
+
+  Future<void> _openFolder() async {
+    final l10n = AppLocalizations.of(context)!;
+    final entry = _entry;
+    final opened = await openDeviceFolder(
+      relativePath: entry.local?.relativePath,
+      absolutePath: _folderPath(entry),
+    );
+    if (!opened && mounted) _snack(l10n.openFolderFailed);
+  }
+
+  String? _folderPath(GalleryEntry entry) {
+    final path = entry.local?.path ?? entry.cloud?.path;
+    if (path == null || path.isEmpty) return null;
+    final index = path.lastIndexOf('/');
+    if (index <= 0) return null;
+    return path.substring(0, index);
   }
 
   Future<void> _openInMaps() async {
@@ -153,6 +276,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       );
     }
     final entry = _entry;
+    final canUpload = entry.canUpload;
+    final downloadUrl = entry.cloud?.downloadUrl;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -167,7 +292,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
         actions: [
           Center(
             child: Text(
-              l10n.viewerPosition(_index + 1, widget.entries.length),
+              l10n.viewerPosition(_index + 1, _entries.length),
               style: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ),
@@ -176,6 +301,12 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
             onSelected: (value) {
               if (value == 'share') {
                 _share();
+              } else if (value == 'upload') {
+                _upload();
+              } else if (value == 'delete') {
+                _delete();
+              } else if (value == 'download') {
+                _download(downloadUrl!);
               } else if (value == 'select') {
                 Navigator.of(context).pop(MediaViewerResult.select);
               } else if (value == 'maps') {
@@ -185,11 +316,40 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
             itemBuilder: (context) => [
               PopupMenuItem(
                 value: 'share',
-                enabled: !_sharing,
+                enabled: !_busy,
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.share_outlined),
                   title: Text(l10n.galleryShare),
+                ),
+              ),
+              if (canUpload)
+                PopupMenuItem(
+                  value: 'upload',
+                  enabled: !_busy,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.cloud_upload_outlined),
+                    title: Text(l10n.galleryUpload),
+                  ),
+                ),
+              if (downloadUrl != null && downloadUrl.isNotEmpty)
+                PopupMenuItem(
+                  value: 'download',
+                  enabled: !_busy,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.download),
+                    title: Text(l10n.downloadOriginal),
+                  ),
+                ),
+              PopupMenuItem(
+                value: 'delete',
+                enabled: !_busy,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.delete_outline),
+                  title: Text(l10n.galleryDelete),
                 ),
               ),
               PopupMenuItem(
@@ -216,9 +376,16 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       ),
       body: PageView.builder(
         controller: _controller,
-        itemCount: widget.entries.length,
-        onPageChanged: (index) => setState(() => _index = index),
-        itemBuilder: (context, index) => _page(widget.entries[index], l10n),
+        itemCount: _entries.length,
+        onPageChanged: (index) {
+          setState(() => _index = index);
+          if (index >= _entries.length - 1) {
+            _maybeLoadNext();
+          } else if (index == 0) {
+            _maybeLoadPrevious();
+          }
+        },
+        itemBuilder: (context, index) => _page(_entries[index], l10n),
       ),
     );
   }
@@ -484,23 +651,56 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
 
     return [
       for (final (label, value) in rows)
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 130,
-                child: Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+        if (label == l10n.fieldPath && _canOpenFolder(entry))
+          InkWell(
+            onTap: _openFolder,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 130,
+                    child: Text(
+                      label,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                  Expanded(child: Text(value)),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.folder_open,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ],
               ),
-              Expanded(child: SelectableText(value)),
-            ],
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 130,
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                Expanded(child: SelectableText(value)),
+              ],
+            ),
           ),
-        ),
     ];
+  }
+
+  bool _canOpenFolder(GalleryEntry entry) {
+    final relative = entry.local?.relativePath;
+    if (relative != null && relative.isNotEmpty) return true;
+    return _folderPath(entry) != null;
   }
 
   static String _backupLabel(AppLocalizations l10n, MediaItem item) {

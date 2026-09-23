@@ -320,5 +320,6 @@
 "backupSheetScanning": "Scansione della cartella…",
 "backupSheetError": "Errore",
 "backupJobStateLast": "ultimo job registrato",
-"backupNoPermission": "Permesso foto mancante: aprilo dalle impostazioni di sistema"
+"backupNoPermission": "Permesso foto mancante: aprilo dalle impostazioni di sistema",
+"openFolderFailed": "Impossibile aprire la cartella"
 }

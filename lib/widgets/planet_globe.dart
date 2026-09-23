@@ -34,7 +34,6 @@ class PlanetGlobe extends StatefulWidget {
 class _PlanetGlobeState extends State<PlanetGlobe> {
   List<List<LatLng>>? _land;
   double _scaleAtStart = 1;
-  LatLng? _centerAtStart;
 
   @override
   void initState() {
@@ -46,11 +45,9 @@ class _PlanetGlobeState extends State<PlanetGlobe> {
 
   void _onScaleStart(ScaleStartDetails details) {
     _scaleAtStart = widget.scale;
-    _centerAtStart = widget.center;
   }
 
   void _onScaleUpdate(ScaleUpdateDetails details) {
-    final start = _centerAtStart ?? widget.center;
     if (details.pointerCount > 1) {
       final next = (_scaleAtStart * details.scale).clamp(1.0, 3.2);
       widget.onScaleChanged(next);
@@ -58,10 +55,13 @@ class _PlanetGlobeState extends State<PlanetGlobe> {
     }
     final delta = details.focalPointDelta;
     if (delta == Offset.zero) return;
+    // Accumulate on the current center: using the center captured at the
+    // start of the gesture would drop every previous frame's movement.
+    final current = widget.center;
     final dLon = -delta.dx * 0.35 / widget.scale;
     final dLat = delta.dy * 0.35 / widget.scale;
-    final latitude = (start.latitude + dLat).clamp(-75.0, 75.0);
-    var longitude = start.longitude + dLon;
+    final latitude = (current.latitude + dLat).clamp(-75.0, 75.0);
+    var longitude = current.longitude + dLon;
     if (longitude > 180) longitude -= 360;
     if (longitude < -180) longitude += 360;
     widget.onCenterChanged(LatLng(latitude, longitude));

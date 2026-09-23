@@ -817,5 +817,6 @@
 "backupSheetScanning": "Scanning the folder…",
 "backupSheetError": "Error",
 "backupJobStateLast": "last registered job",
-"backupNoPermission": "Photo permission missing: open the system settings to allow it"
+"backupNoPermission": "Photo permission missing: open the system settings to allow it",
+"openFolderFailed": "Could not open the folder"
 }
