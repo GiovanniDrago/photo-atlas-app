@@ -40,13 +40,18 @@ notification) that scans the selected folders for new media and uploads everythi
 
 - Configurable: frequency (15 min / 1 h / **6 h** / 24 h), *Only on Wi-Fi* (on by default) and
   *Only while charging* (off by default).
-- Per-folder switches decide what is included; when the global switch is turned on and no folder is
-  selected, the app offers to enable them all.
+- The folders included are the ones enabled in **Collections** (the switch on each folder card):
+  turning one on scans, indexes and uploads it right away, and the background job then keeps
+  checking the same folders.
 - Enabling asks for the notification permission (Android 13+); the job runs even if it is denied.
 - Each run stops after ~8 minutes and the next run continues: the queue lives on the server
   (`GET /api/backup/pending` claims items with `backup_status='uploading'`, so a foreground run and
   the background job never upload the same file twice; claims older than 2 hours are released).
 - A completed backup run updates `sources.backup_last_run_at`, shown in the Backup screen.
+- Manual runs from the folder switch use a one-off job with a foreground service too: they keep
+  going while the app is in the background or closed, and a thin progress bar is shown above every
+  screen with a stop button. A stopped run releases its claims (`POST /api/backup/release`), so the
+  next run retries those files immediately instead of waiting for the 2 h sweep.
 - Android may defer the job (Doze, battery optimization): whitelist the app if backups seem late.
 - Linux and the web build schedule nothing; on Linux backups run in the foreground only.
 

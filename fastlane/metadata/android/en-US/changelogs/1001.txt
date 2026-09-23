@@ -1,0 +1,6 @@
+Folder backups now run in a foreground service: starting the automatic upload of a folder keeps
+going while you change screen, put the app in the background or close it, and a thin progress bar
+above every screen shows the phase, the uploaded count, the queued folders and a stop button.
+Interrupted runs release their pending items right away, so resuming retries them immediately
+instead of waiting two hours, and the folder counters and gallery badges refresh as soon as a run
+finishes. The folder switch no longer appears off after leaving the screen mid-upload.

@@ -55,8 +55,11 @@ login screen (with a **Detect** button), and later in Settings.
     appears. Each card shows the folder path (to tell same-named folders apart), the item count, a
     thumbnail and the **Automatic upload** switch
 - Turning the switch on indexes the folder (scan + database census, **without subfolders**) and
-  uploads everything it contains; a progress bar shows the scan and the upload. Turning it off
-  keeps the indexed items. If the background backup is off, the app asks whether to enable it
+  uploads everything it contains. The run happens in a foreground service: it continues while you
+  change screen, put the app in the background or close it, and a thin progress bar above every
+  screen shows the phase, the counters, the queued folders and a **stop** button. Turning the
+  switch off keeps the indexed items. If the background backup is off, the app asks whether to
+  enable it
 - The background job checks exactly the folders enabled here: on every run it scans each one and
   uploads what is missing (`docs/BACKUP.md`)
 - Tapping a folder card opens the same gallery UI restricted to that folder: type filters are
