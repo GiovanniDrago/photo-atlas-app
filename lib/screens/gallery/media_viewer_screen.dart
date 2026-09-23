@@ -50,7 +50,6 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   late final List<GalleryEntry> _entries;
   late int _index;
   final Map<String, Future<({double lat, double lon})?>> _locations = {};
-  bool _sharing = false;
   bool _busy = false;
   bool _loadingNext = false;
   bool _loadingPrevious = false;
@@ -123,7 +122,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
 
   Future<void> _share() async {
     final l10n = AppLocalizations.of(context)!;
-    setState(() => _sharing = true);
+    setState(() => _busy = true);
     try {
       final service = GalleryActionsService(ref.read(apiClientProvider));
       final result = await service.share([
@@ -135,7 +134,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     } catch (error) {
       if (mounted) _snack('$error');
     } finally {
-      if (mounted) setState(() => _sharing = false);
+      if (mounted) setState(() => _busy = false);
     }
   }
 
