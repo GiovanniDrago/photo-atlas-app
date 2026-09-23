@@ -174,13 +174,30 @@ class _BackupRunSheetState extends ConsumerState<_BackupRunSheet> {
                 ),
               ],
               const SizedBox(height: 8),
-              FutureBuilder<WorkInfo?>(
-                future: _workInfo,
-                builder: (context, snapshot) => Text(
-                  '${l10n.backupJobState}: '
-                  '${_workStateLabel(l10n, snapshot.data)}',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: FutureBuilder<WorkInfo?>(
+                      future: _workInfo,
+                      builder: (context, snapshot) => Text(
+                        '${l10n.backupJobState}: '
+                        '${_workStateLabel(l10n, snapshot.data)}',
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    onPressed: AutoBackupService.isSupported
+                        ? () => setState(() {
+                            _workInfo = Workmanager().getWorkInfo(
+                              AutoBackupService.manualUniqueName,
+                            );
+                          })
+                        : null,
+                  ),
+                ],
               ),
               if (state.queue.length > 1) ...[
                 const SizedBox(height: 4),
@@ -253,10 +270,14 @@ class _BackupRunSheetState extends ConsumerState<_BackupRunSheet> {
                 runSpacing: 8,
                 children: [
                   FilledButton.icon(
-                    onPressed: () async {
-                      await ref.read(backupRunnerProvider.notifier).runNow();
-                      if (context.mounted) Navigator.of(context).pop();
-                    },
+                    onPressed: progress != null
+                        ? null
+                        : () async {
+                            await ref
+                                .read(backupRunnerProvider.notifier)
+                                .runNow();
+                            if (context.mounted) Navigator.of(context).pop();
+                          },
                     icon: const Icon(Icons.play_arrow),
                     label: Text(l10n.backupNow),
                   ),

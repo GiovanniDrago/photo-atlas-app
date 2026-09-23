@@ -95,13 +95,26 @@ class BackupRunner extends Notifier<BackupRunnerState> {
       ),
     );
     await BackupProgressStore.writeQueue(queue);
-    state = BackupRunnerState(progress: state.progress, queue: queue);
+    state = BackupRunnerState(
+      progress: state.progress,
+      queue: queue,
+      log: state.log,
+    );
     _startPolling();
+    final active = await BackupProgressStore.read();
+    if (active != null && !active.finished) return;
+    await _startNext(queue.first);
+  }
+
+  /// Starts one queued folder: in this process while the app is open, in the
+  /// background job otherwise. Only one run at a time.
+  Future<void> _startNext(BackupQueueItem item) async {
+    final rootPath = _rootPaths()[item.sourceId] ?? '';
     if (!AutoBackupService.isSupported) {
       unawaited(
         runInApp(
-          sourceId: sourceId,
-          label: label,
+          sourceId: item.sourceId,
+          label: item.label,
           rootPath: rootPath,
           handoffOnBackground: false,
         ),
@@ -109,12 +122,19 @@ class BackupRunner extends Notifier<BackupRunnerState> {
       return;
     }
     if (_isForeground) {
-      // While the app is open the run happens in this process: it starts at
-      // once and the progress is visible immediately.
-      unawaited(runInApp(sourceId: sourceId, label: label, rootPath: rootPath));
+      unawaited(
+        runInApp(
+          sourceId: item.sourceId,
+          label: item.label,
+          rootPath: rootPath,
+        ),
+      );
       return;
     }
-    await AutoBackupService.registerManualRun(sourceId: sourceId, label: label);
+    await AutoBackupService.registerManualRun(
+      sourceId: item.sourceId,
+      label: item.label,
+    );
   }
 
   bool get _isForeground {
@@ -185,18 +205,15 @@ class BackupRunner extends Notifier<BackupRunnerState> {
 
   /// Starts the first queued folder right away, in this process.
   Future<void> runNow() async {
+    if (state.progress != null) return;
     final queue = await BackupProgressStore.readQueue();
     if (queue.isEmpty) return;
-    final first = queue.first;
     await BackupProgressStore.clearCancel();
     if (AutoBackupService.isSupported) {
       await AutoBackupService.cancelManualRuns();
     }
-    await runInApp(
-      sourceId: first.sourceId,
-      label: first.label,
-      rootPath: _rootPaths()[first.sourceId] ?? '',
-    );
+    await BackupRunLog.add('avvio manuale: ${queue.first.label}');
+    await _startNext(queue.first);
   }
 
   /// Sends the first queued folder to the background job again.
@@ -329,11 +346,24 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     final queue = await BackupProgressStore.readQueue();
     final log = await BackupRunLog.read();
     if (progress != null && progress.finished) {
-      _stopPolling();
-      state = BackupRunnerState(log: log);
+      final error = progress.error;
       await BackupProgressStore.clear();
-      await BackupProgressStore.writeQueue(const []);
+      if (error != null) {
+        await BackupRunLog.add('run terminato con errore: $error');
+      }
+      final rest = [
+        for (final item in queue)
+          if (item.sourceId != progress.sourceId) item,
+      ];
+      await BackupProgressStore.writeQueue(rest);
       _invalidateAll();
+      if (rest.isEmpty) {
+        _stopPolling();
+        state = BackupRunnerState(log: await BackupRunLog.read());
+        return;
+      }
+      state = BackupRunnerState(queue: rest, log: await BackupRunLog.read());
+      await _startNext(rest.first);
       return;
     }
     state = BackupRunnerState(progress: progress, queue: queue, log: log);
