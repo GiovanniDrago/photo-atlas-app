@@ -23,11 +23,17 @@ login screen (with a **Detect** button), and later in Settings.
   the same photo twice. A small line under the filters shows how many items come from the device
   and from the cloud
 - Filters: All / Photos / Videos / Not uploaded / Uploaded / No metadata. Pull down to refresh
+- In the **timeline** (opened from the Collections card) long-press an item to select it like in
+  the gallery: the bottom bar offers **Share**, **Download original** and **Delete** on the
+  selection
 - **Tap** an item to open the full screen viewer: the photo fills the screen, **swipe left/right**
   moves to the previous/next item and **scrolling vertically** reveals the details (all metadata
   fields, **Download original** for cloud items and a small map preview when the position is known;
-  tap the map to open it in the maps app). The viewer menu has **Share**, **Select** (goes back to
-  the grid with the item selected) and **Open in Maps**. kDrive items are previewed at 1600 px on
+  tap the map to open it in the maps app). The viewer menu has **Share**, **Upload** (when the
+  file is not on kDrive yet), **Download original**, **Delete**, **Select** (goes back to the grid
+  with the item selected) and **Open in Maps**. The **Path** row of a device file is tappable: it
+  opens the system Files app on that folder. Swiping past the last photo of a day (or month)
+  continues with the first one of the next period, and backwards. kDrive items are previewed at 1600 px on
   the fly (`/api/media/:id/thumbnail?w=1600`), device files are read locally
 - **Long-press** to start the selection and **drag over the grid** to select (or deselect, when the
   long-pressed item was already selected) the items you pass; the grid scrolls automatically near

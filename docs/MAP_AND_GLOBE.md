@@ -21,6 +21,9 @@ The main screen has two rendering modes that crossfade on zoom:
 Coordinates are rotated in spherical math (`sin/cos` orthographic projection), so the planet can be
 spun freely; polygons crossing the horizon are clipped by skipping the hidden points.
 
+- Gestures: drag to rotate (the movement accumulates frame by frame on the current center),
+  pinch to zoom (1.0 - 3.2x); zooming past 2.5 switches to the detailed map
+
 ## Detailed map
 
 `flutter_map` renders raster tiles:

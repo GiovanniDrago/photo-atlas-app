@@ -1,0 +1,5 @@
+The timeline now works like the gallery: long-press to select items and use Share, Download
+original and Delete on the selection. The full screen viewer menu gained Upload, Delete and
+Download original for the single item, the Path row opens the system Files app on the folder of a
+device file, and swiping past the last photo of a day or month continues with the next period (and
+backwards). The 3D planet rotates again while dragging instead of staying stuck.
