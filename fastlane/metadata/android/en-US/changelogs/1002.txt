@@ -1,0 +1,8 @@
+Deleting from the device now moves the files to the Android system trash (recoverable) on Android
+11 and newer, with a permanent delete only on older versions. When the app is opened, returns to the
+foreground or every 15 minutes, the folders enabled for automatic upload are scanned and the
+missing files are uploaded right away (the 6-hour schedule only applies while the app is closed).
+Fixed long uploads not starting on Android 14+: the dataSync foreground service is now declared, so
+the progress banner starts instead of waiting forever (and offers a retry if a job does not start).
+Pulling to refresh inside a folder now updates the uploaded counters too, and turning the automatic
+upload off keeps the files already uploaded.

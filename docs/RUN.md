@@ -38,8 +38,10 @@ login screen (with a **Detect** button), and later in Settings.
   - **Share**: opens the system share sheet; cloud-only items are downloaded to a temporary file
     first
   - **Delete**: asks every time with two checkboxes — *From the cloud* (moves the kDrive copies to
-    the trash, recoverable) and *From the device* (system trash). Index rows left without any copy
-    are dropped; when a copy survives the row is kept and its state updated
+    the trash, recoverable) and *From the device* (the Android system trash on Android 11+,
+    recoverable, with the system confirmation prompt; on older versions the delete is permanent).
+    Index rows left without any copy are dropped; when a copy survives the row is kept and its
+    state updated
   - **Export metadata**: JSON file with all fields of the selected items
 - Thumbnails are served through signed URLs and cached: the server stores kDrive previews and
   phone-uploaded previews on disk and the app/browser keeps its own cache; device files are read
@@ -54,6 +56,9 @@ login screen (with a **Detect** button), and later in Settings.
     photos or videos: subfolders are folders of their own, and a folder with only subfolders never
     appears. Each card shows the folder path (to tell same-named folders apart), the item count, a
     thumbnail and the **Automatic upload** switch
+- While the app is open the enabled folders are checked on open, on returning to the app and
+  every 15 minutes: folders with pending files (or without a recent run) are scanned and uploaded
+  right away; the periodic schedule only matters when the app is closed
 - Turning the switch on indexes the folder (scan + database census, **without subfolders**) and
   uploads everything it contains. The run happens in a foreground service: it continues while you
   change screen, put the app in the background or close it, and a thin progress bar above every
@@ -64,7 +69,9 @@ login screen (with a **Detect** button), and later in Settings.
   uploads what is missing (`docs/BACKUP.md`)
 - Tapping a folder card opens the same gallery UI restricted to that folder: type filters are
   hidden, the header keeps the switch and the upload state, and selection actions (upload, share,
-  delete) work as in the Gallery. Device folders are only available in the Android app
+  delete) work as in the Gallery. Pulling down refreshes the media list **and** the uploaded
+  counters; turning the switch off only stops future runs, the files already uploaded stay on
+  kDrive. Device folders are only available in the Android app
 
 ## Account and security
 

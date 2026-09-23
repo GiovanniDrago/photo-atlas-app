@@ -50,7 +50,13 @@ notification) that scans the selected folders for new media and uploads everythi
 - A completed backup run updates `sources.backup_last_run_at`, shown in the Backup screen.
 - Manual runs from the folder switch use a one-off job with a foreground service too: they keep
   going while the app is in the background or closed, and a thin progress bar is shown above every
-  screen with a stop button. A stopped run releases its claims (`POST /api/backup/release`), so the
+  screen with a stop button.
+- While the app is open the enabled folders are also checked on open, on returning to the app and
+  every 15 minutes (folders with pending files or without a recent run are scanned and uploaded
+  right away); if a job does not start within ~90 seconds the banner offers a retry.
+- Long runs need the `dataSync` foreground service: `android/gradle.properties` sets
+  `workmanager.enableDataSyncForegroundService=true` (the plugin then declares
+  `FOREGROUND_SERVICE_DATA_SYNC`, required on Android 14+/targetSdk 34+). A stopped run releases its claims (`POST /api/backup/release`), so the
   next run retries those files immediately instead of waiting for the 2 h sweep.
 - Android may defer the job (Doze, battery optimization): whitelist the app if backups seem late.
 - Linux and the web build schedule nothing; on Linux backups run in the foreground only.
