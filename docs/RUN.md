@@ -58,7 +58,9 @@ login screen (with a **Detect** button), and later in Settings.
     thumbnail and the **Automatic upload** switch
 - While the app is open the enabled folders are checked on open, on returning to the app and
   every 15 minutes: folders with pending files (or without a recent run) are scanned and uploaded
-  right away; the periodic schedule only matters when the app is closed
+  right away one at a time; the periodic schedule only matters when the app is closed. Tap the
+  progress bar to see the job state, the technical log, the files waiting for upload and to press
+  **Backup now**, **Retry in background** or **Cancel**
 - Turning the switch on indexes the folder (scan + database census, **without subfolders**) and
   uploads everything it contains. The run happens in a foreground service: it continues while you
   change screen, put the app in the background or close it, and a thin progress bar above every

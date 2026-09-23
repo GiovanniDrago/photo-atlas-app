@@ -1,0 +1,6 @@
+Uploads while the app is open now run inside the app and start immediately, one folder at a time,
+with the progress bar above every screen; if the app goes to the background the rest is handed over
+to the background job. Tapping the progress bar opens a detail sheet with the job state reported by
+Android, the technical log, the list of files waiting for upload and the actions: Backup now, Retry
+in background, Cancel (which releases the pending items immediately) and Disable battery
+optimization. Fixed the runs that stayed on "waiting" without ever starting.

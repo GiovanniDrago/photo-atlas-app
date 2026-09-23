@@ -48,12 +48,20 @@ notification) that scans the selected folders for new media and uploads everythi
   (`GET /api/backup/pending` claims items with `backup_status='uploading'`, so a foreground run and
   the background job never upload the same file twice; claims older than 2 hours are released).
 - A completed backup run updates `sources.backup_last_run_at`, shown in the Backup screen.
-- Manual runs from the folder switch use a one-off job with a foreground service too: they keep
-  going while the app is in the background or closed, and a thin progress bar is shown above every
-  screen with a stop button.
+- While the app is open the runs happen **in the app process**: they start at once and the thin
+  progress bar above every screen shows the phase and the counters. If the app goes to the
+  background during a run, the rest is handed over to a one-off foreground service job (atomic
+  claims on the server prevent double uploads).
+- Tapping the bar opens a detail sheet with the job state reported by Android WorkManager, the
+  technical log of the run, the list of files waiting for upload (read-only, no claims) and the
+  actions: **Backup now** (runs in the app), **Retry in background**, **Cancel** (releases the
+  claims, so the next run retries immediately), **Disable battery optimization**.
+- The sheet also shows the pending files: `GET /api/media?source_id=…&backup_status=none,pending,uploading,failed`
+  (unlike `/api/backup/pending` this takes no claim, so it is safe to show).
 - While the app is open the enabled folders are also checked on open, on returning to the app and
   every 15 minutes (folders with pending files or without a recent run are scanned and uploaded
-  right away); if a job does not start within ~90 seconds the banner offers a retry.
+  right away, one folder at a time); if a job does not start within ~90 seconds the banner turns
+  into "Upload did not start" with a **Backup now** button.
 - Long runs need the `dataSync` foreground service: `android/gradle.properties` sets
   `workmanager.enableDataSyncForegroundService=true` (the plugin then declares
   `FOREGROUND_SERVICE_DATA_SYNC`, required on Android 14+/targetSdk 34+). A stopped run releases its claims (`POST /api/backup/release`), so the
