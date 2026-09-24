@@ -104,22 +104,34 @@ class _BackupRunSheetState extends ConsumerState<_BackupRunSheet> {
               )
             else ...[
               Text(
-                '${progress?.scanning == true ? l10n.folderScanning : l10n.folderUploading}'
-                ' · ${progress?.label ?? state.queue.first.label}',
+                progress?.scanning == true
+                    ? '${l10n.folderScanning} · ${progress?.label ?? ''}'
+                          '${(progress?.total ?? 0) > 0 ? ' · ${l10n.itemCount(progress!.total)}' : ''}'
+                    : (progress?.total ?? 0) == 0
+                    ? '${l10n.backupNothingToUpload} · ${progress?.label ?? ''}'
+                    : '${l10n.folderUploading} · ${progress?.label ?? state.queue.first.label}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 6),
-              LinearProgressIndicator(
-                value: (progress?.total ?? 0) == 0
-                    ? null
-                    : ((progress?.done ?? 0) / progress!.total).clamp(0.0, 1.0),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${progress?.done ?? 0}/${progress?.total ?? 0}'
-                '${(progress?.failed ?? 0) > 0 ? ' · ${l10n.backupFailedCount(progress!.failed)}' : ''}',
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
+              if (progress?.scanning != true && (progress?.total ?? 0) == 0)
+                const SizedBox(height: 4)
+              else
+                LinearProgressIndicator(
+                  value: (progress?.total ?? 0) == 0
+                      ? null
+                      : ((progress?.done ?? 0) / progress!.total).clamp(
+                          0.0,
+                          1.0,
+                        ),
+                ),
+              if (progress?.scanning != true && (progress?.total ?? 0) > 0) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '${progress?.done ?? 0}/${progress?.total ?? 0}'
+                  '${(progress?.failed ?? 0) > 0 ? ' · ${l10n.backupFailedCount(progress!.failed)}' : ''}',
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ],
               if ((progress?.error ?? '').isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Container(
@@ -192,12 +204,7 @@ class _BackupRunSheetState extends ConsumerState<_BackupRunSheet> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () async {
-                            try {
-                              await Permission.ignoreBatteryOptimizations
-                                  .request();
-                            } catch (_) {}
-                          },
+                          onPressed: () => _requestIgnoreBattery(context),
                           child: Text(l10n.backupDisableBattery),
                         ),
                       ),
@@ -437,4 +444,27 @@ Future<void> _showPermissionDialog(BuildContext context) async {
       ],
     ),
   );
+}
+
+Future<void> _requestIgnoreBattery(BuildContext context) async {
+  final l10n = AppLocalizations.of(context)!;
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final status = await Permission.ignoreBatteryOptimizations.request();
+    if (status.isGranted) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.backupBatteryDisabled)),
+      );
+      return;
+    }
+    // Denied or not available: open the app settings and explain the path.
+    await openAppSettings();
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.backupBatteryManualHint)),
+    );
+  } catch (_) {
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.backupBatteryManualHint)),
+    );
+  }
 }

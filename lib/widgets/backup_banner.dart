@@ -18,18 +18,23 @@ class BackupBanner extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final progress = state.progress;
     final label = progress?.label ?? l10n.backupBannerStarting;
-    final phase = progress == null
-        ? l10n.backupBannerStarting
-        : progress.scanning
-        ? l10n.folderScanning
-        : l10n.folderUploading;
+    final scanning = progress?.scanning ?? false;
     final total = progress?.total ?? 0;
     final done = progress?.done ?? 0;
+    final idle = progress != null && !scanning && total == 0;
     final queued = state.queued;
     final stuck = state.waitingTooLong;
-    final title = stuck
+    final headline = stuck
         ? l10n.backupBannerFailed
-        : '$phase · $label${queued > 0 ? ' (+$queued)' : ''}';
+        : progress == null
+        ? l10n.backupBannerStarting
+        : scanning
+        ? '${l10n.folderScanning} · $label'
+              '${total > 0 ? ' · ${l10n.itemCount(total)}' : ''}'
+        : idle
+        ? '${l10n.backupNothingToUpload} · $label'
+        : '${l10n.folderUploading} · $label';
+    final title = '$headline${queued > 0 ? ' (+$queued)' : ''}';
     return Material(
       color: scheme.primaryContainer,
       child: SafeArea(
@@ -63,20 +68,23 @@ class BackupBanner extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      LinearProgressIndicator(
-                        value: total == 0
-                            ? null
-                            : (done / total).clamp(0.0, 1.0),
-                        minHeight: 3,
-                        backgroundColor: scheme.onPrimaryContainer.withValues(
-                          alpha: 0.2,
+                      if (idle && !stuck)
+                        const SizedBox(height: 3)
+                      else
+                        LinearProgressIndicator(
+                          value: scanning || total == 0
+                              ? null
+                              : (done / total).clamp(0.0, 1.0),
+                          minHeight: 3,
+                          backgroundColor: scheme.onPrimaryContainer.withValues(
+                            alpha: 0.2,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (total > 0 && !stuck)
+                if (total > 0 && !scanning && !stuck)
                   Text(
                     '$done/$total',
                     style: TextStyle(

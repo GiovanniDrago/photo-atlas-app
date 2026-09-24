@@ -4,11 +4,14 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/backup.dart';
+import '../models/source.dart';
 import '../services/auto_backup_service.dart';
 import '../services/backup_progress_store.dart';
 import '../services/backup_service.dart';
 import '../services/local_media_service.dart';
 import '../services/local_scan_service.dart';
+import '../services/scan_models.dart';
+import '../services/scan_service.dart';
 import 'collections_providers.dart';
 import 'gallery_providers.dart';
 import 'library_providers.dart';
@@ -62,11 +65,33 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     final progress = await BackupProgressStore.read();
     final queue = await BackupProgressStore.readQueue();
     if (progress == null && queue.isEmpty) return;
-    if (progress != null && progress.finished) {
-      state = BackupRunnerState(queue: queue);
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final stale =
+        progress != null &&
+        !progress.finished &&
+        progress.updatedAtMs != 0 &&
+        now - progress.updatedAtMs > 180000;
+    if (progress != null && (progress.finished || stale)) {
+      if (stale) {
+        await BackupRunLog.add(
+          'run interrotto (nessun aggiornamento): lo chiudo',
+        );
+        await BackupProgressStore.write(
+          progress.copyWith(
+            error: progress.error ?? 'interrupted',
+            finishedAtMs: now,
+          ),
+        );
+      }
       await BackupProgressStore.clear();
-      await BackupProgressStore.writeQueue(const []);
       _invalidateAll();
+      if (queue.isEmpty) {
+        state = const BackupRunnerState();
+        return;
+      }
+      state = BackupRunnerState(queue: queue, log: await BackupRunLog.read());
+      _startPolling();
+      await _startNext(queue.first);
       return;
     }
     state = BackupRunnerState(
@@ -173,21 +198,91 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     } catch (_) {
       return;
     }
-    final rootPaths = await _rootPaths();
+    final userSources = await _userSources();
+    final rootPaths = {
+      for (final source in userSources) source.id: source.rootPath ?? '',
+    };
+    final indexedCounts = {
+      for (final source in userSources) source.id: source.itemCount,
+    };
+    final folders = await _deviceFolders();
     for (final source in snapshot.sources) {
       if (!source.autoBackup) continue;
       final lastRun = source.backupLastRunAt;
-      final needsRun =
-          source.pending > 0 ||
-          lastRun == null ||
-          now.difference(lastRun) > _catchUpInterval;
-      if (!needsRun) continue;
+      final outdated =
+          lastRun == null || now.difference(lastRun) > _catchUpInterval;
+      if (!outdated) continue;
+      if (source.pending == 0 &&
+          !_hasNewFiles(source, userSources, folders, indexedCounts)) {
+        await BackupRunLog.add('nessun nuovo file in ${source.label}: salto');
+        continue;
+      }
       await enqueue(
         sourceId: source.id,
         label: source.label,
         rootPath: rootPaths[source.id] ?? '',
       );
     }
+  }
+
+  Future<List<MediaSource>> _userSources() async {
+    try {
+      return await ref.read(sourcesProvider.future);
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<List<ScanFolder>> _deviceFolders() async {
+    try {
+      return await ScanService.listFolders(ensurePermission: false);
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// True when the device folder holds more files than the indexed source, so
+  /// a scan could find something new.
+  bool _hasNewFiles(
+    BackupSourceStatus status,
+    List<MediaSource> userSources,
+    List<ScanFolder> folders,
+    Map<String, int> indexedCounts,
+  ) {
+    if (folders.isEmpty) return true;
+    MediaSource? source;
+    for (final candidate in userSources) {
+      if (candidate.id == status.id) {
+        source = candidate;
+        break;
+      }
+    }
+    if (source == null) {
+      for (final candidate in userSources) {
+        if (candidate.label == status.label) {
+          source = candidate;
+          break;
+        }
+      }
+    }
+    final rootPath = source?.rootPath ?? '';
+    final albumId = rootPath.startsWith('album:')
+        ? rootPath.substring('album:'.length)
+        : null;
+    ScanFolder? folder;
+    for (final candidate in folders) {
+      if (albumId != null && albumId.isNotEmpty && candidate.id == albumId) {
+        folder = candidate;
+        break;
+      }
+      if (candidate.name == status.label) {
+        folder = candidate;
+        break;
+      }
+    }
+    if (folder == null) return true;
+    final indexed = indexedCounts[status.id] ?? 0;
+    return folder.count > indexed;
   }
 
   /// Source id -> root path, waiting for the list when it is not loaded yet.
@@ -353,7 +448,14 @@ class BackupRunner extends Notifier<BackupRunnerState> {
             unawaited(BackupProgressStore.write(progress));
           },
         );
-        await BackupRunLog.add('upload terminato: $label');
+        final uploaded = progress.uploaded;
+        final failed = progress.failed;
+        await BackupRunLog.add(
+          uploaded + failed == 0
+              ? 'niente da caricare: $label'
+              : 'upload terminato: $label '
+                    '($uploaded caricati, $failed falliti)',
+        );
       }
     } catch (error) {
       progress = progress.copyWith(error: '$error');

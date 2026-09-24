@@ -321,5 +321,8 @@
 "backupSheetError": "Errore",
 "backupJobStateLast": "ultimo job registrato",
 "backupNoPermission": "Permesso foto mancante: aprilo dalle impostazioni di sistema",
-"openFolderFailed": "Impossibile aprire la cartella"
+"openFolderFailed": "Impossibile aprire la cartella",
+"backupNothingToUpload": "Niente da caricare",
+"backupBatteryDisabled": "Ottimizzazione batteria disattivata",
+"backupBatteryManualHint": "Percorso manuale: Impostazioni - App - Photo Atlas - Batteria - Non ottimizzare"
 }

@@ -179,7 +179,14 @@ Future<void> runAutoBackup({
             unawaited(BackupProgressStore.write(progress));
           },
         );
-        await BackupRunLog.add('upload completato: ${source.label}');
+        final uploaded = progress.uploaded;
+        final failed = progress.failed;
+        await BackupRunLog.add(
+          uploaded + failed == 0
+              ? 'niente da caricare: ${source.label}'
+              : 'upload completato: ${source.label} '
+                    '($uploaded caricati, $failed falliti)',
+        );
       } catch (error) {
         debugPrint('auto backup: uploads failed for ${source.label}: $error');
         await BackupRunLog.add('upload fallito: $error');

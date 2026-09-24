@@ -818,5 +818,8 @@
 "backupSheetError": "Error",
 "backupJobStateLast": "last registered job",
 "backupNoPermission": "Photo permission missing: open the system settings to allow it",
-"openFolderFailed": "Could not open the folder"
+"openFolderFailed": "Could not open the folder",
+"backupNothingToUpload": "Nothing to upload",
+"backupBatteryDisabled": "Battery optimization disabled",
+"backupBatteryManualHint": "Manual path: Settings - Apps - Photo Atlas - Battery - Unrestricted"
 }
