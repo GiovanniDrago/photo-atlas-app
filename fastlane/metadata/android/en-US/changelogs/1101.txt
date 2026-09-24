@@ -1,0 +1,7 @@
+Fixed the "Disable battery optimization" button: the app now declares the permission, so it opens
+the system dialog (or the app settings page with the manual path when the device does not support
+it). The progress bar no longer looks like it keeps trying: while scanning it shows the folder and
+the number of files found, while uploading it shows X/Y, and a run with nothing to upload says
+"Nothing to upload" and closes right away. A run left over from a previous session is closed at
+startup, and the check at app open skips folders that have nothing new instead of scanning them
+again.

@@ -56,6 +56,15 @@ notification) that scans the selected folders for new media and uploads everythi
   technical log of the run, the list of files waiting for upload (read-only, no claims) and the
   actions: **Backup now** (runs in the app), **Retry in background**, **Cancel** (releases the
   claims, so the next run retries immediately), **Disable battery optimization**.
+- The detail sheet offers **Disable battery optimization**: the app declares
+  `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` and the button opens the system dialog; when it is denied
+  (or the device does not support it) the app opens its own settings page and the snackbar shows
+  the manual path (Settings → Apps → Photo Atlas → Battery → Unrestricted). Publishing on the Play
+  Store would require declaring this permission there.
+- The catch-up at app open is smart: when a folder has nothing pending and the device folder does
+  not hold more files than the indexed source, the scan is skipped (logged as "nessun nuovo file").
+- A run left over from a previous session (the app was killed) is closed at startup with
+  `error: interrupted` instead of showing a stale bar.
 - Before a run starts the app checks the photo permission in the foreground (the background job has
   no Activity and cannot show the system prompt): if it is missing the run does not start and the
   app offers the system settings shortcut. During background runs the scan never asks for the
