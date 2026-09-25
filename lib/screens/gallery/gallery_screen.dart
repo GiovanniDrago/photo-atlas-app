@@ -4,10 +4,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../models/album.dart';
 import '../../models/gallery_entry.dart';
 import '../../models/media_item.dart';
+import '../../providers/album_providers.dart';
 import '../../providers/collections_providers.dart';
 import '../../providers/gallery_providers.dart';
 import '../../providers/library_providers.dart';
@@ -17,17 +20,23 @@ import '../../services/scan_service.dart';
 import '../../widgets/delete_media_dialog.dart';
 import '../../widgets/gallery_tile.dart';
 import '../../widgets/media_action_bar.dart';
+import '../albums/album_dialogs.dart';
+import '../albums/album_edit_screen.dart';
+import '../albums/album_picker_sheet.dart';
 import 'gallery_geometry.dart';
 import 'media_viewer_screen.dart';
 
 class GalleryScreen extends ConsumerStatefulWidget {
-  /// [scope] selects what the gallery shows: the whole library (default) or a
-  /// single device folder. [header] is shown above the grid (folder controls),
-  /// [title] replaces the tab title and [showFilters] hides the filter chips.
+  /// [scope] selects what the gallery shows: the whole library (default), a
+  /// single device folder or a user album. [header] is shown above the grid
+  /// (folder controls), [title] replaces the tab title, [showFilters] hides the
+  /// filter chips and [album] turns the screen into an album detail (rules
+  /// header, rename/edit/delete and remove-from-album actions).
   final GalleryScope scope;
   final String? title;
   final Widget? header;
   final bool showFilters;
+  final Album? album;
 
   const GalleryScreen({
     super.key,
@@ -35,6 +44,7 @@ class GalleryScreen extends ConsumerStatefulWidget {
     this.title,
     this.header,
     this.showFilters = true,
+    this.album,
   });
 
   @override
@@ -42,6 +52,7 @@ class GalleryScreen extends ConsumerStatefulWidget {
 }
 
 class _GalleryScreenState extends ConsumerState<GalleryScreen> {
+  Album? _album;
   final Set<String> _selectedKeys = {};
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _gridKey = GlobalKey();
@@ -60,6 +71,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   @override
   void initState() {
     super.initState();
+    _album = widget.album;
     _scrollController.addListener(_onScroll);
   }
 
@@ -262,9 +274,10 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   }
 
   Future<void> _refresh() async {
-    // Keep the folder counters (uploaded X of Y) in sync as well.
+    // Keep the folder counters (uploaded X of Y) and album covers in sync.
     ref.invalidate(backupStatusProvider);
     ref.invalidate(sourcesProvider);
+    ref.invalidate(albumsProvider);
     await _controller.refresh();
   }
 
@@ -488,17 +501,58 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
               ],
             )
           : AppBar(
-              title: Text(widget.title ?? l10n.galleryTab),
+              title: Text(_album?.name ?? widget.title ?? l10n.galleryTab),
               actions: [
                 IconButton(
                   tooltip: l10n.retry,
                   onPressed: state.loading ? null : _refresh,
                   icon: const Icon(Icons.refresh),
                 ),
+                if (_album != null)
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _openAlbumEditor();
+                      } else if (value == 'rename') {
+                        _renameAlbum();
+                      } else if (value == 'delete') {
+                        _deleteAlbum();
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      if (_album!.isSmart)
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.tune),
+                            title: Text(l10n.albumEditRules),
+                          ),
+                        ),
+                      PopupMenuItem(
+                        value: 'rename',
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.edit_outlined),
+                          title: Text(l10n.albumRename),
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.delete_outline),
+                          title: Text(l10n.albumDelete),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
       body: Column(
         children: [
+          if (_album != null)
+            _AlbumHeader(album: _album!, lines: _albumRuleLines(_album!, l10n)),
           if (widget.header != null) widget.header!,
           if (widget.showFilters)
             Padding(
@@ -660,8 +714,178 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     );
   }
 
+  Future<void> _runAddToAlbum() async {
+    final l10n = AppLocalizations.of(context)!;
+    final entries = _selectedEntries;
+    if (entries.isEmpty) return;
+    final result = await showAddToAlbumSheet(context, entries);
+    if (!mounted || result == null) return;
+    final detail = result.errors.isEmpty ? '' : ' · ${result.errors.first}';
+    _snack('${l10n.albumAddResult(result.added, result.failed)}$detail');
+    _clearSelection();
+    await _refresh();
+  }
+
+  Future<void> _runDownload() async {
+    final l10n = AppLocalizations.of(context)!;
+    final entries = _selectedEntries;
+    if (entries.isEmpty) return;
+    var failed = 0;
+    for (final entry in entries) {
+      final url = entry.cloud?.downloadUrl;
+      if (url == null || url.isEmpty) {
+        failed += 1;
+        continue;
+      }
+      try {
+        final opened = await launchUrl(
+          Uri.parse(url),
+          mode: LaunchMode.externalApplication,
+        );
+        if (!opened) failed += 1;
+      } catch (_) {
+        failed += 1;
+      }
+    }
+    if (mounted && failed > 0) _snack(l10n.downloadUnavailable);
+    _clearSelection();
+  }
+
+  Future<void> _runRemoveFromAlbum() async {
+    final l10n = AppLocalizations.of(context)!;
+    final album = _album;
+    if (album == null) return;
+    final ids = [
+      for (final entry in _selectedEntries)
+        if (entry.cloud != null) entry.cloud!.id,
+    ];
+    if (ids.isEmpty) return;
+    setState(() => _busy = true);
+    try {
+      final removed = await ref
+          .read(apiClientProvider)
+          .removeAlbumItems(albumId: album.id, mediaIds: ids);
+      if (!mounted) return;
+      _snack(l10n.albumRemoved(removed));
+      _clearSelection();
+    } catch (error) {
+      if (mounted) _snack('$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+      await _refresh();
+    }
+  }
+
+  Future<void> _runSetCover() async {
+    final l10n = AppLocalizations.of(context)!;
+    final album = _album;
+    if (album == null) return;
+    final selected = _selectedEntries
+        .where((entry) => entry.cloud != null)
+        .toList();
+    if (selected.isEmpty) return;
+    setState(() => _busy = true);
+    try {
+      final updated = await ref
+          .read(apiClientProvider)
+          .updateAlbum(album.id, coverMediaId: selected.first.cloud!.id);
+      if (!mounted) return;
+      setState(() => _album = updated);
+      ref.invalidate(albumsProvider);
+      _snack(l10n.albumCoverUpdated);
+      _clearSelection();
+    } catch (error) {
+      if (mounted) _snack('$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _openAlbumEditor() async {
+    final album = _album;
+    if (album == null) return;
+    final updated = await Navigator.of(context).push<Album>(
+      MaterialPageRoute(builder: (_) => AlbumEditScreen(album: album)),
+    );
+    if (!mounted) return;
+    ref.invalidate(albumsProvider);
+    if (updated == null) return;
+    setState(() => _album = updated);
+    await _controller.refresh();
+  }
+
+  Future<void> _renameAlbum() async {
+    final album = _album;
+    if (album == null) return;
+    final name = await showAlbumNameDialog(context, initialName: album.name);
+    if (!mounted || name == null) return;
+    try {
+      final updated = await ref
+          .read(apiClientProvider)
+          .updateAlbum(album.id, name: name);
+      if (!mounted) return;
+      setState(() => _album = updated);
+      ref.invalidate(albumsProvider);
+    } catch (error) {
+      if (mounted) _snack('$error');
+    }
+  }
+
+  Future<void> _deleteAlbum() async {
+    final l10n = AppLocalizations.of(context)!;
+    final album = _album;
+    if (album == null) return;
+    if (!await showAlbumDeleteDialog(context, album)) return;
+    if (!mounted) return;
+    try {
+      await ref.read(apiClientProvider).deleteAlbum(album.id);
+      ref.invalidate(albumsProvider);
+      if (!mounted) return;
+      _snack(l10n.albumDeleted);
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (mounted) _snack('$error');
+    }
+  }
+
   Widget _actionBar(AppLocalizations l10n) {
     final entries = _selectedEntries;
+    final album = _album;
+    if (album != null) {
+      final canShare = entries.any(
+        (entry) =>
+            entry.hasLocal || (entry.cloud?.downloadUrl ?? '').isNotEmpty,
+      );
+      final canDownload = entries.any(
+        (entry) => (entry.cloud?.downloadUrl ?? '').isNotEmpty,
+      );
+      final canRemove = entries.any((entry) => entry.cloud != null);
+      return MediaActionBar(
+        actions: [
+          MediaActionButton(
+            icon: Icons.share_outlined,
+            label: l10n.galleryShare,
+            onPressed: canShare ? _runShare : null,
+          ),
+          MediaActionButton(
+            icon: Icons.download_outlined,
+            label: l10n.downloadOriginal,
+            onPressed: canDownload ? _runDownload : null,
+          ),
+          if (!album.isSmart)
+            MediaActionButton(
+              icon: Icons.playlist_remove,
+              label: l10n.albumRemove,
+              onPressed: canRemove ? _runRemoveFromAlbum : null,
+            ),
+          MediaActionButton(
+            icon: Icons.photo_camera_back_outlined,
+            label: l10n.albumSetCover,
+            onPressed: canRemove ? _runSetCover : null,
+          ),
+        ],
+      );
+    }
     final canUpload = entries.any((entry) => entry.canUpload);
     final canShare = entries.any(
       (entry) => entry.hasLocal || (entry.cloud?.downloadUrl ?? '').isNotEmpty,
@@ -685,6 +909,11 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
           icon: Icons.delete_outline,
           label: l10n.galleryDelete,
           onPressed: canDelete ? _runDelete : null,
+        ),
+        MediaActionButton(
+          icon: Icons.playlist_add,
+          label: l10n.albumAdd,
+          onPressed: _runAddToAlbum,
         ),
       ],
     );
@@ -769,6 +998,90 @@ class _FilterChip extends StatelessWidget {
       label: Text(label),
       selected: selected,
       onSelected: (_) => onSelected(),
+    );
+  }
+}
+
+List<String> _albumRuleLines(Album album, AppLocalizations l10n) {
+  final draft = AlbumRuleDraft.fromRules(album.rules);
+  final format = DateFormat.yMd();
+  String range(DateTime? from, DateTime? to) {
+    if (from != null && to != null) {
+      return '${format.format(from)} - ${format.format(to)}';
+    }
+    if (from != null) return '>= ${format.format(from)}';
+    return '<= ${format.format(to!)}';
+  }
+
+  final lines = <String>[];
+  if (draft.takenFrom != null || draft.takenTo != null) {
+    lines.add(
+      '${l10n.albumRuleTaken}: ${range(draft.takenFrom, draft.takenTo)}',
+    );
+  }
+  if (draft.uploadedFrom != null || draft.uploadedTo != null) {
+    lines.add(
+      '${l10n.albumRuleUploaded}: ${range(draft.uploadedFrom, draft.uploadedTo)}',
+    );
+  }
+  if (draft.hasLocation) {
+    final meters = draft.radiusM!;
+    final km = (meters / 1000).toStringAsFixed(meters % 1000 == 0 ? 0 : 1);
+    lines.add('${l10n.albumRuleLocation}: ${l10n.albumRuleRadius(km)}');
+  }
+  if (draft.mediaType == 'image') lines.add(l10n.albumRuleTypeImages);
+  if (draft.mediaType == 'video') lines.add(l10n.albumRuleTypeVideos);
+  return lines;
+}
+
+class _AlbumHeader extends StatelessWidget {
+  final Album album;
+  final List<String> lines;
+
+  const _AlbumHeader({required this.album, required this.lines});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      color: scheme.surfaceContainerHighest,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  album.isSmart ? l10n.albumKindSmart : l10n.albumKindManual,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: scheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                l10n.itemCount(album.itemCount),
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ],
+          ),
+          for (final line in lines)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(line, style: Theme.of(context).textTheme.labelSmall),
+            ),
+        ],
+      ),
     );
   }
 }

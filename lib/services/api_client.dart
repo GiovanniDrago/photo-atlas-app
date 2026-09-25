@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../models/album.dart';
 import '../models/api_config.dart';
 import '../models/auth_user.dart';
 import '../models/backup.dart';
@@ -325,6 +326,108 @@ class ApiClient {
       reset: asInt(body['reset']) ?? 0,
       failed: failed,
     );
+  }
+
+  Future<List<Album>> albums() async {
+    final body = await _getJson(_uri('/api/albums'));
+    return ((body['albums'] ?? const <dynamic>[]) as List<dynamic>)
+        .map((item) => Album.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Album> createAlbum({
+    required String name,
+    AlbumKind kind = AlbumKind.manual,
+    AlbumRules? rules,
+    List<String>? mediaIds,
+  }) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/albums'),
+      body: {
+        'name': name,
+        'kind': kind.wire,
+        if (rules != null && !rules.isEmpty) 'rules': rules.toJson(),
+        if (mediaIds != null && mediaIds.isNotEmpty) 'media_ids': mediaIds,
+      },
+    );
+    return Album.fromJson(body['album'] as Map<String, dynamic>);
+  }
+
+  Future<Album> updateAlbum(
+    String id, {
+    String? name,
+    AlbumRules? rules,
+    String? coverMediaId,
+    bool clearCover = false,
+  }) async {
+    final body = await _sendJson(
+      'PATCH',
+      _uri('/api/albums/$id'),
+      body: {
+        'name': ?name,
+        if (rules != null) 'rules': rules.toJson(),
+        'cover_media_id': ?coverMediaId,
+        if (clearCover) 'clear_cover': true,
+      },
+    );
+    return Album.fromJson(body['album'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteAlbum(String id) async {
+    await _sendJson('DELETE', _uri('/api/albums/$id'));
+  }
+
+  Future<MediaPage> albumMedia(
+    String id, {
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    final body = await _getJson(
+      _uri('/api/albums/$id/media', {'limit': limit, 'offset': offset}),
+    );
+    return MediaPage(
+      items: ((body['items'] ?? const <dynamic>[]) as List<dynamic>)
+          .map((item) => MediaItem.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      total: asInt(body['total']) ?? 0,
+      limit: asInt(body['limit']) ?? limit,
+      offset: asInt(body['offset']) ?? offset,
+    );
+  }
+
+  /// Live count of the media matching [rules] (builder preview).
+  Future<int> previewAlbumRules(AlbumRules rules) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/albums/preview'),
+      body: {'rules': rules.toJson()},
+    );
+    return asInt(body['total']) ?? 0;
+  }
+
+  Future<int> addAlbumItems({
+    required String albumId,
+    required List<String> mediaIds,
+  }) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/albums/$albumId/items'),
+      body: {'media_ids': mediaIds},
+    );
+    return asInt(body['added']) ?? 0;
+  }
+
+  Future<int> removeAlbumItems({
+    required String albumId,
+    required List<String> mediaIds,
+  }) async {
+    final body = await _sendJson(
+      'DELETE',
+      _uri('/api/albums/$albumId/items'),
+      body: {'media_ids': mediaIds},
+    );
+    return asInt(body['removed']) ?? 0;
   }
 
   Future<List<MediaCluster>> clusters({

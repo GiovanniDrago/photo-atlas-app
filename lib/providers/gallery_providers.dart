@@ -9,28 +9,38 @@ import '../services/local_media_service.dart';
 import '../services/scan_models.dart';
 import 'library_providers.dart';
 
-/// Which gallery a controller instance is showing: the whole library (tab) or
-/// a single device folder (collections).
+/// Which gallery a controller instance is showing: the whole library (tab), a
+/// single device folder (collections) or a user album (albums).
 class GalleryScope {
   final String? sourceId;
   final String? albumId;
   final String? rootPath;
 
-  const GalleryScope({this.sourceId, this.albumId, this.rootPath});
+  /// Server album id (`albums` table), cloud-only view.
+  final String? userAlbumId;
+
+  const GalleryScope({
+    this.sourceId,
+    this.albumId,
+    this.rootPath,
+    this.userAlbumId,
+  });
 
   static const tab = GalleryScope();
 
   bool get isFolder => albumId != null || rootPath != null;
+  bool get isUserAlbum => userAlbumId != null;
 
   @override
   bool operator ==(Object other) =>
       other is GalleryScope &&
       other.sourceId == sourceId &&
       other.albumId == albumId &&
-      other.rootPath == rootPath;
+      other.rootPath == rootPath &&
+      other.userAlbumId == userAlbumId;
 
   @override
-  int get hashCode => Object.hash(sourceId, albumId, rootPath);
+  int get hashCode => Object.hash(sourceId, albumId, rootPath, userAlbumId);
 }
 
 class GalleryState {
@@ -143,7 +153,7 @@ class GalleryController extends Notifier<GalleryState> {
     _cloudTotal = 0;
     _localTotal = 0;
     _cloudDone = _cloudDisabled;
-    _localDone = !LocalMediaService.isSupported;
+    _localDone = !LocalMediaService.isSupported || scope.isUserAlbum;
     _localLoading = false;
     _localPermissionDenied = false;
   }
@@ -195,6 +205,8 @@ class GalleryController extends Notifier<GalleryState> {
         : _fetchCloud(client, 0, generation);
     final localFuture = scope.isFolder
         ? _fetchLocalPage(client, 0, generation)
+        : scope.isUserAlbum
+        ? Future<void>.value()
         : _loadLocal(client, generation);
     String? error;
     try {
@@ -212,14 +224,21 @@ class GalleryController extends Notifier<GalleryState> {
   }
 
   Future<void> _fetchCloud(ApiClient client, int page, int generation) async {
-    final result = await client.media(
-      status: _filter.missingOnly ? 'missing' : 'all',
-      type: _filter.type,
-      sourceId: scope.sourceId,
-      backupStatus: _filter.backupStatus,
-      limit: _cloudPageSize,
-      offset: page * _cloudPageSize,
-    );
+    final albumId = scope.userAlbumId;
+    final result = albumId != null
+        ? await client.albumMedia(
+            albumId,
+            limit: _cloudPageSize,
+            offset: page * _cloudPageSize,
+          )
+        : await client.media(
+            status: _filter.missingOnly ? 'missing' : 'all',
+            type: _filter.type,
+            sourceId: scope.sourceId,
+            backupStatus: _filter.backupStatus,
+            limit: _cloudPageSize,
+            offset: page * _cloudPageSize,
+          );
     if (_isStale(generation)) return;
     final items = result.items;
     if (page == 0) {

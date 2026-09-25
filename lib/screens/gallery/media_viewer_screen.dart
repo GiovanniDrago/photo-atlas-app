@@ -18,6 +18,7 @@ import '../../services/gallery_actions_service.dart';
 import '../../services/local_media_service.dart';
 import '../../services/scan_service.dart';
 import '../../widgets/delete_media_dialog.dart';
+import '../albums/album_picker_sheet.dart';
 import '../../widgets/local_file_image.dart';
 
 enum MediaViewerResult { select }
@@ -215,6 +216,16 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     return path.substring(0, index);
   }
 
+  Future<void> _addToAlbum() async {
+    final l10n = AppLocalizations.of(context)!;
+    final result = await showAddToAlbumSheet(context, [_entry]);
+    if (!mounted || result == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.albumAddResult(result.added, result.failed))),
+    );
+    _invalidateLibrary();
+  }
+
   Future<void> _openInMaps() async {
     final l10n = AppLocalizations.of(context)!;
     final location = await _locationOf(_entry);
@@ -310,6 +321,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                 Navigator.of(context).pop(MediaViewerResult.select);
               } else if (value == 'maps') {
                 _openInMaps();
+              } else if (value == 'album') {
+                _addToAlbum();
               }
             },
             itemBuilder: (context) => [
@@ -342,6 +355,15 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                     title: Text(l10n.downloadOriginal),
                   ),
                 ),
+              PopupMenuItem(
+                value: 'album',
+                enabled: !_busy,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.playlist_add),
+                  title: Text(l10n.albumAdd),
+                ),
+              ),
               PopupMenuItem(
                 value: 'delete',
                 enabled: !_busy,

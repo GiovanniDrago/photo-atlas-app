@@ -15,6 +15,7 @@ import '../../widgets/delete_media_dialog.dart';
 import '../../widgets/media_action_bar.dart';
 import '../../widgets/media_selection.dart';
 import '../../widgets/media_thumbnail.dart';
+import '../albums/album_picker_sheet.dart';
 import '../gallery/media_viewer_screen.dart';
 
 class TimelineScreen extends ConsumerStatefulWidget {
@@ -133,6 +134,23 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
     }
     if (mounted && failed > 0) _snack(l10n.downloadUnavailable);
     _exitSelection();
+  }
+
+  Future<void> _runAddToAlbum() async {
+    final l10n = AppLocalizations.of(context)!;
+    final entries = _selectedEntries();
+    if (entries.isEmpty) return;
+    setState(() => _busy = true);
+    try {
+      final result = await showAddToAlbumSheet(context, entries);
+      if (!mounted || result == null) return;
+      final detail = result.errors.isEmpty ? '' : ' · ${result.errors.first}';
+      _snack('${l10n.albumAddResult(result.added, result.failed)}$detail');
+      _exitSelection();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+      _invalidateLibrary();
+    }
   }
 
   Future<void> _runDelete() async {
@@ -283,6 +301,11 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
                   icon: Icons.download,
                   label: l10n.downloadOriginal,
                   onPressed: _runDownload,
+                ),
+                MediaActionButton(
+                  icon: Icons.playlist_add,
+                  label: l10n.albumAdd,
+                  onPressed: _runAddToAlbum,
                 ),
                 MediaActionButton(
                   icon: Icons.delete_outline,

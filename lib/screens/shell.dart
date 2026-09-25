@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/backup_runner_provider.dart';
+import 'albums/albums_screen.dart';
 import 'backup/backup_screen.dart';
 import 'collections/collections_screen.dart';
 import 'gallery/gallery_screen.dart';
@@ -27,6 +28,7 @@ class _AppShellState extends ConsumerState<AppShell>
     MapScreen(),
     CollectionsScreen(),
     GalleryScreen(),
+    AlbumsScreen(),
     SettingsScreen(),
   ];
 
@@ -113,6 +115,11 @@ class _AppShellState extends ConsumerState<AppShell>
             ),
             _barItem(
               index: 3,
+              icon: Icons.photo_album_outlined,
+              label: l10n.albumsTab,
+            ),
+            _barItem(
+              index: 4,
               icon: Icons.settings_outlined,
               label: l10n.settingsTab,
             ),

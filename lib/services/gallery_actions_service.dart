@@ -93,7 +93,7 @@ class GalleryActionsService {
         if (path == null || path.isEmpty) {
           throw ApiException(400, 'local file not found');
         }
-        final mediaId = entry.cloud?.id ?? await _indexLocal(entry);
+        final mediaId = entry.cloud?.id ?? await indexLocal(entry);
         await client.uploadMedia(mediaId: mediaId, filePath: path);
         uploaded += 1;
       } catch (error) {
@@ -257,7 +257,9 @@ class GalleryActionsService {
     return GalleryActionResult(shared: files.length, errors: errors);
   }
 
-  Future<String> _indexLocal(GalleryEntry entry) async {
+  /// Indexes a device-only entry (metadata + thumbnail, no upload) and
+  /// returns its media id; used by upload and by album membership.
+  Future<String> indexLocal(GalleryEntry entry) async {
     final local = entry.local!;
     final deviceId = await DeviceService.ensureRegistered(client);
     final sources = await client.sources();
