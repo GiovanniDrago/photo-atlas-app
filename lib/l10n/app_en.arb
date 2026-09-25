@@ -874,5 +874,7 @@
 "albumLocationHint": "Tap the map to choose the center",
 "albumLocationApply": "Apply",
 "albumRuleClear": "Clear",
-"@albumRuleClear": {"placeholders": {}}
+"@albumRuleClear": {"placeholders": {}},
+"albumRadius": "Radius",
+"@albumRadius": {"placeholders": {}}
 }

@@ -370,5 +370,6 @@
 "albumLocationTitle": "Luogo dell'album",
 "albumLocationHint": "Tocca la mappa per scegliere il centro",
 "albumLocationApply": "Applica",
-"albumRuleClear": "Cancella"
+"albumRuleClear": "Cancella",
+"albumRadius": "Raggio"
 }
