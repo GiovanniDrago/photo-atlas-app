@@ -81,6 +81,22 @@ login screen (with a **Detect** button), and later in Settings.
   counters; turning the switch off only stops future runs, the files already uploaded stay on
   kDrive. Device folders are only available in the Android app
 
+## Albums
+
+- The **Albums** tab lists every album with cover, name, item count and a **Manual** / **Smart**
+  badge. Smart albums are resolved live from rules; manual membership is a database relation, so
+  files are never moved or duplicated (`docs/ALBUMS.md`)
+- **Create**: *+ → Manual album* (name only, then add items) or *+ → Smart album* (name + rules
+  with a live matching-items preview). You can also create an album from a selection in the
+  Gallery, Timeline or viewer with *Add to album → New album*
+- **Smart rules**: capture date range, upload date range, location (center picked on the map) plus
+  radius and media type; rules are combined with AND. New matching media appear automatically
+- **Detail**: tap a card to open the album as a cloud-only gallery. Selection actions are share,
+  download original, remove from album (manual) and use as cover; the card menu renames, edits the
+  rules or deletes the album (relations only: photos, kDrive copies and device files stay)
+- Device-only items are indexed (metadata + thumbnail) when you add them to an album; they are not
+  uploaded to kDrive by that action
+
 ## Account and security
 
 - The app signs in through **Supabase Auth**; the API only verifies the access token. The Supabase

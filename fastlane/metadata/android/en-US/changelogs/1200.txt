@@ -1,0 +1,6 @@
+New Albums tab between Gallery and Settings. Manual albums collect the photos and videos you pick
+(also straight from a selection in Gallery, Timeline or the full screen viewer) and smart albums
+resolve live from rules: capture date range, upload date range, location with a radius picked on the
+map and media type, with a matching-items preview while you edit. Albums are database relations:
+photos are never moved or duplicated, removing an item or deleting an album leaves every file where
+it is. A cover, rename and rule editing are one tap away.

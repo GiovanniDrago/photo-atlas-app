@@ -16,6 +16,9 @@ space** using their metadata. Runs on **Android**, **Linux desktop** and the **w
   folder (Android and Linux; the web cannot read local folders).
 - **kDrive**: connect an Infomaniak kDrive, scan a folder recursively and enrich capture dates and
   GPS from EXIF. Only metadata is indexed; images stay in your cloud.
+- **Albums**: manual albums built from a selection plus **smart albums** with rules (capture date
+  range, upload date range, location + radius, media type). Album membership is a database
+  relation: files are never moved or duplicated.
 - **Themes**: minimal light and dark palettes that also drive the map colors. English and Italian.
 
 ## Architecture
@@ -58,6 +61,7 @@ Set the API URL in **Settings → API server** (default `http://localhost:8787`)
 | [docs/WEB_TESTING.md](docs/WEB_TESTING.md) | Test on web with GitHub Pages or Codespaces |
 | [docs/MAP_AND_GLOBE.md](docs/MAP_AND_GLOBE.md) | Globe, map and cluster behavior |
 | [docs/SCANNING.md](docs/SCANNING.md) | How folder scanning and EXIF extraction work |
+| [docs/ALBUMS.md](docs/ALBUMS.md) | Albums and smart-album rules |
 | [docs/KDRIVE.md](docs/KDRIVE.md) | Connecting and scanning kDrive |
 | [docs/DEPLOY.md](docs/DEPLOY.md) | GitHub Actions workflows and secrets |
 | [docs/FDROID.md](docs/FDROID.md) | F-Droid metadata and release checklist |
