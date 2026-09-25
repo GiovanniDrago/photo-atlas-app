@@ -883,5 +883,11 @@
 "@albumFailedUploads": {"placeholders": {"count": {"type": "int"}}},
 "albumRetryFailed": "Retry",
 "albumRetrying": "Retrying failed uploads",
-"albumRetryNoFiles": "The device files are no longer available"
+"albumRetryNoFiles": "The device files are no longer available",
+"uploadDetails": "Upload details",
+"@uploadDetails": {"placeholders": {}},
+"uploadStopping": "Stopping…",
+"@uploadStopping": {"placeholders": {}},
+"uploadStopped": "Stopped",
+"@uploadStopped": {"placeholders": {}}
 }

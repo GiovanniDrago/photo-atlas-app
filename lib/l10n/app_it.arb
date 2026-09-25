@@ -377,5 +377,8 @@
 "albumFailedUploads": "{count} caricamenti falliti",
 "albumRetryFailed": "Riprova",
 "albumRetrying": "Riprovo i caricamenti falliti",
-"albumRetryNoFiles": "I file sul dispositivo non sono più disponibili"
+"albumRetryNoFiles": "I file sul dispositivo non sono più disponibili",
+"uploadDetails": "Dettagli caricamento",
+"uploadStopping": "Interruzione…",
+"uploadStopped": "Interrotto"
 }

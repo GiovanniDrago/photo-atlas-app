@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/album.dart';
 import '../../models/gallery_entry.dart';
+import '../../models/gallery_upload.dart';
 import '../../models/media_item.dart';
 import '../../providers/album_providers.dart';
 import '../../providers/collections_providers.dart';
@@ -22,6 +23,7 @@ import '../../services/scan_service.dart';
 import '../../widgets/delete_media_dialog.dart';
 import '../../widgets/gallery_tile.dart';
 import '../../widgets/media_action_bar.dart';
+import '../../widgets/upload_progress_sheet.dart';
 import '../albums/album_dialogs.dart';
 import '../albums/album_edit_screen.dart';
 import '../albums/album_picker_sheet.dart';
@@ -56,6 +58,11 @@ class GalleryScreen extends ConsumerStatefulWidget {
 class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   Album? _album;
   final Set<String> _selectedKeys = {};
+
+  /// Details of the running upload (null for other runs): drives the tappable
+  /// bottom bar and the progress sheet.
+  final ValueNotifier<GalleryUploadState?> _upload = ValueNotifier(null);
+  bool _uploadCancelled = false;
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _gridKey = GlobalKey();
   bool _selectionMode = false;
@@ -81,6 +88,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   void dispose() {
     _dragTimer?.cancel();
     _scrollController.dispose();
+    _upload.dispose();
     super.dispose();
   }
 
@@ -293,30 +301,77 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
 
   Future<void> _runUpload() async {
     final l10n = AppLocalizations.of(context)!;
-    final entries = _selectedEntries;
-    if (entries.isEmpty) return;
+    await _startUpload(
+      _selectedEntries,
+      label: l10n.galleryUploading,
+      noTargetsMessage: null,
+    );
+  }
+
+  /// Uploads [entries] (device files not yet on kDrive) with the tappable
+  /// progress bar open on the live detail; used by Gallery, folder and album
+  /// scopes and by the album "retry failed" row.
+  Future<void> _startUpload(
+    List<GalleryEntry> entries, {
+    required String label,
+    required String? noTargetsMessage,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final targets = [
+      for (final entry in entries)
+        if (entry.canUpload) entry,
+    ];
+    if (targets.isEmpty) {
+      if (noTargetsMessage != null) _snack(noTargetsMessage);
+      return;
+    }
+    _uploadCancelled = false;
+    _upload.value = GalleryUploadState(
+      label: label,
+      targets: targets,
+      total: targets.length,
+    );
     setState(() {
       _busy = true;
-      _busyLabel = l10n.galleryUploading;
+      _busyLabel = label;
       _progress = null;
     });
+    var uploaded = 0;
+    var failed = 0;
     try {
       final service = GalleryActionsService(ref.read(apiClientProvider));
       final result = await service.upload(
-        entries,
+        targets,
+        isCancelled: () => _uploadCancelled,
         onProgress: (progress) {
-          if (mounted) setState(() => _progress = progress);
+          if (!mounted) return;
+          setState(() => _progress = progress);
+          _upload.value = _upload.value?.record(progress);
         },
       );
+      uploaded = result.uploaded;
+      failed = result.failed;
+      _upload.value = _upload.value?.finish(
+        uploaded: uploaded,
+        failed: failed,
+        cancelled: _uploadCancelled,
+      );
       _report(
-        result.failed > 0
-            ? l10n.galleryUploadedFailed(result.uploaded, result.failed)
-            : l10n.galleryUploadedCount(result.uploaded),
+        failed > 0
+            ? l10n.galleryUploadedFailed(uploaded, failed)
+            : _uploadCancelled
+            ? l10n.uploadStopped
+            : l10n.galleryUploadedCount(uploaded),
         result,
       );
       _clearSelection();
     } catch (error) {
       if (mounted) _snack('$error');
+      _upload.value = _upload.value?.finish(
+        uploaded: uploaded,
+        failed: failed + targets.length,
+        cancelled: _uploadCancelled,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -329,6 +384,23 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     }
   }
 
+  void _cancelUpload() {
+    _uploadCancelled = true;
+    _upload.value = _upload.value?.markStopping();
+  }
+
+  Future<void> _openUploadSheet() async {
+    if (_upload.value == null) return;
+    await showUploadProgressSheet(
+      context,
+      state: _upload,
+      onStop: _cancelUpload,
+    );
+    if (!mounted) return;
+    // Drop the finished detail: the next run starts clean.
+    if (_upload.value?.running == false) _upload.value = null;
+  }
+
   Future<void> _runDelete() async {
     final l10n = AppLocalizations.of(context)!;
     final entries = _selectedEntries;
@@ -336,6 +408,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     final options = await showDeleteMediaDialog(context, entries);
     if (options == null || !mounted) return;
     if (!options.cloud && !options.local) return;
+    _upload.value = null;
     setState(() {
       _busy = true;
       _busyLabel = l10n.galleryDeleting;
@@ -378,6 +451,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     final l10n = AppLocalizations.of(context)!;
     final entries = _selectedEntries;
     if (entries.isEmpty) return;
+    _upload.value = null;
     setState(() {
       _busy = true;
       _busyLabel = l10n.galleryPreparingShare;
@@ -740,11 +814,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     final l10n = AppLocalizations.of(context)!;
     final album = _album;
     if (album == null) return;
-    setState(() {
-      _busy = true;
-      _busyLabel = l10n.albumRetrying;
-      _progress = null;
-    });
+    List<GalleryEntry> entries;
     try {
       final page = await ref
           .read(apiClientProvider)
@@ -752,46 +822,22 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
       if (page.items.isEmpty) return;
       final locals = await LocalMediaService.resolveForItems(page.items);
       final byKey = {for (final local in locals) local.id: local};
-      final entries = [
+      entries = [
         for (final item in page.items)
-          if (byKey.containsKey(item.externalKey))
-            GalleryEntry(cloud: item, local: byKey[item.externalKey]),
+          GalleryEntry(cloud: item, local: byKey[item.externalKey]),
       ];
-      final missing = page.items.length - entries.length;
-      if (entries.isEmpty) {
-        if (mounted) _snack(l10n.albumRetryNoFiles);
-        return;
-      }
-      final result = await GalleryActionsService(ref.read(apiClientProvider))
-          .upload(
-            entries,
-            onProgress: (progress) {
-              if (mounted) setState(() => _progress = progress);
-            },
-          );
-      _report(
-        result.failed + missing > 0
-            ? l10n.galleryUploadedFailed(
-                result.uploaded,
-                result.failed + missing,
-              )
-            : l10n.galleryUploadedCount(result.uploaded),
-        result,
-      );
     } on ScanPermissionException {
       if (mounted) _snack(l10n.galleryLocalPermissionDenied);
+      return;
     } catch (error) {
       if (mounted) _snack('$error');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _busy = false;
-          _busyLabel = null;
-          _progress = null;
-        });
-      }
-      await _refresh();
+      return;
     }
+    await _startUpload(
+      entries,
+      label: l10n.albumRetrying,
+      noTargetsMessage: l10n.albumRetryNoFiles,
+    );
   }
 
   /// Delete dialog with the album option: relation, device file and/or the
@@ -1053,29 +1099,58 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
 
   Widget _progressBar(AppLocalizations l10n) {
     final progress = _progress;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              progress?.currentName == null
-                  ? _busyLabel ?? ''
-                  : '${_busyLabel ?? ''}: ${progress!.currentName}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
+    final scheme = Theme.of(context).colorScheme;
+    // Tapping the bar opens the per-file detail while an upload is running.
+    final tappable = _upload.value != null;
+    final content = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  progress?.currentName == null
+                      ? _busyLabel ?? ''
+                      : '${_busyLabel ?? ''}: ${progress!.currentName}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+              if (tappable) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.expand_less,
+                  size: 18,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 6),
+          LinearProgressIndicator(
+            value: progress == null || progress.total == 0
+                ? null
+                : (progress.done / progress.total).clamp(0.0, 1.0),
+          ),
+          if (tappable)
+            Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Text(
+                l10n.uploadDetails,
+                style: Theme.of(context).textTheme.labelSmall
+                    ?.copyWith(color: scheme.onSurfaceVariant),
+              ),
             ),
-            const SizedBox(height: 6),
-            LinearProgressIndicator(
-              value: progress == null || progress.total == 0
-                  ? null
-                  : (progress.done / progress.total).clamp(0.0, 1.0),
-            ),
-          ],
-        ),
+        ],
       ),
+    );
+    return SafeArea(
+      child: tappable
+          ? InkWell(onTap: _openUploadSheet, child: content)
+          : content,
     );
   }
 }

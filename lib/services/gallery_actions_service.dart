@@ -16,10 +16,17 @@ class GalleryActionProgress {
   final int total;
   final String? currentName;
 
+  /// Name of the item that just failed (null when it completed), with the
+  /// reason: it lets the progress sheet mark the row red.
+  final String? failedName;
+  final String? error;
+
   const GalleryActionProgress({
     this.done = 0,
     this.total = 0,
     this.currentName,
+    this.failedName,
+    this.error,
   });
 }
 
@@ -99,6 +106,15 @@ class GalleryActionsService {
       } catch (error) {
         failed += 1;
         errors.add('${entry.name}: $error');
+        onProgress?.call(
+          GalleryActionProgress(
+            done: index,
+            total: targets.length,
+            currentName: entry.name,
+            failedName: entry.name,
+            error: '$error',
+          ),
+        );
       }
     }
     onProgress?.call(
