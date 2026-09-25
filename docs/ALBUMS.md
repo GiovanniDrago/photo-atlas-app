@@ -39,10 +39,23 @@ metadata status and name rules; they are not exposed in the builder yet (see
 ## Album detail
 
 - The detail is a **cloud-only** gallery: it loads only the album items (no full device library
-  scan), with thumbnails and downloads through signed URLs.
-- Selection actions: **Share**, **Download original**, **Remove from album** (manual albums) and
-  **Use as cover**.
-- Pull to refresh reloads the album and the list counters.
+  scan), with thumbnails and downloads through signed URLs. For items whose source is a device
+  folder the app also resolves the local file (Android asset by id, local file on desktop), so
+  upload and device actions work; if the photo permission is denied the usual banner links to the
+  system settings.
+- Selection actions (scrollable bar): **Upload**, **Share**, **Download original**, **Delete**,
+  **Remove from album** (manual albums) and **Use as cover**.
+- **Upload** retries pending or failed items (the device file is uploaded to kDrive again; the
+  gallery badge updates at the end).
+- **Delete** opens the dialog with up to three options:
+  - *From the album*: removes only the relation (manual albums), files stay;
+  - *From the device*: moves the device file to the system trash (Android 11+); if it was not
+    uploaded the index row goes away too;
+  - *From the cloud*: moves the kDrive copy to the trash and drops the index row, so the item
+    leaves the album as well.
+- When the album has items whose upload **failed**, the header shows a red row
+  "N failed uploads · Retry" that re-uploads all of them in one run (with the same progress bar).
+- Pull to refresh reloads the album, the failed count and the list counters.
 
 ## How it works
 

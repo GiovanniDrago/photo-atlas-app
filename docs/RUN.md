@@ -96,6 +96,9 @@ login screen (with a **Detect** button), and later in Settings.
   rules or deletes the album (relations only: photos, kDrive copies and device files stay)
 - Device-only items are indexed (metadata + thumbnail) when you add them to an album; they are not
   uploaded to kDrive by that action
+- In the album detail the selection bar also has **Upload** (retries pending or failed uploads) and
+  **Delete** with the *from the album* / *from the device* / *from the cloud* options; when the
+  album has failed uploads the header offers **Retry** for all of them
 
 ## Account and security
 

@@ -1,0 +1,6 @@
+Album detail now handles uploads and deletions: select items and use Upload to retry pending or
+failed uploads, and Delete to choose between removing them from the album, from the device (system
+trash) or from kDrive (trash), individually or together. When an album has failed uploads the
+header shows a red "failed uploads" row with a Retry button that re-uploads all of them in one run.
+Device files of album items are matched on the fly, so the gallery badges and the device actions
+work inside albums too.
