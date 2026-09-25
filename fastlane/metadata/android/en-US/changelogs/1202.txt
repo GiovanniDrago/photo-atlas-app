@@ -1,0 +1,5 @@
+The upload bar at the bottom is now tappable: while an upload or a failed-upload retry is running
+it opens a live detail with the overall progress, the full list of files with their state
+(completed, in progress, waiting, failed with the reason) and a Stop button that cancels after the
+current file. At the end the sheet shows the summary, so you always know what was uploaded and what
+failed. Works in the Gallery, in folder galleries and inside albums.

@@ -49,6 +49,11 @@ login screen (with a **Detect** button), and later in Settings.
     Index rows left without any copy are dropped; when a copy survives the row is kept and its
     state updated
   - **Export metadata**: JSON file with all fields of the selected items
+- While an upload is running the bottom bar shows the phase, the current file and the progress;
+  **tap it** to open the live detail: overall X/Y, the full file list with per-file state
+  (completed, in progress, waiting, failed with the reason) and a **Stop** button that cancels
+  after the current file. The sheet stays open at the end with the summary (uploaded/failed or
+  stopped)
 - Thumbnails are served through signed URLs and cached: the server stores kDrive previews and
   phone-uploaded previews on disk and the app/browser keeps its own cache; device files are read
   locally, without a round trip
