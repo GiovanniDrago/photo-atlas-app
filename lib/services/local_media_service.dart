@@ -1,4 +1,5 @@
 import '../models/gallery_entry.dart';
+import '../models/media_item.dart';
 import 'api_client.dart';
 import 'local_media_service_stub.dart'
     if (dart.library.io) 'local_media_service_io.dart'
@@ -56,6 +57,13 @@ class LocalMediaService {
   /// The newest device files, used by the collections preview.
   static Future<List<LocalMedia>> recent({int limit = 6}) {
     return impl.recent(limit: limit);
+  }
+
+  /// Device files of the indexed items (album detail): Android assets by id,
+  /// local files on desktop. Throws [ScanPermissionException] when the photo
+  /// permission is denied, so the caller can show the settings banner.
+  static Future<List<LocalMedia>> resolveForItems(List<MediaItem> items) {
+    return impl.resolveForItems(items);
   }
 
   static Future<String?> localPath(LocalMedia media) => impl.localPath(media);

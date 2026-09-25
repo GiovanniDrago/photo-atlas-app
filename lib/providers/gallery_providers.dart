@@ -251,6 +251,32 @@ class GalleryController extends Notifier<GalleryState> {
     _cloudTotal = result.total;
     _cloudPage = page + 1;
     _cloudDone = items.length < _cloudPageSize || _cloud.length >= _cloudTotal;
+    if (albumId != null && items.isNotEmpty) {
+      await _resolveAlbumLocals(items, generation);
+    }
+  }
+
+  /// Device files behind the album items of a page: without them the album
+  /// view cannot upload retries or delete from the device.
+  Future<void> _resolveAlbumLocals(
+    List<MediaItem> items,
+    int generation,
+  ) async {
+    try {
+      final locals = await LocalMediaService.resolveForItems(items);
+      if (_isStale(generation)) return;
+      final known = {for (final media in _local) media.id};
+      for (final media in locals) {
+        if (known.add(media.id)) _local.add(media);
+      }
+      _localTotal = _local.length;
+      _localPermissionDenied = false;
+    } on ScanPermissionException {
+      if (_isStale(generation)) return;
+      _localPermissionDenied = true;
+    } catch (_) {
+      // A missing device copy only disables upload and device delete.
+    }
   }
 
   /// One page of the folder shown by this controller (bounded memory).

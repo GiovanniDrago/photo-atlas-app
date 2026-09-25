@@ -16,6 +16,8 @@ import '../../providers/gallery_providers.dart';
 import '../../providers/library_providers.dart';
 import '../../services/export_service.dart';
 import '../../services/gallery_actions_service.dart';
+import '../../services/local_media_service.dart';
+import '../../services/scan_models.dart';
 import '../../services/scan_service.dart';
 import '../../widgets/delete_media_dialog.dart';
 import '../../widgets/gallery_tile.dart';
@@ -274,10 +276,12 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   }
 
   Future<void> _refresh() async {
-    // Keep the folder counters (uploaded X of Y) and album covers in sync.
+    // Keep the folder counters (uploaded X of Y), album covers and the failed
+    // upload count in sync.
     ref.invalidate(backupStatusProvider);
     ref.invalidate(sourcesProvider);
     ref.invalidate(albumsProvider);
+    ref.invalidate(albumFailedCountProvider);
     await _controller.refresh();
   }
 
@@ -552,7 +556,11 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
       body: Column(
         children: [
           if (_album != null)
-            _AlbumHeader(album: _album!, lines: _albumRuleLines(_album!, l10n)),
+            _AlbumHeader(
+              album: _album!,
+              lines: _albumRuleLines(_album!, l10n),
+              onRetryFailed: _runRetryFailed,
+            ),
           if (widget.header != null) widget.header!,
           if (widget.showFilters)
             Padding(
@@ -624,6 +632,8 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
               child: Text(
                 state.localLoading
                     ? l10n.galleryDeviceLoading
+                    : _album != null
+                    ? l10n.itemCount(state.cloudTotal)
                     : l10n.galleryCounts(state.localTotal, state.cloudTotal),
                 style: Theme.of(context).textTheme.labelSmall,
               ),
@@ -724,6 +734,114 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     _snack('${l10n.albumAddResult(result.added, result.failed)}$detail');
     _clearSelection();
     await _refresh();
+  }
+
+  Future<void> _runRetryFailed() async {
+    final l10n = AppLocalizations.of(context)!;
+    final album = _album;
+    if (album == null) return;
+    setState(() {
+      _busy = true;
+      _busyLabel = l10n.albumRetrying;
+      _progress = null;
+    });
+    try {
+      final page = await ref
+          .read(apiClientProvider)
+          .albumMedia(album.id, backupStatus: 'failed', limit: 500);
+      if (page.items.isEmpty) return;
+      final locals = await LocalMediaService.resolveForItems(page.items);
+      final byKey = {for (final local in locals) local.id: local};
+      final entries = [
+        for (final item in page.items)
+          if (byKey.containsKey(item.externalKey))
+            GalleryEntry(cloud: item, local: byKey[item.externalKey]),
+      ];
+      final missing = page.items.length - entries.length;
+      if (entries.isEmpty) {
+        if (mounted) _snack(l10n.albumRetryNoFiles);
+        return;
+      }
+      final result = await GalleryActionsService(ref.read(apiClientProvider))
+          .upload(
+            entries,
+            onProgress: (progress) {
+              if (mounted) setState(() => _progress = progress);
+            },
+          );
+      _report(
+        result.failed + missing > 0
+            ? l10n.galleryUploadedFailed(
+                result.uploaded,
+                result.failed + missing,
+              )
+            : l10n.galleryUploadedCount(result.uploaded),
+        result,
+      );
+    } on ScanPermissionException {
+      if (mounted) _snack(l10n.galleryLocalPermissionDenied);
+    } catch (error) {
+      if (mounted) _snack('$error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _busyLabel = null;
+          _progress = null;
+        });
+      }
+      await _refresh();
+    }
+  }
+
+  /// Delete dialog with the album option: relation, device file and/or the
+  /// kDrive copy, combined in one flow.
+  Future<void> _runAlbumDelete() async {
+    final l10n = AppLocalizations.of(context)!;
+    final album = _album;
+    final entries = _selectedEntries;
+    if (album == null || entries.isEmpty) return;
+    final options = await showDeleteMediaDialog(
+      context,
+      entries,
+      allowAlbum: !album.isSmart,
+    );
+    if (options == null || !mounted) return;
+    if (!options.cloud && !options.local && !options.album) return;
+    setState(() => _busy = true);
+    try {
+      if (options.album) {
+        final ids = [
+          for (final entry in entries)
+            if (entry.cloud != null) entry.cloud!.id,
+        ];
+        if (ids.isNotEmpty) {
+          await ref
+              .read(apiClientProvider)
+              .removeAlbumItems(albumId: album.id, mediaIds: ids);
+        }
+      }
+      if (options.cloud || options.local) {
+        final result = await GalleryActionsService(ref.read(apiClientProvider))
+            .delete(entries, cloud: options.cloud, local: options.local);
+        if (!mounted) return;
+        _snack(
+          result.failed > 0
+              ? l10n.galleryDeletedFailed(result.failed)
+              : l10n.galleryDeleted(
+                  result.localDeleted + result.indexDeleted + result.reset,
+                ),
+        );
+      } else if (mounted) {
+        _snack(l10n.albumRemoved(entries.length));
+      }
+      _clearSelection();
+    } catch (error) {
+      if (mounted) _snack('$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+      await _refresh();
+    }
   }
 
   Future<void> _runDownload() async {
@@ -852,6 +970,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     final entries = _selectedEntries;
     final album = _album;
     if (album != null) {
+      final canUpload = entries.any((entry) => entry.canUpload);
       final canShare = entries.any(
         (entry) =>
             entry.hasLocal || (entry.cloud?.downloadUrl ?? '').isNotEmpty,
@@ -860,8 +979,16 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
         (entry) => (entry.cloud?.downloadUrl ?? '').isNotEmpty,
       );
       final canRemove = entries.any((entry) => entry.cloud != null);
+      final canDelete = entries.any(
+        (entry) => entry.canDeleteCloud || entry.canDeleteLocal,
+      );
       return MediaActionBar(
         actions: [
+          MediaActionButton(
+            icon: Icons.cloud_upload_outlined,
+            label: l10n.galleryUpload,
+            onPressed: canUpload ? _runUpload : null,
+          ),
           MediaActionButton(
             icon: Icons.share_outlined,
             label: l10n.galleryShare,
@@ -871,6 +998,11 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
             icon: Icons.download_outlined,
             label: l10n.downloadOriginal,
             onPressed: canDownload ? _runDownload : null,
+          ),
+          MediaActionButton(
+            icon: Icons.delete_outline,
+            label: l10n.galleryDelete,
+            onPressed: canDelete || canRemove ? _runAlbumDelete : null,
           ),
           if (!album.isSmart)
             MediaActionButton(
@@ -1034,16 +1166,22 @@ List<String> _albumRuleLines(Album album, AppLocalizations l10n) {
   return lines;
 }
 
-class _AlbumHeader extends StatelessWidget {
+class _AlbumHeader extends ConsumerWidget {
   final Album album;
   final List<String> lines;
+  final VoidCallback onRetryFailed;
 
-  const _AlbumHeader({required this.album, required this.lines});
+  const _AlbumHeader({
+    required this.album,
+    required this.lines,
+    required this.onRetryFailed,
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
+    final failed = ref.watch(albumFailedCountProvider(album.id)).value ?? 0;
     return Container(
       width: double.infinity,
       color: scheme.surfaceContainerHighest,
@@ -1079,6 +1217,23 @@ class _AlbumHeader extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(line, style: Theme.of(context).textTheme.labelSmall),
+            ),
+          if (failed > 0)
+            Row(
+              children: [
+                Icon(Icons.error_outline, size: 16, color: scheme.error),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    l10n.albumFailedUploads(failed),
+                    style: TextStyle(color: scheme.error, fontSize: 12),
+                  ),
+                ),
+                TextButton(
+                  onPressed: onRetryFailed,
+                  child: Text(l10n.albumRetryFailed),
+                ),
+              ],
             ),
         ],
       ),

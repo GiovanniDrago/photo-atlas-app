@@ -382,9 +382,14 @@ class ApiClient {
     String id, {
     int limit = 100,
     int offset = 0,
+    String? backupStatus,
   }) async {
     final body = await _getJson(
-      _uri('/api/albums/$id/media', {'limit': limit, 'offset': offset}),
+      _uri('/api/albums/$id/media', {
+        'limit': limit,
+        'offset': offset,
+        'backup_status': backupStatus,
+      }),
     );
     return MediaPage(
       items: ((body['items'] ?? const <dynamic>[]) as List<dynamic>)

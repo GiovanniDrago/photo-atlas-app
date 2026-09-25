@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:photo_manager/photo_manager.dart';
 
 import '../models/gallery_entry.dart';
+import '../models/media_item.dart';
 import 'api_client.dart';
 import 'local_media_service.dart';
 import 'scan_models.dart';
@@ -118,23 +119,81 @@ List<LocalMedia> _mapAssets(List<AssetEntity> assets) {
       continue;
     }
     if (!seen.add(asset.id)) continue;
-    final isVideo = asset.type == AssetType.video;
-    items.add(
-      LocalMedia(
-        id: asset.id,
-        name: asset.title ?? asset.id,
-        relativePath: asset.relativePath,
-        mediaType: isVideo ? 'video' : 'image',
-        takenAt: asset.createDateTime,
-        modifiedAt: asset.modifiedDateTime,
-        width: asset.width,
-        height: asset.height,
-        durationS: isVideo ? asset.duration.toDouble() : null,
-        asset: asset,
-      ),
-    );
+    items.add(_mapAsset(asset));
   }
   return items;
+}
+
+LocalMedia _mapAsset(AssetEntity asset, {String? sourceLabel}) {
+  final isVideo = asset.type == AssetType.video;
+  return LocalMedia(
+    id: asset.id,
+    name: asset.title ?? asset.id,
+    relativePath: asset.relativePath,
+    mediaType: isVideo ? 'video' : 'image',
+    takenAt: asset.createDateTime,
+    modifiedAt: asset.modifiedDateTime,
+    width: asset.width,
+    height: asset.height,
+    durationS: isVideo ? asset.duration.toDouble() : null,
+    asset: asset,
+    sourceLabel: sourceLabel,
+  );
+}
+
+/// Device files behind the indexed items of an album. Android media assets are
+/// resolved by their asset id (the external key); legacy path keys and desktop
+/// files fall back to the file system. Throws [ScanPermissionException] when
+/// the photo permission is denied.
+Future<List<LocalMedia>> resolveForItems(List<MediaItem> items) async {
+  final targets = [
+    for (final item in items)
+      if (item.sourceKind != 'kdrive') item,
+  ];
+  if (targets.isEmpty) return const [];
+  if (ScanService.isAlbumBased) {
+    if (!await ensurePhotoPermission()) throw const ScanPermissionException();
+  }
+  final locals = <LocalMedia>[];
+  final seen = <String>{};
+  for (final item in targets) {
+    final key = item.externalKey;
+    if (key.isEmpty || !seen.add(key)) continue;
+    AssetEntity? asset;
+    if (ScanService.isAlbumBased) {
+      try {
+        asset = await AssetEntity.fromId(key);
+      } catch (_) {
+        asset = null;
+      }
+    }
+    if (asset != null) {
+      locals.add(_mapAsset(asset, sourceLabel: item.sourceLabel));
+      continue;
+    }
+    final path = item.path ?? (ScanService.isAlbumBased ? '' : key);
+    if (path.isEmpty) continue;
+    try {
+      final file = File(path);
+      if (!await file.exists()) continue;
+      final stat = await file.stat();
+      locals.add(
+        LocalMedia(
+          id: key,
+          name: item.name,
+          path: path,
+          mediaType: item.mediaType,
+          sizeBytes: stat.size,
+          takenAt: item.takenAt,
+          modifiedAt: stat.modified,
+          sourceLabel: item.sourceLabel,
+        ),
+      );
+    } catch (_) {
+      continue;
+    }
+  }
+  return locals;
 }
 
 int _newestFirst(LocalMedia a, LocalMedia b) {

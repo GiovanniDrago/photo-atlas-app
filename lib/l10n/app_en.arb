@@ -876,5 +876,12 @@
 "albumRuleClear": "Clear",
 "@albumRuleClear": {"placeholders": {}},
 "albumRadius": "Radius",
-"@albumRadius": {"placeholders": {}}
+"@albumRadius": {"placeholders": {}},
+"albumDeleteFromAlbum": "From the album",
+"albumDeleteFromAlbumHint": "Removes only the link: photos and files stay",
+"albumFailedUploads": "{count} failed uploads",
+"@albumFailedUploads": {"placeholders": {"count": {"type": "int"}}},
+"albumRetryFailed": "Retry",
+"albumRetrying": "Retrying failed uploads",
+"albumRetryNoFiles": "The device files are no longer available"
 }

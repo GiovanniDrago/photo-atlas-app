@@ -1,4 +1,5 @@
 import '../models/gallery_entry.dart';
+import '../models/media_item.dart';
 import 'api_client.dart';
 import 'local_media_service.dart';
 
@@ -24,6 +25,9 @@ Future<LocalMediaPage> loadFolderPage({
 }
 
 Future<List<LocalMedia>> recent({int limit = 6}) async => const [];
+
+Future<List<LocalMedia>> resolveForItems(List<MediaItem> items) async =>
+    const [];
 
 Future<String?> localPath(LocalMedia media) async => media.path;
 

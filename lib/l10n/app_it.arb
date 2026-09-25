@@ -371,5 +371,11 @@
 "albumLocationHint": "Tocca la mappa per scegliere il centro",
 "albumLocationApply": "Applica",
 "albumRuleClear": "Cancella",
-"albumRadius": "Raggio"
+"albumRadius": "Raggio",
+"albumDeleteFromAlbum": "Dall'album",
+"albumDeleteFromAlbumHint": "Rimuove solo il collegamento: foto e file restano",
+"albumFailedUploads": "{count} caricamenti falliti",
+"albumRetryFailed": "Riprova",
+"albumRetrying": "Riprovo i caricamenti falliti",
+"albumRetryNoFiles": "I file sul dispositivo non sono più disponibili"
 }
