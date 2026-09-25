@@ -19,6 +19,7 @@ void main() {
       'cover_media_id': 'm1',
       'cover': {
         'id': 'm1',
+        'source_id': 's1',
         'name': 'IMG_1.jpg',
         'media_type': 'image',
         'thumbnail_url': 'http://api/thumb',
