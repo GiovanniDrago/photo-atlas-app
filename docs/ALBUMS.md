@@ -47,7 +47,8 @@ metadata status and name rules; they are not exposed in the builder yet (see
   **Remove from album** (manual albums) and **Use as cover**.
 - **Upload** retries pending or failed items (the device file is uploaded to kDrive again; the
   gallery badge updates at the end). While the run is going the bottom bar is tappable: the detail
-  sheet shows X/Y, the per-file state, failures with the reason and a **Stop** button.
+  sheet shows X/Y, the per-file state, the **percentage and bytes of the file in progress**,
+  failures with the reason and a **Stop** button.
 - **Delete** opens the dialog with up to three options:
   - *From the album*: removes only the relation (manual albums), files stay;
   - *From the device*: moves the device file to the system trash (Android 11+); if it was not

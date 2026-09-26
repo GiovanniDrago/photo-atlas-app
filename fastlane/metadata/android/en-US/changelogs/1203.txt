@@ -1,0 +1,5 @@
+The upload detail now shows the percentage of the single file being uploaded, together with the
+transferred bytes (for example "42% · 3.2 MB / 12.4 MB"), both in the progress sheet and in the
+collapsed bar at the bottom. The overall bar is smoother because it includes the current file's
+bytes instead of jumping from one file to the next, and updates are throttled to one per percent
+so even large videos keep the interface responsive.
