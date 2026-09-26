@@ -23,6 +23,10 @@ class GalleryUploadState {
   final int failed;
   final bool cancelled;
 
+  /// Bytes of the single file being uploaded right now.
+  final int fileSent;
+  final int fileTotal;
+
   const GalleryUploadState({
     required this.label,
     this.targets = const [],
@@ -35,7 +39,22 @@ class GalleryUploadState {
     this.uploaded = 0,
     this.failed = 0,
     this.cancelled = false,
+    this.fileSent = 0,
+    this.fileTotal = 0,
   });
+
+  /// 0..1 progress of the single file, null when unknown.
+  double? get fileFraction {
+    if (fileTotal <= 0) return null;
+    return (fileSent / fileTotal).clamp(0.0, 1.0);
+  }
+
+  /// Overall progress, smoothed with the bytes of the current file.
+  double? get overallFraction {
+    if (total <= 0) return null;
+    final current = running ? (fileFraction ?? 0) : 0.0;
+    return ((done + current) / total).clamp(0.0, 1.0);
+  }
 
   UploadEntryStatus statusAt(int index) {
     if (failures.containsKey(index)) return UploadEntryStatus.failed;
@@ -53,6 +72,9 @@ class GalleryUploadState {
       failures: failedName == null
           ? failures
           : {...failures, progress.done: progress.error},
+      // Item boundary events carry no bytes: the counter restarts.
+      fileSent: progress.fileSent ?? 0,
+      fileTotal: progress.fileTotal ?? 0,
     );
   }
 
@@ -88,6 +110,8 @@ class GalleryUploadState {
     int? uploaded,
     int? failed,
     bool? cancelled,
+    int? fileSent,
+    int? fileTotal,
   }) {
     return GalleryUploadState(
       label: label,
@@ -103,6 +127,32 @@ class GalleryUploadState {
       uploaded: uploaded ?? this.uploaded,
       failed: failed ?? this.failed,
       cancelled: cancelled ?? this.cancelled,
+      fileSent: fileSent ?? this.fileSent,
+      fileTotal: fileTotal ?? this.fileTotal,
     );
+  }
+}
+
+/// Keeps byte updates to roughly one per percent (plus the last one), so a
+/// large video does not rebuild the UI on every chunk.
+class FileProgressThrottle {
+  int _lastSent = 0;
+  int? _itemIndex;
+
+  bool shouldEmit(GalleryActionProgress progress) {
+    final sent = progress.fileSent;
+    final total = progress.fileTotal;
+    if (sent == null || total == null || total <= 0) return true;
+    if (_itemIndex != progress.done) {
+      _itemIndex = progress.done;
+      _lastSent = 0;
+    }
+    if (sent >= total) {
+      _lastSent = sent;
+      return true;
+    }
+    if ((sent - _lastSent) * 100 < total) return false;
+    _lastSent = sent;
+    return true;
   }
 }

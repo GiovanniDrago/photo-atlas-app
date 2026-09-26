@@ -21,13 +21,28 @@ class GalleryActionProgress {
   final String? failedName;
   final String? error;
 
+  /// Bytes handed to the HTTP client for the item in progress (null on the
+  /// item boundary events).
+  final int? fileSent;
+  final int? fileTotal;
+
   const GalleryActionProgress({
     this.done = 0,
     this.total = 0,
     this.currentName,
     this.failedName,
     this.error,
+    this.fileSent,
+    this.fileTotal,
   });
+
+  /// 0..1 progress of the single file, null when unknown.
+  double? get fileFraction {
+    final sent = fileSent;
+    final total = fileTotal;
+    if (sent == null || total == null || total <= 0) return null;
+    return (sent / total).clamp(0.0, 1.0);
+  }
 }
 
 class GalleryActionResult {
@@ -101,7 +116,19 @@ class GalleryActionsService {
           throw ApiException(400, 'local file not found');
         }
         final mediaId = entry.cloud?.id ?? await indexLocal(entry);
-        await client.uploadMedia(mediaId: mediaId, filePath: path);
+        await client.uploadMedia(
+          mediaId: mediaId,
+          filePath: path,
+          onProgress: (sent, total) => onProgress?.call(
+            GalleryActionProgress(
+              done: index,
+              total: targets.length,
+              currentName: entry.name,
+              fileSent: sent,
+              fileTotal: total,
+            ),
+          ),
+        );
         uploaded += 1;
       } catch (error) {
         failed += 1;

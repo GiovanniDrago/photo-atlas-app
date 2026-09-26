@@ -338,13 +338,14 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     });
     var uploaded = 0;
     var failed = 0;
+    final throttle = FileProgressThrottle();
     try {
       final service = GalleryActionsService(ref.read(apiClientProvider));
       final result = await service.upload(
         targets,
         isCancelled: () => _uploadCancelled,
         onProgress: (progress) {
-          if (!mounted) return;
+          if (!mounted || !throttle.shouldEmit(progress)) return;
           setState(() => _progress = progress);
           _upload.value = _upload.value?.record(progress);
         },
@@ -1099,9 +1100,14 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
 
   Widget _progressBar(AppLocalizations l10n) {
     final progress = _progress;
+    final upload = _upload.value;
     final scheme = Theme.of(context).colorScheme;
     // Tapping the bar opens the per-file detail while an upload is running.
-    final tappable = _upload.value != null;
+    final tappable = upload != null;
+    final fileFraction = upload?.fileFraction;
+    final filePercent = fileFraction == null
+        ? null
+        : (fileFraction * 100).floor();
     final content = Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Column(
@@ -1113,7 +1119,8 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                 child: Text(
                   progress?.currentName == null
                       ? _busyLabel ?? ''
-                      : '${_busyLabel ?? ''}: ${progress!.currentName}',
+                      : '${_busyLabel ?? ''}: ${progress!.currentName}'
+                            '${filePercent == null ? '' : ' · $filePercent%'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall,
@@ -1131,9 +1138,11 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
           ),
           const SizedBox(height: 6),
           LinearProgressIndicator(
-            value: progress == null || progress.total == 0
-                ? null
-                : (progress.done / progress.total).clamp(0.0, 1.0),
+            value:
+                upload?.overallFraction ??
+                (progress == null || progress.total == 0
+                    ? null
+                    : (progress.done / progress.total).clamp(0.0, 1.0)),
           ),
           if (tappable)
             Padding(

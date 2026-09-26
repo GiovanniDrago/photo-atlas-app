@@ -37,9 +37,7 @@ class UploadProgressSheet extends StatelessWidget {
       valueListenable: state,
       builder: (context, run, _) {
         if (run == null) return const SizedBox.shrink();
-        final value = run.total == 0
-            ? null
-            : (run.done / run.total).clamp(0.0, 1.0);
+        final value = run.overallFraction;
         return SafeArea(
           top: false,
           child: ConstrainedBox(
@@ -96,6 +94,9 @@ class UploadProgressSheet extends StatelessWidget {
                         entry: run.targets[index],
                         status: run.statusAt(index),
                         error: run.failures[index],
+                        fileFraction: run.fileFraction,
+                        fileSent: run.fileSent,
+                        fileTotal: run.fileTotal,
                       ),
                     ),
                   ),
@@ -137,8 +138,27 @@ class _UploadRow extends StatelessWidget {
   final GalleryEntry entry;
   final UploadEntryStatus status;
   final String? error;
+  final double? fileFraction;
+  final int fileSent;
+  final int fileTotal;
 
-  const _UploadRow({required this.entry, required this.status, this.error});
+  const _UploadRow({
+    required this.entry,
+    required this.status,
+    this.error,
+    this.fileFraction,
+    this.fileSent = 0,
+    this.fileTotal = 0,
+  });
+
+  static String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,6 +182,8 @@ class _UploadRow extends StatelessWidget {
         color: scheme.onSurfaceVariant,
       ),
     };
+    final showFileProgress =
+        status == UploadEntryStatus.current && fileFraction != null;
     return ListTile(
       dense: true,
       contentPadding: EdgeInsets.zero,
@@ -172,15 +194,34 @@ class _UploadRow extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.bodySmall,
       ),
-      subtitle: error == null
-          ? null
-          : Text(
-              error!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall
-                  ?.copyWith(color: scheme.error),
+      trailing: showFileProgress
+          ? Text(
+              '${(fileFraction! * 100).floor()}%',
+              style: Theme.of(context).textTheme.labelMedium,
+            )
+          : null,
+      subtitle: switch (status) {
+        UploadEntryStatus.failed when error != null => Text(
+          error!,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.labelSmall
+              ?.copyWith(color: scheme.error),
+        ),
+        UploadEntryStatus.current when showFileProgress => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 3),
+            LinearProgressIndicator(value: fileFraction, minHeight: 2),
+            const SizedBox(height: 3),
+            Text(
+              '${_formatBytes(fileSent)} / ${_formatBytes(fileTotal)}',
+              style: Theme.of(context).textTheme.labelSmall,
             ),
+          ],
+        ),
+        _ => const SizedBox.shrink(),
+      },
     );
   }
 }

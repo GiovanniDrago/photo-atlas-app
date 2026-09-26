@@ -101,6 +101,99 @@ void main() {
     expect(state.statusAt(0), UploadEntryStatus.current);
   });
 
+  test('records single-file bytes and clears them on the next item', () {
+    var state = GalleryUploadState(
+      label: 'Uploading',
+      targets: [entry('a.jpg'), entry('b.jpg')],
+      total: 2,
+    );
+    state = state.record(
+      const GalleryActionProgress(
+        done: 0,
+        total: 2,
+        currentName: 'a.jpg',
+        fileSent: 50,
+        fileTotal: 200,
+      ),
+    );
+    expect(state.fileFraction, closeTo(0.25, 0.0001));
+    expect(state.overallFraction, closeTo(0.125, 0.0001));
+
+    state = state.record(
+      const GalleryActionProgress(done: 1, total: 2, currentName: 'b.jpg'),
+    );
+    expect(state.fileFraction, isNull);
+    expect(state.overallFraction, closeTo(0.5, 0.0001));
+
+    state = state.finish(uploaded: 2, failed: 0, cancelled: false);
+    expect(state.fileFraction, isNull);
+    expect(state.overallFraction, 1.0);
+  });
+
+  test('file progress throttle emits at most one update per percent', () {
+    final throttle = FileProgressThrottle();
+    expect(
+      throttle.shouldEmit(const GalleryActionProgress(done: 0, total: 1)),
+      isTrue,
+    );
+    expect(
+      throttle.shouldEmit(
+        const GalleryActionProgress(
+          done: 0,
+          total: 1,
+          fileSent: 1,
+          fileTotal: 1000,
+        ),
+      ),
+      isFalse,
+    );
+    expect(
+      throttle.shouldEmit(
+        const GalleryActionProgress(
+          done: 0,
+          total: 1,
+          fileSent: 10,
+          fileTotal: 1000,
+        ),
+      ),
+      isTrue,
+    );
+    expect(
+      throttle.shouldEmit(
+        const GalleryActionProgress(
+          done: 0,
+          total: 1,
+          fileSent: 15,
+          fileTotal: 1000,
+        ),
+      ),
+      isFalse,
+    );
+    expect(
+      throttle.shouldEmit(
+        const GalleryActionProgress(
+          done: 0,
+          total: 1,
+          fileSent: 1000,
+          fileTotal: 1000,
+        ),
+      ),
+      isTrue,
+    );
+    // The next item restarts the window.
+    expect(
+      throttle.shouldEmit(
+        const GalleryActionProgress(
+          done: 1,
+          total: 2,
+          fileSent: 10,
+          fileTotal: 1000,
+        ),
+      ),
+      isTrue,
+    );
+  });
+
   test('cancelled runs keep the completed count', () {
     final state = GalleryUploadState(
       label: 'Uploading',
