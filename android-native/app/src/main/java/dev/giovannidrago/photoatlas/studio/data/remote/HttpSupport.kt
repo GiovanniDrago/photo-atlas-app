@@ -20,7 +20,7 @@ class SessionExpiredException : Exception("unauthorized")
 /** Raised when the app cannot even reach the configured server. */
 class ConnectionException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
 val EmptyBody: RequestBody = ByteArray(0).toRequestBody(null)
 

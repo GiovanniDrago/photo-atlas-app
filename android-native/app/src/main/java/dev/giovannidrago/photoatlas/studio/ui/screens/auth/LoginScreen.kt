@@ -135,7 +135,7 @@ fun LoginScreen(
 					label = { Text(stringResource(R.string.auth_email)) },
 					singleLine = true,
 					keyboardOptions = KeyboardOptions(
-						keyboardType = KeyboardType.EmailAddress,
+						keyboardType = KeyboardType.Email,
 						imeAction = ImeAction.Next,
 					),
 					modifier = Modifier.fillMaxWidth(),

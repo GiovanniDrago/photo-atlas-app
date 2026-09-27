@@ -58,6 +58,8 @@ import dev.giovannidrago.photoatlas.studio.domain.auth.AuthState
 import dev.giovannidrago.photoatlas.studio.ui.components.QrCode
 import dev.giovannidrago.photoatlas.studio.ui.components.RecoveryCodesDialog
 import dev.giovannidrago.photoatlas.studio.ui.components.ServerPanel
+import dev.giovannidrago.photoatlas.studio.ui.settings.ServerResult
+import dev.giovannidrago.photoatlas.studio.ui.settings.SettingsViewModel
 import kotlinx.coroutines.launch
 
 /** Settings tab: server, account, security and about. */
@@ -234,7 +236,6 @@ private fun AccountCard(
 				headlineContent = {
 					Text(user?.email ?: stringResource(R.string.settings_account_section))
 				},
-				headlineContentColor = MaterialTheme.colorScheme.onSurface,
 				supportingContent = {
 					val name = user?.displayName
 					Text(

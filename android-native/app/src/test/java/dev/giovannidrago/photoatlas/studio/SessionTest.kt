@@ -31,7 +31,7 @@ class SessionTest {
 		assertEquals("user-1", session.userId)
 		assertEquals("a@b.c", session.email)
 		assertEquals("Alice", session.displayName)
-		assertEquals(1_000_000 + 3_600_000, session.expiresAtEpochMs)
+		assertEquals(4_600_000L, session.expiresAtEpochMs)
 	}
 
 	@Test

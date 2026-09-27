@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -40,19 +40,23 @@ fun RecoveryCodesDialog(
 					text = stringResource(R.string.auth_recovery_codes_body),
 					style = MaterialTheme.typography.bodySmall,
 				)
-				if (passwordCodes.isNotEmpty()) {
-					Text(
-						text = stringResource(R.string.auth_recovery_codes_password_label),
-						style = MaterialTheme.typography.titleSmall,
-					)
-					passwordCodes.forEach { code -> CodeLine(code) }
-				}
-				if (mfaCodes.isNotEmpty()) {
-					Text(
-						text = stringResource(R.string.auth_recovery_codes_mfa_label),
-						style = MaterialTheme.typography.titleSmall,
-					)
-					mfaCodes.forEach { code -> CodeLine(code) }
+				SelectionContainer {
+					Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+						if (passwordCodes.isNotEmpty()) {
+							Text(
+								text = stringResource(R.string.auth_recovery_codes_password_label),
+								style = MaterialTheme.typography.titleSmall,
+							)
+							passwordCodes.forEach { code -> CodeLine(code) }
+						}
+						if (mfaCodes.isNotEmpty()) {
+							Text(
+								text = stringResource(R.string.auth_recovery_codes_mfa_label),
+								style = MaterialTheme.typography.titleSmall,
+							)
+							mfaCodes.forEach { code -> CodeLine(code) }
+						}
+					}
 				}
 			}
 		},
@@ -80,8 +84,6 @@ private fun CodeLine(code: String) {
 		text = code,
 		fontFamily = FontFamily.Monospace,
 		style = MaterialTheme.typography.titleMedium,
-		modifier = Modifier
-			.selectable(true)
-			.padding(vertical = 2.dp),
+		modifier = Modifier.padding(vertical = 2.dp),
 	)
 }
