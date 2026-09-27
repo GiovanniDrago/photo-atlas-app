@@ -44,7 +44,7 @@ jobs:
         run: |
           VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
           NAME="PhotoAtlasStudio-${VERSION}-${GITHUB_RUN_NUMBER}"
-          cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/${NAME}.apk"
+          mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/${NAME}.apk"
           sha256sum "app/build/outputs/apk/release/${NAME}.apk" | tee "app/build/outputs/apk/release/${NAME}.apk.sha256"
           echo "NAME=${NAME}" >> "$GITHUB_OUTPUT"
 
