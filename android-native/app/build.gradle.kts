@@ -14,12 +14,16 @@ val localProperties = Properties().apply {
 	}
 }
 
+fun envOrNull(name: String): String? = System.getenv(name)?.takeIf { it.isNotBlank() }
+
+// Empty secrets must fall back (the keystore uses the same password for store
+// and key, or KEY_PASSWORD is unset).
 val keystorePassword: String? =
-	System.getenv("KEYSTORE_PASSWORD") ?: localProperties.getProperty("KEYSTORE_PASSWORD")
+	envOrNull("KEYSTORE_PASSWORD") ?: localProperties.getProperty("KEYSTORE_PASSWORD")
 val keystoreKeyPassword: String? =
-	System.getenv("KEY_PASSWORD") ?: keystorePassword
+	envOrNull("KEY_PASSWORD") ?: keystorePassword
 val keystoreAlias: String =
-	System.getenv("KEY_ALIAS") ?: localProperties.getProperty("KEY_ALIAS") ?: "photoatlas"
+	envOrNull("KEY_ALIAS") ?: localProperties.getProperty("KEY_ALIAS") ?: "photoatlas"
 val keystoreFile = rootProject.file("release.keystore")
 
 android {
