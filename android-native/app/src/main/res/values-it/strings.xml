@@ -20,7 +20,7 @@
 	<string name="placeholder_collections_title">Raccolte</string>
 	<string name="placeholder_collections_text">La card della timeline e le cartelle del dispositivo con lo switch di caricamento automatico arrivano con la milestone M3.</string>
 	<string name="placeholder_gallery_title">Galleria</string>
-	<string name="placeholder_gallery_text">File del dispositivo uniti all'indice cloud, badge, filtri, selezione, viewer e azioni arrivano con la milestone M2.</string>
+	<string name="placeholder_gallery_text">File del dispositivo uniti all\'indice cloud, badge, filtri, selezione, viewer e azioni arrivano con la milestone M2.</string>
 	<string name="placeholder_albums_title">Album</string>
 	<string name="placeholder_albums_text">Album manuali e smart con il builder a regole, copertine e retry dei caricamenti arrivano con la milestone M3.</string>
 	<string name="placeholder_settings_title">Impostazioni</string>
