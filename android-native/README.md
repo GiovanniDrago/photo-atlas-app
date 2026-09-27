@@ -36,6 +36,12 @@ phone storage shared with Debian) together with its SHA-256 and a `LEGGIMI.txt`.
 | **M5** | Backup: manual uploads, per-folder backup, verification, WorkManager job + foreground service, kDrive | |
 | **M6** | Polish, it/en localization, tests, docs, parity checklist with the Flutter app | |
 
+## Fixes
+
+- **0.2.1** — the bootstrap now runs at startup (it only ran when the server address was saved from
+  the settings dialog, so a fresh install stayed on the splash). The error screen also gained
+  **Retry**, **Test connection**, the list of tried addresses and the detected candidates.
+
 ## Verified in M1
 
 - Unit tests: server candidates/subnets, session mapping, auth flows against a MockWebServer

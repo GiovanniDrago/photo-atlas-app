@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.giovannidrago.photoatlas.studio.data.discovery.ServerCandidates
 import dev.giovannidrago.photoatlas.studio.data.discovery.ServerDiscovery
 import dev.giovannidrago.photoatlas.studio.data.local.SettingsStore
 import dev.giovannidrago.photoatlas.studio.ui.bootstrap.BootstrapController
@@ -32,32 +33,47 @@ class SettingsViewModel @Inject constructor(
 		private set
 	var detecting by mutableStateOf(false)
 		private set
+	var testing by mutableStateOf(false)
+		private set
 	var result by mutableStateOf<ServerResult?>(null)
+		private set
+	var testResult by mutableStateOf<Boolean?>(null)
+		private set
+	var candidates by mutableStateOf<List<String>>(emptyList())
 		private set
 
 	init {
 		viewModelScope.launch {
 			serverUrl = settingsStore.currentApiBaseUrl()
+			candidates = ServerCandidates.candidates(saved = serverUrl)
 		}
 	}
 
 	fun onServerUrlChange(value: String) {
 		serverUrl = value
+		testResult = null
 	}
 
+	/** Saves the address and retries the whole bootstrap. */
 	fun save() {
 		viewModelScope.launch {
 			settingsStore.setApiBaseUrl(serverUrl)
 			result = ServerResult.Saved
+			testResult = null
 			bootstrap.bootstrap(prefer = serverUrl)
 		}
 	}
 
+	fun retry() = save()
+
 	fun detect() {
 		viewModelScope.launch {
 			detecting = true
-			val found = discovery.detectAndSave(prefer = serverUrl, scanLan = true)
+			testResult = null
+			val detected = discovery.detectAndSave(prefer = serverUrl, scanLan = true)
 			detecting = false
+			candidates = detected.tried
+			val found = detected.url
 			if (found != null) {
 				serverUrl = found
 				result = ServerResult.Found(found)
@@ -65,6 +81,15 @@ class SettingsViewModel @Inject constructor(
 			} else {
 				result = ServerResult.NotFound
 			}
+		}
+	}
+
+	fun testConnection() {
+		viewModelScope.launch {
+			testing = true
+			result = null
+			testResult = discovery.isOnline(serverUrl, timeoutMs = 4000)
+			testing = false
 		}
 	}
 

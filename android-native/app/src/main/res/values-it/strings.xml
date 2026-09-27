@@ -104,4 +104,6 @@
 	<string name="security_sign_out_everywhere">Esci da tutti i dispositivi</string>
 	<string name="security_sign_out_everywhere_body">Disconnette ogni dispositivo, incluso questo.</string>
 	<string name="settings_more_soon">Altre impostazioni (tema, lingua) arrivano con una milestone successiva.</string>
+	<string name="test_connection">Verifica connessione</string>
+	<string name="server_test_ok">Server raggiungibile</string>
 </resources>

@@ -17,6 +17,13 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
+/** Outcome of a discovery attempt, with the addresses that were tried. */
+data class DetectResult(
+	val url: String?,
+	val tried: List<String>,
+	val scannedLan: Boolean,
+)
+
 /** Finds the API on the LAN and remembers the address that answers. */
 @Singleton
 class ServerDiscovery @Inject constructor(
@@ -27,7 +34,7 @@ class ServerDiscovery @Inject constructor(
 		probe(ServerCandidates.normalize(baseUrl), timeoutMs)
 
 	/** Tries the known candidates, then (optionally) the whole private subnets. */
-	suspend fun detectAndSave(prefer: String? = null, scanLan: Boolean = false): String? {
+	suspend fun detectAndSave(prefer: String? = null, scanLan: Boolean = false): DetectResult {
 		val candidates = ServerCandidates.candidates(
 			prefer = prefer,
 			saved = runCatching { settings.currentApiBaseUrl() }.getOrNull(),
@@ -35,17 +42,17 @@ class ServerDiscovery @Inject constructor(
 		for (candidate in candidates) {
 			if (probe(candidate, 2000)) {
 				settings.setApiBaseUrl(candidate)
-				return candidate
+				return DetectResult(url = candidate, tried = candidates, scannedLan = false)
 			}
 		}
 		if (scanLan) {
 			val found = scanLan()
 			if (found != null) {
 				settings.setApiBaseUrl(found)
-				return found
+				return DetectResult(url = found, tried = candidates, scannedLan = true)
 			}
 		}
-		return null
+		return DetectResult(url = null, tried = candidates, scannedLan = scanLan)
 	}
 
 	/** Probes `<prefix>.1-254:8787` on every private subnet of the device. */

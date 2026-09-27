@@ -104,4 +104,6 @@
 	<string name="security_sign_out_everywhere">Sign out everywhere</string>
 	<string name="security_sign_out_everywhere_body">This signs out every device, including this one.</string>
 	<string name="settings_more_soon">More settings (theme, language) arrive with a later milestone.</string>
+	<string name="test_connection">Test connection</string>
+	<string name="server_test_ok">Server reachable</string>
 </resources>

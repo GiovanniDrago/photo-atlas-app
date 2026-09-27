@@ -3,7 +3,6 @@ package dev.giovannidrago.photoatlas.studio
 import dev.giovannidrago.photoatlas.studio.data.auth.Session
 import dev.giovannidrago.photoatlas.studio.data.auth.SessionManager
 import dev.giovannidrago.photoatlas.studio.data.auth.SessionStore
-import dev.giovannidrago.photoatlas.studio.data.local.ApiBaseUrlProvider
 import dev.giovannidrago.photoatlas.studio.data.remote.ApiConfigDto
 import dev.giovannidrago.photoatlas.studio.data.remote.ApiException
 import dev.giovannidrago.photoatlas.studio.data.remote.GoTrueClient
@@ -15,10 +14,8 @@ import dev.giovannidrago.photoatlas.studio.domain.auth.AuthState
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
-import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
-import okhttp3.mockwebserver.RecordedRequest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -26,20 +23,6 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-
-private class FakeBaseUrlProvider(var url: String) : ApiBaseUrlProvider {
-	override suspend fun currentApiBaseUrl(): String = url
-
-	override suspend fun setApiBaseUrl(value: String) {
-		url = value
-	}
-}
-
-private class LambdaDispatcher(
-	private val handler: (RecordedRequest) -> MockResponse,
-) : Dispatcher() {
-	override fun dispatch(request: RecordedRequest): MockResponse = handler(request)
-}
 
 class AuthRepositoryTest {
 	private lateinit var server: MockWebServer
@@ -54,12 +37,7 @@ class AuthRepositoryTest {
 	fun setUp() {
 		server = MockWebServer()
 		server.start()
-		json = Json {
-			ignoreUnknownKeys = true
-			explicitNulls = false
-			encodeDefaults = true
-			isLenient = true
-		}
+		json = testJson()
 		val baseUrl = server.url("/").toString().trimEnd('/')
 		val base = FakeBaseUrlProvider(baseUrl)
 		val client = OkHttpClient()

@@ -33,6 +33,7 @@ fun ServerPanel(
 	onDetect: () -> Unit,
 	detecting: Boolean,
 	modifier: Modifier = Modifier,
+	primaryLabel: String = stringResource(R.string.save),
 ) {
 	Column(
 		modifier = modifier,
@@ -52,7 +53,7 @@ fun ServerPanel(
 			verticalAlignment = Alignment.CenterVertically,
 		) {
 			FilledTonalButton(onClick = onSave) {
-				Text(stringResource(R.string.save))
+				Text(primaryLabel)
 			}
 			OutlinedButton(onClick = onDetect, enabled = !detecting) {
 				if (detecting) {
