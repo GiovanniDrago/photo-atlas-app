@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.giovannidrago.photoatlas.studio.BuildConfig
 import dev.giovannidrago.photoatlas.studio.data.auth.SessionManager
+import dev.giovannidrago.photoatlas.studio.data.auth.TokenProvider
 import dev.giovannidrago.photoatlas.studio.data.local.ApiBaseUrlProvider
 import dev.giovannidrago.photoatlas.studio.data.local.SettingsStore
 import dev.giovannidrago.photoatlas.studio.data.security.KeystoreSecureStorage
@@ -40,6 +41,10 @@ object AppModule {
 	@Provides
 	@Singleton
 	fun apiBaseUrlProvider(store: SettingsStore): ApiBaseUrlProvider = store
+
+	@Provides
+	@Singleton
+	fun tokenProvider(sessions: SessionManager): TokenProvider = sessions
 
 	@Provides
 	@Singleton
