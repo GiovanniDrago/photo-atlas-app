@@ -29,12 +29,19 @@ phone storage shared with Debian) together with its SHA-256 and a `LEGGIMI.txt`.
 | | Content | Status |
 |---|---|---|
 | **M0** | Gradle project, Material 3 theme, shell with the 5 tabs + center action, CI workflow | done |
-| **M1** | Server discovery/bootstrap, Supabase auth (login, signup, MFA TOTP, recovery codes), secure token storage, REST client | next |
+| **M1** | Server discovery/bootstrap, Supabase auth (login, signup, MFA TOTP, recovery codes), secure token storage, REST client, full Settings screen | done |
 | **M2** | Gallery: MediaStore + cloud merge, badges, filters, selection actions, full screen viewer | |
 | **M3** | Collections, timeline, albums (manual + smart rules with map radius, upload retries, covers) | |
 | **M4** | Curated 3D globe (custom Canvas renderer) + detailed map (osmdroid) + clusters | |
 | **M5** | Backup: manual uploads, per-folder backup, verification, WorkManager job + foreground service, kDrive | |
 | **M6** | Polish, it/en localization, tests, docs, parity checklist with the Flutter app | |
+
+## Verified in M1
+
+- Unit tests: server candidates/subnets, session mapping, auth flows against a MockWebServer
+  (sign-in, wrong password, MFA challenge, refresh after 401, signup without session, recovery
+  code generation, password reset, logout).
+- End-to-end on the phone (login, MFA, recovery codes) is done by the user with a real account.
 
 ## Layout
 
