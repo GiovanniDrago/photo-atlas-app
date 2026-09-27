@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="app_name">Photo Atlas Studio</string>
+
+	<string name="tab_map">Map</string>
+	<string name="tab_collections">Collections</string>
+	<string name="tab_gallery">Gallery</string>
+	<string name="tab_albums">Albums</string>
+	<string name="tab_settings">Settings</string>
+
+	<string name="action_backup">Backup</string>
+	<string name="action_back">Back</string>
+	<string name="backup_title">Backup</string>
+
+	<string name="milestone_chip">Milestone %1$s</string>
+	<string name="native_preview_version">Native preview · v%1$s</string>
+
+	<string name="placeholder_map_title">Planet map</string>
+	<string name="placeholder_map_text">The curated 3D globe with your media, cluster sections and the detailed map land here in milestone M4.</string>
+	<string name="placeholder_collections_title">Collections</string>
+	<string name="placeholder_collections_text">Timeline card and device folders with the automatic upload switch arrive in milestone M3.</string>
+	<string name="placeholder_gallery_title">Gallery</string>
+	<string name="placeholder_gallery_text">Device files merged with the cloud index, badges, filters, selection, viewer and actions arrive in milestone M2.</string>
+	<string name="placeholder_albums_title">Albums</string>
+	<string name="placeholder_albums_text">Manual and smart albums with the rule builder, covers and upload retries arrive in milestone M3.</string>
+	<string name="placeholder_settings_title">Settings</string>
+	<string name="placeholder_settings_text">Server discovery, account and security, theme, language and updates arrive with milestone M1 and later.</string>
+	<string name="placeholder_backup_title">Backup</string>
+	<string name="placeholder_backup_text">Manual uploads, per-folder backup, verification, the background job and the kDrive connection arrive in milestone M5.</string>
+</resources>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="app_name">Photo Atlas Studio</string>
+
+	<string name="tab_map">Mappa</string>
+	<string name="tab_collections">Raccolte</string>
+	<string name="tab_gallery">Galleria</string>
+	<string name="tab_albums">Album</string>
+	<string name="tab_settings">Impostazioni</string>
+
+	<string name="action_backup">Backup</string>
+	<string name="action_back">Indietro</string>
+	<string name="backup_title">Backup</string>
+
+	<string name="milestone_chip">Milestone %1$s</string>
+	<string name="native_preview_version">Anteprima nativa · v%1$s</string>
+
+	<string name="placeholder_map_title">Mappa del pianeta</string>
+	<string name="placeholder_map_text">Il globo 3D curato con i tuoi media, le sezioni a cluster e la mappa dettagliata arrivano con la milestone M4.</string>
+	<string name="placeholder_collections_title">Raccolte</string>
+	<string name="placeholder_collections_text">La card della timeline e le cartelle del dispositivo con lo switch di caricamento automatico arrivano con la milestone M3.</string>
+	<string name="placeholder_gallery_title">Galleria</string>
+	<string name="placeholder_gallery_text">File del dispositivo uniti all'indice cloud, badge, filtri, selezione, viewer e azioni arrivano con la milestone M2.</string>
+	<string name="placeholder_albums_title">Album</string>
+	<string name="placeholder_albums_text">Album manuali e smart con il builder a regole, copertine e retry dei caricamenti arrivano con la milestone M3.</string>
+	<string name="placeholder_settings_title">Impostazioni</string>
+	<string name="placeholder_settings_text">Scoperta del server, account e sicurezza, tema, lingua e aggiornamenti arrivano dalla milestone M1 in poi.</string>
+	<string name="placeholder_backup_title">Backup</string>
+	<string name="placeholder_backup_text">Caricamenti manuali, backup per cartella, verifica, job in background e connessione kDrive arrivano con la milestone M5.</string>
+</resources>
