@@ -33,15 +33,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import dev.giovannidrago.photoatlas.studio.BuildConfig
 import dev.giovannidrago.photoatlas.studio.R
+import dev.giovannidrago.photoatlas.studio.domain.auth.AuthRepository
 import dev.giovannidrago.photoatlas.studio.ui.screens.BackupScreen
 import dev.giovannidrago.photoatlas.studio.ui.screens.PlaceholderScreen
+import dev.giovannidrago.photoatlas.studio.ui.screens.settings.SettingsScreen
+import dev.giovannidrago.photoatlas.studio.ui.settings.SettingsViewModel
 
 /// Top-level destinations of the shell, in the same order as the Flutter app.
 enum class StudioTab(
@@ -104,7 +107,7 @@ const val BackupRoute = "backup"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StudioApp() {
+fun StudioApp(auth: AuthRepository) {
 	val navController = rememberNavController()
 	val backStackEntry by navController.currentBackStackEntryAsState()
 	val currentRoute = backStackEntry?.destination?.route
@@ -170,17 +173,19 @@ fun StudioApp() {
 		) {
 			StudioTab.entries.forEach { tab ->
 				composable(tab.route) {
-					PlaceholderScreen(
-						title = stringResource(tab.titleRes),
-						text = stringResource(tab.descriptionRes),
-						icon = tab.selectedIcon,
-						milestone = tab.milestone,
-						footer = if (tab == StudioTab.Settings) {
-							stringResource(R.string.native_preview_version, BuildConfig.VERSION_NAME)
-						} else {
-							null
-						},
-					)
+					if (tab == StudioTab.Settings) {
+						SettingsScreen(
+							auth = auth,
+							viewModel = hiltViewModel<SettingsViewModel>(),
+						)
+					} else {
+						PlaceholderScreen(
+							title = stringResource(tab.titleRes),
+							text = stringResource(tab.descriptionRes),
+							icon = tab.selectedIcon,
+							milestone = tab.milestone,
+						)
+					}
 				}
 			}
 			composable(BackupRoute) {

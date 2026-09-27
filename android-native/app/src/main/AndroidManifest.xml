@@ -2,7 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
 	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+	<!-- The API runs on the LAN over plain HTTP (http://<vm-ip>:8787): OkHttp
+	     enforces Android's cleartext policy, so it must be allowed explicitly. -->
 	<application
 		android:name=".StudioApplication"
 		android:allowBackup="false"
@@ -11,6 +14,7 @@
 		android:roundIcon="@mipmap/ic_launcher"
 		android:supportsRtl="true"
 		android:theme="@style/Theme.PhotoAtlasStudio"
+		android:usesCleartextTraffic="true"
 		android:enableOnBackInvokedCallback="true">
 
 		<activity

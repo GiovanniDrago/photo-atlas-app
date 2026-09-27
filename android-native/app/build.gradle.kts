@@ -5,6 +5,8 @@ plugins {
 	alias(libs.plugins.android.application)
 	alias(libs.plugins.kotlin.compose)
 	alias(libs.plugins.kotlin.serialization)
+	alias(libs.plugins.hilt.android)
+	alias(libs.plugins.ksp)
 }
 
 val localProperties = Properties().apply {
@@ -34,8 +36,8 @@ android {
 		applicationId = "dev.giovannidrago.photoatlas.studio"
 		minSdk = 26
 		targetSdk = 37
-		versionCode = 1
-		versionName = "0.1.0"
+		versionCode = 2
+		versionName = "0.2.0"
 	}
 
 	signingConfigs {
@@ -99,6 +101,24 @@ dependencies {
 	implementation(libs.androidx.core.ktx)
 	implementation(libs.androidx.activity.compose)
 
+	implementation(libs.hilt.android)
+	ksp(libs.hilt.compiler)
+	implementation(libs.androidx.hilt.navigation.compose)
+
+	implementation(libs.retrofit)
+	implementation(libs.retrofit.kotlinx.serialization.converter)
+	implementation(libs.okhttp)
+	implementation(libs.okhttp.logging.interceptor)
+	implementation(libs.kotlinx.serialization.json)
+
+	implementation(libs.androidx.datastore.preferences)
+	implementation(libs.zxing.core)
+
 	testImplementation(libs.junit)
 	testImplementation(libs.kotlinx.coroutines.test)
+	testImplementation(libs.mockk)
+	testImplementation(libs.okhttp.mockwebserver)
+	testImplementation(libs.androidx.datastore.preferences.core)
+	testImplementation(libs.retrofit)
+	testImplementation(libs.retrofit.kotlinx.serialization.converter)
 }
