@@ -47,6 +47,8 @@ import androidx.navigation.navArgument
 import dev.giovannidrago.photoatlas.studio.ui.albums.AlbumsViewModel
 import dev.giovannidrago.photoatlas.studio.ui.screens.albums.AlbumEditScreen
 import dev.giovannidrago.photoatlas.studio.ui.screens.albums.AlbumsScreen
+import dev.giovannidrago.photoatlas.studio.ui.collections.CollectionsViewModel
+import dev.giovannidrago.photoatlas.studio.ui.screens.collections.FolderHeader
 import dev.giovannidrago.photoatlas.studio.ui.screens.collections.CollectionsScreen
 import dev.giovannidrago.photoatlas.studio.ui.screens.timeline.TimelineScreen
 import dev.giovannidrago.photoatlas.studio.ui.screens.BackupScreen
@@ -126,6 +128,7 @@ fun StudioApp(auth: AuthRepository) {
 	val currentRoute = backStackEntry?.destination?.route
 	val currentTab = StudioTab.entries.firstOrNull { it.route == currentRoute }
 	val albumsViewModel: AlbumsViewModel = hiltViewModel()
+	val collectionsViewModel: CollectionsViewModel = hiltViewModel()
 
 	Scaffold(
 		containerColor = MaterialTheme.colorScheme.background,
@@ -175,6 +178,7 @@ fun StudioApp(auth: AuthRepository) {
 						StudioTab.Gallery -> GalleryScreen(albumsViewModel = albumsViewModel)
 
 						StudioTab.Collections -> CollectionsScreen(
+							viewModel = collectionsViewModel,
 							onOpenTimeline = { navController.navigate(TimelineRoute) },
 							onOpenFolder = { folder ->
 								navController.navigate("folder/${folder.id}")
@@ -211,8 +215,15 @@ fun StudioApp(auth: AuthRepository) {
 			composable(
 				route = FolderRoute,
 				arguments = listOf(navArgument("folderAlbumId") { type = NavType.StringType }),
-			) {
-				GalleryScreen(onBack = { navController.popBackStack() })
+			) { entry ->
+				val folderId = entry.arguments?.getString("folderAlbumId").orEmpty()
+				GalleryScreen(
+					albumsViewModel = albumsViewModel,
+					onBack = { navController.popBackStack() },
+					header = {
+						FolderHeader(folderId = folderId, viewModel = collectionsViewModel)
+					},
+				)
 			}
 			composable(
 				route = AlbumRoute,

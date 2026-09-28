@@ -114,6 +114,7 @@ fun GalleryScreen(
 	albumsViewModel: AlbumsViewModel? = null,
 	onBack: () -> Unit = {},
 	onEditAlbum: (String) -> Unit = {},
+	header: (@Composable () -> Unit)? = null,
 ) {
 	val state by viewModel.state.collectAsStateWithLifecycle()
 	val uploadState by viewModel.upload.collectAsStateWithLifecycle()
@@ -468,6 +469,7 @@ fun GalleryScreen(
 		},
 	) { padding ->
 		Column(modifier = Modifier.padding(padding)) {
+			header?.invoke()
 			LazyRow(
 				contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
 				horizontalArrangement = Arrangement.spacedBy(8.dp),

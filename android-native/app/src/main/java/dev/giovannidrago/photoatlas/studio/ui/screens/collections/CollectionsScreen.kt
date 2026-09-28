@@ -25,7 +25,9 @@ import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -436,5 +438,49 @@ private fun PermissionRow(onOpenSettings: () -> Unit) {
 			Icon(Icons.Filled.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
 			Text(stringResource(R.string.gallery_open_settings))
 		}
+	}
+}
+
+/** Header of the folder gallery: path, count and the automatic backup switch. */
+@Composable
+fun FolderHeader(
+	folderId: String,
+	viewModel: CollectionsViewModel,
+) {
+	val state by viewModel.state.collectAsStateWithLifecycle()
+	val folder = state.folders.firstOrNull { it.id == folderId }
+	val context = LocalContext.current
+	val uploadLabel = stringResource(R.string.folder_auto_upload)
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(start = 12.dp, end = 12.dp, top = 8.dp),
+	) {
+		if (folder != null) {
+			Text(
+				text = "${folder.path} · ${context.getString(R.string.item_count, folder.count)}",
+				style = MaterialTheme.typography.labelSmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			Text(
+				text = stringResource(R.string.folder_auto_upload),
+				style = MaterialTheme.typography.bodyMedium,
+				modifier = Modifier.weight(1f),
+			)
+			if (folder != null && folder.id in viewModel.preparingFolderIds) {
+				CircularProgressIndicator(
+					modifier = Modifier.size(18.dp),
+					strokeWidth = 2.dp,
+				)
+			} else if (folder != null) {
+				Switch(
+					checked = state.autoBackup(folder.id),
+					onCheckedChange = { enabled -> viewModel.toggle(folder, enabled, uploadLabel) },
+				)
+			}
+		}
+		HorizontalDivider(modifier = Modifier.padding(top = 4.dp))
 	}
 }
