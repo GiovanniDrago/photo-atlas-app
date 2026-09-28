@@ -46,41 +46,44 @@ class MediaClientTest {
 			limit = 100,
 			offset = 0,
 		)
-		assertEquals(42, page.total)
-		assertEquals(1, page.items.size)
+		assertEquals("total", 42, page.total)
+		assertEquals("items", 1, page.items.size)
 		val item = page.items.first()
-		assertEquals("a.jpg", item.name)
-		assertEquals("http://host/thumb", item.thumbnailUrl)
-		assertTrue(item.isUploaded)
-		assertEquals(1234L, item.sizeBytes)
-		assertEquals(1_704_103_200_000L, item.takenAtMs)
+		assertEquals("name", "a.jpg", item.name)
+		assertEquals("thumbnail", "http://host/thumb", item.thumbnailUrl)
+		assertTrue("uploaded", item.isUploaded)
+		assertEquals("size", 1234L, item.sizeBytes)
+		assertEquals("taken", 1_704_103_200_000L, item.takenAtMs)
 
-		val request = server.takeRequest()
-		val path = request.path.orEmpty()
-		assertTrue(path.startsWith("/api/media?"))
-		assertTrue(path.contains("type=image"))
-		assertTrue(path.contains("backup_status=uploaded"))
-		assertTrue(path.contains("limit=100"))
+		val path = server.takeRequest().path.orEmpty()
+		assertTrue("path: $path", path.startsWith("/api/media?"))
+		assertTrue("type: $path", path.contains("type=image"))
+		assertTrue("status: $path", path.contains("backup_status=uploaded"))
+		assertTrue("limit: $path", path.contains("limit=100"))
 	}
 
 	@Test
-	fun `device registration sources batch and delete payloads`() = runTest {
+	fun `device registration sends the fingerprint`() = runTest {
 		server.enqueue(MockResponse().setResponseCode(200).setBody("""{"device":{"id":"dev-1"}}"""))
-		assertEquals("dev-1", client.registerDevice("fp-123", "Android device", "android"))
-		val deviceRequest = server.takeRequest()
-		assertEquals("/api/devices", deviceRequest.path)
-		val deviceBody = deviceRequest.body.readUtf8()
-		assertTrue(deviceBody.contains("\"fingerprint\":\"fp-123\""))
-		assertTrue(deviceBody.contains("\"platform\":\"android\""))
+		val id = client.registerDevice("fp-123", "Android device", "android")
+		val request = server.takeRequest()
+		val body = request.body.readUtf8()
+		assertEquals("path: ${request.path}", "/api/devices", request.path)
+		assertEquals("body: $body", "dev-1", id)
+		assertTrue("fingerprint: $body", body.contains("\"fingerprint\":\"fp-123\""))
+		assertTrue("platform: $body", body.contains("\"platform\":\"android\""))
+	}
 
+	@Test
+	fun `sources listing and creation use the expected payloads`() = runTest {
 		server.enqueue(
 			MockResponse().setResponseCode(200).setBody(
 				"""{"sources":[{"id":"s1","kind":"local","label":"Camera","album_key":"path:Camera"}]}""",
 			),
 		)
 		val sources = client.sources()
-		assertEquals("Camera", sources.first().label)
-		assertEquals("path:Camera", sources.first().albumKey)
+		assertEquals("label", "Camera", sources.first().label)
+		assertEquals("album key", "path:Camera", sources.first().albumKey)
 
 		server.enqueue(
 			MockResponse().setResponseCode(201).setBody(
@@ -94,11 +97,14 @@ class MediaClientTest {
 			deviceId = "dev-1",
 			albumKey = "path:Manual",
 		)
-		assertEquals("s2", source.id)
-		val createBody = server.takeRequest().body.readUtf8()
-		assertTrue(createBody.contains("\"album_key\":\"path:Manual\""))
-		assertTrue(createBody.contains("\"root_path\":\"album:path:Manual\""))
+		val body = server.takeRequest().body.readUtf8()
+		assertEquals("source id", "s2", source.id)
+		assertTrue("album_key: $body", body.contains("\"album_key\":\"path:Manual\""))
+		assertTrue("root_path: $body", body.contains("\"root_path\":\"album:path:Manual\""))
+	}
 
+	@Test
+	fun `batch indexing sends the item and reads the ids`() = runTest {
 		server.enqueue(
 			MockResponse().setResponseCode(200).setBody(
 				"""{"indexed":1,"items":[{"id":"m9","external_key":"42"}]}""",
@@ -117,22 +123,25 @@ class MediaClientTest {
 				),
 			),
 		)
-		assertEquals("m9", batch.items.first().id)
-		assertEquals(1, batch.indexed)
-		val batchBody = server.takeRequest().body.readUtf8()
-		assertTrue(batchBody.contains("\"thumbnail_b64\":\"aGk=\""))
-		assertTrue(batchBody.contains("\"source_id\":\"source-1\""))
+		val body = server.takeRequest().body.readUtf8()
+		assertEquals("indexed", 1, batch.indexed)
+		assertEquals("media id", "m9", batch.items.first().id)
+		assertTrue("thumbnail: $body", body.contains("\"thumbnail_b64\":\"aGk=\""))
+		assertTrue("source: $body", body.contains("\"source_id\":\"source-1\""))
+	}
 
+	@Test
+	fun `delete sends the flags and reads the counters`() = runTest {
 		server.enqueue(
 			MockResponse().setResponseCode(200).setBody(
 				"""{"deleted":1,"cloud_deleted":1,"reset":0,"failed":[]}""",
 			),
 		)
 		val deleted = client.deleteMedia(ids = listOf("m1"), cloud = true, index = true)
-		assertEquals(1, deleted.deleted)
-		assertEquals(1, deleted.cloudDeleted)
-		val deleteBody = server.takeRequest().body.readUtf8()
-		assertTrue(deleteBody.contains("\"index\":true"))
-		assertTrue(deleteBody.contains("\"cloud\":true"))
+		val body = server.takeRequest().body.readUtf8()
+		assertEquals("deleted", 1, deleted.deleted)
+		assertEquals("cloud deleted", 1, deleted.cloudDeleted)
+		assertTrue("index: $body", body.contains("\"index\":true"))
+		assertTrue("cloud: $body", body.contains("\"cloud\":true"))
 	}
 }

@@ -32,7 +32,7 @@ class MetadataExportTest {
 		assertEquals("media-1", item["id"]?.jsonPrimitive?.content)
 		assertEquals("IMG_0001.jpg", item["name"]?.jsonPrimitive?.content)
 		assertEquals("image", item["media_type"]?.jsonPrimitive?.content)
-		assertEquals(1234, item["size_bytes"]?.jsonPrimitive?.content?.toLong())
+		assertEquals(1234L, item["size_bytes"]?.jsonPrimitive?.content?.toLong())
 		assertEquals("uploaded", item["backup_status"]?.jsonPrimitive?.content)
 		assertEquals("asset-1", item["external_key"]?.jsonPrimitive?.content)
 		assertEquals("2023-11-14T22:13:20Z", item["taken_at"]?.jsonPrimitive?.content)
