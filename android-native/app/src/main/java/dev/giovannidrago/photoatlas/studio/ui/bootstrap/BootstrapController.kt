@@ -2,6 +2,7 @@ package dev.giovannidrago.photoatlas.studio.ui.bootstrap
 
 import dev.giovannidrago.photoatlas.studio.data.discovery.DetectResult
 import dev.giovannidrago.photoatlas.studio.data.discovery.ServerDiscovery
+import dev.giovannidrago.photoatlas.studio.data.discovery.reason
 import dev.giovannidrago.photoatlas.studio.data.remote.ApiException
 import dev.giovannidrago.photoatlas.studio.data.remote.ConnectionException
 import dev.giovannidrago.photoatlas.studio.data.remote.PhotoAtlasClient
