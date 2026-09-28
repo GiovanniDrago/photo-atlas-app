@@ -179,8 +179,10 @@ class ServerDiscovery @Inject constructor(
 			} catch (_: InterruptedIOException) {
 				ProbeOutcome.Timeout(normalized)
 			} catch (error: java.io.IOException) {
+				val refused = generateSequence<Throwable>(error) { it.cause }
+					.any { it is java.net.ConnectException }
 				val message = error.message.orEmpty()
-				if (message.contains("refused", ignoreCase = true)) {
+				if (refused || message.contains("refused", ignoreCase = true)) {
 					ProbeOutcome.Refused(normalized)
 				} else {
 					ProbeOutcome.Failure(normalized, message.ifBlank { error.javaClass.simpleName })

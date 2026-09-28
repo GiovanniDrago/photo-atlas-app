@@ -86,6 +86,7 @@ class BootstrapControllerTest {
 		val state = withTimeout(30_000) {
 			controller.state.first { it is BootstrapState.Error }
 		} as BootstrapState.Error
-		assertTrue(state.message.contains("tried:"))
+		assertTrue("message: ${state.message}", state.message.contains("No reachable API server"))
+		assertTrue("message: ${state.message}", state.message.contains("->"))
 	}
 }
