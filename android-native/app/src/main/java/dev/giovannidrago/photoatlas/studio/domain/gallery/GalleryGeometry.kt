@@ -1,5 +1,7 @@
 package dev.giovannidrago.photoatlas.studio.domain.gallery
 
+import kotlin.math.floor
+
 /**
  * Maps a position inside the gallery grid viewport to a tile index.
  * [localY] is relative to the viewport (not the scrolled content), so the
@@ -17,8 +19,8 @@ fun galleryIndexAt(
 ): Int? {
 	if (tileSize <= 0f || crossAxisCount <= 0 || itemCount <= 0) return null
 	val cell = tileSize + spacing
-	val column = ((localX - padding) / cell).toInt()
-	val row = ((localY + scrollOffset - padding) / cell).toInt()
+	val column = floor((localX - padding) / cell).toInt()
+	val row = floor((localY + scrollOffset - padding) / cell).toInt()
 	if (column < 0 || column >= crossAxisCount || row < 0) return null
 	val index = row * crossAxisCount + column
 	if (index < 0 || index >= itemCount) return null
