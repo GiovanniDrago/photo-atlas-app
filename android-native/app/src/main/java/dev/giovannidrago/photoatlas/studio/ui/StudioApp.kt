@@ -42,6 +42,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dev.giovannidrago.photoatlas.studio.R
 import dev.giovannidrago.photoatlas.studio.domain.auth.AuthRepository
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import dev.giovannidrago.photoatlas.studio.ui.albums.AlbumsViewModel
+import dev.giovannidrago.photoatlas.studio.ui.screens.albums.AlbumEditScreen
+import dev.giovannidrago.photoatlas.studio.ui.screens.albums.AlbumsScreen
+import dev.giovannidrago.photoatlas.studio.ui.screens.collections.CollectionsScreen
+import dev.giovannidrago.photoatlas.studio.ui.screens.timeline.TimelineScreen
 import dev.giovannidrago.photoatlas.studio.ui.screens.BackupScreen
 import dev.giovannidrago.photoatlas.studio.ui.screens.gallery.GalleryScreen
 import dev.giovannidrago.photoatlas.studio.ui.screens.PlaceholderScreen
@@ -106,6 +113,10 @@ enum class StudioTab(
 }
 
 const val BackupRoute = "backup"
+const val TimelineRoute = "timeline"
+const val FolderRoute = "folder/{folderAlbumId}"
+const val AlbumRoute = "album/{userAlbumId}"
+const val AlbumEditRoute = "albumEdit?albumId={albumId}"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,6 +125,7 @@ fun StudioApp(auth: AuthRepository) {
 	val backStackEntry by navController.currentBackStackEntryAsState()
 	val currentRoute = backStackEntry?.destination?.route
 	val currentTab = StudioTab.entries.firstOrNull { it.route == currentRoute }
+	val albumsViewModel: AlbumsViewModel = hiltViewModel()
 
 	Scaffold(
 		containerColor = MaterialTheme.colorScheme.background,
@@ -160,7 +172,23 @@ fun StudioApp(auth: AuthRepository) {
 			StudioTab.entries.forEach { tab ->
 				composable(tab.route) {
 					when (tab) {
-						StudioTab.Gallery -> GalleryScreen()
+						StudioTab.Gallery -> GalleryScreen(albumsViewModel = albumsViewModel)
+
+						StudioTab.Collections -> CollectionsScreen(
+							onOpenTimeline = { navController.navigate(TimelineRoute) },
+							onOpenFolder = { folder ->
+								navController.navigate("folder/${folder.id}")
+							},
+						)
+
+						StudioTab.Albums -> AlbumsScreen(
+							viewModel = albumsViewModel,
+							onOpenAlbum = { album -> navController.navigate("album/${album.id}") },
+							onEditAlbum = { album ->
+								navController.navigate("albumEdit?albumId=${album.id}")
+							},
+							onCreateSmart = { navController.navigate("albumEdit") },
+						)
 
 						StudioTab.Settings -> SettingsScreen(
 							auth = auth,
@@ -173,6 +201,48 @@ fun StudioApp(auth: AuthRepository) {
 			}
 			composable(BackupRoute) {
 				BackupScreen(onBack = { navController.popBackStack() })
+			}
+			composable(TimelineRoute) {
+				TimelineScreen(
+					albumsViewModel = albumsViewModel,
+					onBack = { navController.popBackStack() },
+				)
+			}
+			composable(
+				route = FolderRoute,
+				arguments = listOf(navArgument("folderAlbumId") { type = NavType.StringType }),
+			) {
+				GalleryScreen(onBack = { navController.popBackStack() })
+			}
+			composable(
+				route = AlbumRoute,
+				arguments = listOf(navArgument("userAlbumId") { type = NavType.StringType }),
+			) {
+				// The gallery view model reads the route argument from its
+				// SavedStateHandle.
+				GalleryScreen(
+					albumsViewModel = albumsViewModel,
+					onBack = { navController.popBackStack() },
+					onEditAlbum = { id -> navController.navigate("albumEdit?albumId=$id") },
+				)
+			}
+			composable(
+				route = AlbumEditRoute,
+				arguments = listOf(
+					navArgument("albumId") {
+						type = NavType.StringType
+						nullable = true
+						defaultValue = null
+					},
+				),
+			) { entry ->
+				val albumId = entry.arguments?.getString("albumId")
+				AlbumEditScreen(
+					viewModel = albumsViewModel,
+					albumId = albumId,
+					onDone = { navController.popBackStack() },
+					onBack = { navController.popBackStack() },
+				)
 			}
 		}
 	}

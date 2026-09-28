@@ -85,6 +85,21 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PhotoCameraBack
+import androidx.compose.material.icons.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.PlaylistRemove
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import dev.giovannidrago.photoatlas.studio.domain.gallery.AlbumRuleDraft
+import dev.giovannidrago.photoatlas.studio.ui.albums.AlbumsViewModel
+import dev.giovannidrago.photoatlas.studio.ui.screens.albums.AlbumDeleteDialog
+import dev.giovannidrago.photoatlas.studio.ui.screens.albums.AlbumNameDialog
+import dev.giovannidrago.photoatlas.studio.ui.screens.albums.AlbumPickerSheet
 
 private data class PendingTrash(
 	val entries: List<GalleryEntry>,
@@ -93,7 +108,12 @@ private data class PendingTrash(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
+fun GalleryScreen(
+	viewModel: GalleryViewModel = hiltViewModel(),
+	albumsViewModel: AlbumsViewModel? = null,
+	onBack: () -> Unit = {},
+	onEditAlbum: (String) -> Unit = {},
+) {
 	val state by viewModel.state.collectAsStateWithLifecycle()
 	val uploadState by viewModel.upload.collectAsStateWithLifecycle()
 	val context = LocalContext.current
@@ -109,6 +129,11 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 	var deleteTargets by remember { mutableStateOf<List<GalleryEntry>>(emptyList()) }
 	var pendingTrash by remember { mutableStateOf<PendingTrash?>(null) }
 	var showUploadSheet by remember { mutableStateOf(false) }
+	var showAlbumPicker by remember { mutableStateOf(false) }
+	var showRenameAlbum by remember { mutableStateOf(false) }
+	var showDeleteAlbum by remember { mutableStateOf(false) }
+	val albumScope = viewModel.scope as? GalleryScope.UserAlbum
+	val album = viewModel.album
 
 	// Drag selection state.
 	var dragActive by remember { mutableStateOf(false) }
@@ -157,6 +182,10 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 				UiMessage.Kind.Uploaded -> context.getString(R.string.uploaded_count, current.count)
 				UiMessage.Kind.Deleted -> context.getString(R.string.deleted_count, current.count)
 				UiMessage.Kind.Shared -> context.getString(R.string.shared_count, current.count)
+				UiMessage.Kind.Removed -> context.getString(R.string.removed_count, current.count)
+				UiMessage.Kind.Added -> context.getString(R.string.added_count, current.count)
+				UiMessage.Kind.CoverSet -> context.getString(R.string.cover_updated)
+				UiMessage.Kind.AlbumDeleted -> context.getString(R.string.album_deleted)
 				UiMessage.Kind.Exported -> context.getString(R.string.export_done) + detail
 				UiMessage.Kind.Failed -> context.getString(R.string.action_failed) + detail
 			}
@@ -224,19 +253,33 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 		exitSelection()
 	}
 
+	fun runDownload(entriesToDownload: List<GalleryEntry>) {
+		var failed = 0
+		for (entry in entriesToDownload) {
+			val url = entry.cloud?.downloadUrl
+			if (url.isNullOrBlank() || !openExternally(context, url)) failed += 1
+		}
+		if (failed > 0) {
+			scope.launch {
+				snackbar.showSnackbar(context.getString(R.string.download_unavailable))
+			}
+		}
+		exitSelection()
+	}
+
 	fun runDelete(entriesToDelete: List<GalleryEntry>) {
 		if (entriesToDelete.isEmpty()) return
 		deleteTargets = entriesToDelete
 		showDeleteDialog = true
 	}
 
-	fun confirmDelete(options: DeleteOptions) {
+	fun confirmDelete(options: DeleteOptions, removeFromAlbum: Boolean = false) {
 		val targets = deleteTargets
 		showDeleteDialog = false
-		if (targets.isEmpty() || (!options.cloud && !options.local)) return
+		if (targets.isEmpty() || (!options.cloud && !options.local && !removeFromAlbum)) return
 		exitSelection()
 		if (!options.local) {
-			viewModel.applyDelete(targets, options, emptySet())
+			viewModel.applyDelete(targets, options, emptySet(), removeFromAlbum)
 			return
 		}
 		scope.launch {
@@ -246,7 +289,7 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 				trashLauncher.launch(IntentSenderRequest.Builder(sender).build())
 			} else {
 				val deleted = viewModel.deleteDeviceFiles(targets)
-				viewModel.applyDelete(targets, options, deleted)
+				viewModel.applyDelete(targets, options, deleted, removeFromAlbum)
 			}
 		}
 	}
@@ -292,13 +335,61 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 				)
 			} else {
 				TopAppBar(
-					title = { Text(stringResource(R.string.tab_gallery)) },
+					title = { Text(album?.name ?: stringResource(R.string.tab_gallery)) },
+					navigationIcon = if (album != null) {
+						{
+							IconButton(onClick = onBack) {
+								Icon(
+									imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+									contentDescription = null,
+								)
+							}
+						}
+					} else {
+						null
+					},
 					actions = {
 						IconButton(
 							onClick = { viewModel.refresh() },
 							enabled = !state.cloudLoading,
 						) {
 							Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.retry))
+						}
+						if (album != null) {
+							var menuOpen by remember { mutableStateOf(false) }
+							Box {
+								IconButton(onClick = { menuOpen = true }) {
+									Icon(Icons.Filled.MoreVert, contentDescription = null)
+								}
+								DropdownMenu(
+									expanded = menuOpen,
+									onDismissRequest = { menuOpen = false },
+								) {
+									if (album.isSmart) {
+										DropdownMenuItem(
+											text = { Text(stringResource(R.string.album_edit_rules)) },
+											onClick = {
+												menuOpen = false
+												onEditAlbum(album.id)
+											},
+										)
+									}
+									DropdownMenuItem(
+										text = { Text(stringResource(R.string.album_rename)) },
+										onClick = {
+											menuOpen = false
+											showRenameAlbum = true
+										},
+									)
+									DropdownMenuItem(
+										text = { Text(stringResource(R.string.album_delete)) },
+										onClick = {
+											menuOpen = false
+											showDeleteAlbum = true
+										},
+									)
+								}
+							}
 						}
 					},
 				)
@@ -307,21 +398,73 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 		bottomBar = {
 			val running = uploadState
 			if (running != null) {
-				UploadBar(
+				UploadProgressBar(
 					state = running,
 					onClick = { showUploadSheet = true },
 				)
 			} else if (selectionMode) {
-				SelectionActionBar(
-					canUpload = selectedEntries().any { it.canUpload },
-					canShare = selectedEntries().any {
-						it.hasLocal || !it.cloud?.downloadUrl.isNullOrBlank()
-					},
-					canDelete = selectedEntries().any { it.canDeleteCloud || it.canDeleteLocal },
-					onUpload = { runUpload(selectedEntries()) },
-					onShare = { runShare(selectedEntries()) },
-					onDelete = { runDelete(selectedEntries()) },
+				val current = selectedEntries()
+				val actions = mutableListOf(
+					SelectionAction(
+						icon = Icons.Filled.Upload,
+						label = stringResource(R.string.gallery_upload),
+						enabled = current.any { it.canUpload },
+						onClick = { runUpload(current) },
+					),
+					SelectionAction(
+						icon = Icons.Filled.Share,
+						label = stringResource(R.string.gallery_share),
+						enabled = current.any {
+							it.hasLocal || !it.cloud?.downloadUrl.isNullOrBlank()
+						},
+						onClick = { runShare(current) },
+					),
 				)
+				if (album != null) {
+					actions += SelectionAction(
+						icon = Icons.Filled.Download,
+						label = stringResource(R.string.download_original),
+						enabled = current.any { !it.cloud?.downloadUrl.isNullOrBlank() },
+						onClick = { runDownload(current) },
+					)
+				}
+				actions += SelectionAction(
+					icon = Icons.Filled.DeleteOutline,
+					label = stringResource(R.string.gallery_delete),
+					enabled = current.any {
+						it.canDeleteCloud || it.canDeleteLocal || (album != null && it.cloud != null)
+					},
+					onClick = { runDelete(current) },
+				)
+				if (album != null && !album.isSmart) {
+					actions += SelectionAction(
+						icon = Icons.Filled.PlaylistRemove,
+						label = stringResource(R.string.album_delete_from_album),
+						enabled = current.any { it.cloud != null },
+						onClick = {
+							viewModel.removeFromAlbum(current)
+							exitSelection()
+						},
+					)
+				}
+				if (album != null) {
+					actions += SelectionAction(
+						icon = Icons.Filled.PhotoCameraBack,
+						label = stringResource(R.string.album_set_cover),
+						enabled = current.any { it.cloud != null },
+						onClick = {
+							current.firstOrNull { it.cloud != null }?.let { viewModel.setCover(it) }
+							exitSelection()
+						},
+					)
+				} else if (albumsViewModel != null) {
+					actions += SelectionAction(
+						icon = Icons.Filled.PlaylistAdd,
+						label = stringResource(R.string.album_add),
+						onClick = { showAlbumPicker = true },
+					)
+				}
+				SelectionActionBar(actions = actions)
 			}
 		},
 	) { padding ->
@@ -392,6 +535,18 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 				modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
 			)
+			album?.let { current ->
+				AlbumHeader(
+					album = current,
+					failedCount = viewModel.albumFailedCount,
+					onRetryFailed = {
+						viewModel.retryFailed(
+							label = context.getString(R.string.album_retrying),
+							noTargetsDetail = context.getString(R.string.album_retry_no_files),
+						)
+					},
+				)
+			}
 			if (state.permissionDenied) {
 				PermissionBanner(onOpenSettings = { PhotoPermissions.openSettings(context) })
 			}
@@ -530,8 +685,9 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 	if (showDeleteDialog) {
 		DeleteMediaDialog(
 			entries = deleteTargets,
+			allowAlbum = album != null && album.isSmart == false,
 			onDismiss = { showDeleteDialog = false },
-			onConfirm = { options -> confirmDelete(options) },
+			onConfirm = { options, removeFromAlbum -> confirmDelete(options, removeFromAlbum) },
 		)
 	}
 
@@ -551,6 +707,48 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 				},
 			)
 		}
+	}
+
+	if (showAlbumPicker && albumsViewModel != null) {
+		val sheetState = rememberModalBottomSheetState()
+		val picked = selectedEntries()
+		ModalBottomSheet(
+			onDismissRequest = { showAlbumPicker = false },
+			sheetState = sheetState,
+		) {
+			AlbumPickerSheet(
+				viewModel = albumsViewModel,
+				entries = picked,
+				onDismiss = { showAlbumPicker = false },
+				onResult = { outcome ->
+					showAlbumPicker = false
+					exitSelection()
+					viewModel.reportAlbumAdd(outcome)
+				},
+			)
+		}
+	}
+
+	if (showRenameAlbum && album != null) {
+		AlbumNameDialog(
+			initialName = album.name,
+			onDismiss = { showRenameAlbum = false },
+			onConfirm = { name ->
+				showRenameAlbum = false
+				viewModel.renameAlbum(name) { }
+			},
+		)
+	}
+
+	if (showDeleteAlbum && album != null) {
+		AlbumDeleteDialog(
+			album = album,
+			onDismiss = { showDeleteAlbum = false },
+			onConfirm = {
+				showDeleteAlbum = false
+				viewModel.deleteAlbum { onBack() }
+			},
+		)
 	}
 
 	val index = viewerIndex
@@ -574,88 +772,6 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 				runDelete(listOf(entry))
 			},
 		)
-	}
-}
-
-@Composable
-private fun UploadBar(state: GalleryUploadState, onClick: () -> Unit) {
-	Column(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainer)
-			.padding(horizontal = 16.dp, vertical = 8.dp),
-	) {
-		Row(verticalAlignment = Alignment.CenterVertically) {
-			Text(
-				text = state.currentName ?: state.label,
-				style = MaterialTheme.typography.bodySmall,
-				maxLines = 1,
-				modifier = Modifier.weight(1f),
-			)
-			Text(
-				text = "${state.done}/${state.total}",
-				style = MaterialTheme.typography.labelSmall,
-			)
-		}
-		Spacer(Modifier.height(4.dp))
-		val fraction = state.overallFraction?.toFloat()
-		if (fraction == null) {
-			LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-		} else {
-			LinearProgressIndicator(
-				progress = { fraction },
-				modifier = Modifier.fillMaxWidth(),
-			)
-		}
-		Spacer(Modifier.height(2.dp))
-		TextButton(onClick = onClick, modifier = Modifier.align(Alignment.End)) {
-			Text(stringResource(R.string.upload_details))
-		}
-	}
-}
-
-@Composable
-private fun SelectionActionBar(
-	canUpload: Boolean,
-	canShare: Boolean,
-	canDelete: Boolean,
-	onUpload: () -> Unit,
-	onShare: () -> Unit,
-	onDelete: () -> Unit,
-) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainer)
-			.padding(horizontal = 8.dp, vertical = 4.dp),
-	) {
-		TextButton(
-			onClick = onUpload,
-			enabled = canUpload,
-			modifier = Modifier.weight(1f),
-		) {
-			Icon(Icons.Filled.Upload, contentDescription = null, modifier = Modifier.size(18.dp))
-			Spacer(Modifier.size(6.dp))
-			Text(stringResource(R.string.gallery_upload))
-		}
-		TextButton(
-			onClick = onShare,
-			enabled = canShare,
-			modifier = Modifier.weight(1f),
-		) {
-			Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-			Spacer(Modifier.size(6.dp))
-			Text(stringResource(R.string.gallery_share))
-		}
-		TextButton(
-			onClick = onDelete,
-			enabled = canDelete,
-			modifier = Modifier.weight(1f),
-		) {
-			Icon(Icons.Filled.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
-			Spacer(Modifier.size(6.dp))
-			Text(stringResource(R.string.gallery_delete))
-		}
 	}
 }
 
@@ -689,6 +805,100 @@ private fun PermissionBanner(onOpenSettings: () -> Unit) {
 		TextButton(onClick = onOpenSettings) {
 			Icon(Icons.Filled.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
 			Text(text = stringResource(R.string.gallery_open_settings))
+		}
+	}
+}
+
+private fun openExternally(context: android.content.Context, url: String): Boolean = try {
+	context.startActivity(
+		android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+			.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+	)
+	true
+} catch (_: android.content.ActivityNotFoundException) {
+	false
+}
+
+/** Album header: kind, count, rule lines and the failed-upload retry row. */
+@Composable
+private fun AlbumHeader(
+	album: dev.giovannidrago.photoatlas.studio.data.remote.AlbumDto,
+	failedCount: Int,
+	onRetryFailed: () -> Unit,
+) {
+	val scheme = MaterialTheme.colorScheme
+	val rules = AlbumRuleDraft.fromRules(album.rules)
+	val dateFormat = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE
+	val lines = mutableListOf<String>()
+	fun range(from: java.time.LocalDate?, to: java.time.LocalDate?): String = when {
+		from != null && to != null -> "${from.format(dateFormat)} - ${to.format(dateFormat)}"
+		from != null -> ">= ${from.format(dateFormat)}"
+		to != null -> "<= ${to.format(dateFormat)}"
+		else -> ""
+	}
+	if (rules.takenFrom != null || rules.takenTo != null) {
+		lines += "${stringResource(R.string.album_rule_taken)}: " +
+			range(rules.takenFrom, rules.takenTo)
+	}
+	if (rules.uploadedFrom != null || rules.uploadedTo != null) {
+		lines += "${stringResource(R.string.album_rule_uploaded)}: " +
+			range(rules.uploadedFrom, rules.uploadedTo)
+	}
+	if (rules.mediaType == "image") lines += stringResource(R.string.album_type_images)
+	if (rules.mediaType == "video") lines += stringResource(R.string.album_type_videos)
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.background(scheme.surfaceContainerHighest)
+			.padding(horizontal = 12.dp, vertical = 8.dp),
+	) {
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			Box(
+				modifier = Modifier
+					.background(scheme.primaryContainer, RoundedCornerShape(10.dp))
+					.padding(horizontal = 8.dp, vertical = 2.dp),
+			) {
+				Text(
+					text = stringResource(
+						if (album.isSmart) R.string.album_kind_smart else R.string.album_kind_manual,
+					),
+					style = MaterialTheme.typography.labelSmall,
+					color = scheme.onPrimaryContainer,
+				)
+			}
+			Spacer(Modifier.width(8.dp))
+			Text(
+				text = stringResource(R.string.item_count, album.itemCount),
+				style = MaterialTheme.typography.labelMedium,
+			)
+		}
+		for (line in lines) {
+			Text(
+				text = line,
+				style = MaterialTheme.typography.labelSmall,
+				color = scheme.onSurfaceVariant,
+				modifier = Modifier.padding(top = 2.dp),
+			)
+		}
+		if (failedCount > 0) {
+			Row(verticalAlignment = Alignment.CenterVertically) {
+				Icon(
+					imageVector = Icons.Filled.ErrorOutline,
+					contentDescription = null,
+					tint = scheme.error,
+					modifier = Modifier.size(16.dp),
+				)
+				Spacer(Modifier.width(6.dp))
+				Text(
+					text = stringResource(R.string.album_failed_uploads, failedCount),
+					style = MaterialTheme.typography.labelSmall,
+					color = scheme.error,
+					modifier = Modifier.weight(1f),
+				)
+				TextButton(onClick = onRetryFailed) {
+					Text(stringResource(R.string.album_retry))
+				}
+			}
 		}
 	}
 }

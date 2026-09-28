@@ -146,4 +146,133 @@ class MediaClientTest {
 		assertTrue("index: $body", body.contains("\"index\":true"))
 		assertTrue("cloud: $body", body.contains("\"cloud\":true"))
 	}
+
+	@Test
+	fun `timeline buckets use the count key and items are paged`() = runTest {
+		server.enqueue(
+			MockResponse().setResponseCode(200).setBody(
+				"""{"buckets":[{"bucket_start":"2026-09-27T00:00:00.000Z",
+				 "bucket_end":"2026-09-28T00:00:00.000Z","granularity":"day","count":7,
+				 "representative_id":"m1"}]}""",
+			),
+		)
+		val buckets = client.timeline()
+		val bucketPath = server.takeRequest().path.orEmpty()
+		assertEquals("path: $bucketPath", "/api/timeline", bucketPath)
+		assertEquals("count", 7, buckets.first().count)
+		assertEquals("granularity", "day", buckets.first().granularity)
+		assertTrue("start", (buckets.first().startMs ?: 0L) > 0L)
+
+		server.enqueue(
+			MockResponse().setResponseCode(200).setBody(
+				"""{"items":[{"id":"m1","source_id":"s1","external_key":"a1","name":"a.jpg",
+				 "media_type":"image"}],"total":1,"limit":200,"offset":0}""",
+			),
+		)
+		val items = client.timelineItems("2026-09-27T00:00:00.000Z", "2026-09-28T00:00:00.000Z")
+		val itemsPath = server.takeRequest().path.orEmpty()
+		assertEquals("total", 1, items.total)
+		assertTrue("from: $itemsPath", itemsPath.contains("from=2026-09-27T00%3A00%3A00.000Z"))
+		assertTrue("to: $itemsPath", itemsPath.contains("to=2026-09-28T00%3A00%3A00.000Z"))
+	}
+
+	@Test
+	fun `albums crud preview and items payloads`() = runTest {
+		server.enqueue(
+			MockResponse().setResponseCode(200).setBody(
+				"""{"albums":[{"id":"a1","name":"Trip","kind":"smart","item_count":3,
+				 "cover":{"id":"m1","source_id":"s1","name":"a.jpg","media_type":"image",
+				 "thumbnail_url":"http://host/thumb"},"rules":{"all":[{"field":"media_type","op":"eq","value":"video"}]}}]}""",
+			),
+		)
+		val album = client.albums().first()
+		server.takeRequest()
+		assertEquals("a1", album.id)
+		assertTrue("smart", album.isSmart)
+		assertEquals(3, album.itemCount)
+		assertEquals("http://host/thumb", album.cover?.thumbnailUrl)
+		assertTrue("rules", (album.rules?.size ?: 0) > 0)
+
+		server.enqueue(
+			MockResponse().setResponseCode(201).setBody(
+				"""{"album":{"id":"a2","name":"New","kind":"manual"}}""",
+			),
+		)
+		val created = client.createAlbum("New", mediaIds = listOf("m1"))
+		val createBody = server.takeRequest().body.readUtf8()
+		assertEquals("a2", created.id)
+		assertTrue("media ids: $createBody", createBody.contains("\"media_ids\":[\"m1\"]"))
+
+		server.enqueue(MockResponse().setResponseCode(200).setBody("""{"total":5}"""))
+		val preview = client.previewAlbumRules(
+			kotlinx.serialization.json.JsonObject(
+				mapOf(
+					"all" to kotlinx.serialization.json.JsonArray(
+						listOf(
+							kotlinx.serialization.json.JsonObject(
+								mapOf(
+									"field" to kotlinx.serialization.json.JsonPrimitive("media_type"),
+									"op" to kotlinx.serialization.json.JsonPrimitive("eq"),
+									"value" to kotlinx.serialization.json.JsonPrimitive("image"),
+								),
+							),
+						),
+					),
+				),
+			),
+		)
+		val previewBody = server.takeRequest().body.readUtf8()
+		assertEquals(5, preview)
+		assertTrue("rules: $previewBody", previewBody.contains("\"rules\""))
+
+		server.enqueue(MockResponse().setResponseCode(200).setBody("""{"added":2,"skipped":0}"""))
+		val added = client.addAlbumItems("a1", listOf("m1", "m2"))
+		val addPath = server.takeRequest().path.orEmpty()
+		assertEquals(2, added)
+		assertEquals("/api/albums/a1/items", addPath)
+
+		server.enqueue(MockResponse().setResponseCode(200).setBody("""{"removed":1}"""))
+		val removed = client.removeAlbumItems("a1", listOf("m1"))
+		val removePath = server.takeRequest().path.orEmpty()
+		assertEquals(1, removed)
+		assertEquals("/api/albums/a1/items", removePath)
+
+		server.enqueue(
+			MockResponse().setResponseCode(200).setBody(
+				"""{"items":[{"id":"m1","source_id":"s1","external_key":"a1","name":"a.jpg",
+				 "media_type":"image","backup_status":"failed"}],"total":1,"limit":1,"offset":0}""",
+			),
+		)
+		val media = client.albumMedia("a1", limit = 1, backupStatus = "failed")
+		val mediaPath = server.takeRequest().path.orEmpty()
+		assertEquals("total", 1, media.total)
+		assertTrue("status: $mediaPath", mediaPath.contains("backup_status=failed"))
+	}
+
+	@Test
+	fun `source auto backup patch sends the flag`() = runTest {
+		server.enqueue(MockResponse().setResponseCode(200).setBody("""{"source":{"id":"s1"}}"""))
+		client.updateSource("s1", autoBackup = true)
+		val request = server.takeRequest()
+		assertEquals("PATCH", request.method)
+		assertEquals("/api/sources/s1", request.path)
+		val body = request.body.readUtf8()
+		assertTrue("auto_backup: $body", body.contains("\"auto_backup\":true"))
+	}
+
+	@Test
+	fun `backup status parses the per source counters`() = runTest {
+		server.enqueue(
+			MockResponse().setResponseCode(200).setBody(
+				"""{"sources":[{"id":"s1","label":"Camera","total":10,"uploaded":7,
+				 "pending":2,"failed":1,"auto_backup":true,
+				 "backup_last_run_at":"2026-09-27T10:00:00.000Z"}]}""",
+			),
+		)
+		val status = client.backupStatus().first()
+		assertEquals(7, status.uploaded)
+		assertEquals(1, status.failed)
+		assertTrue(status.autoBackup)
+		assertTrue((status.backupLastRunAt ?: "").isNotEmpty())
+	}
 }

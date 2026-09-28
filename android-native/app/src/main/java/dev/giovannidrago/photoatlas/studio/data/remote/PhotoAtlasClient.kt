@@ -114,6 +114,137 @@ class PhotoAtlasClient @Inject constructor(
 		),
 	)
 
+	suspend fun updateSource(
+		id: String,
+		autoBackup: Boolean? = null,
+		label: String? = null,
+		lastScanAt: String? = null,
+	) {
+		execute(
+			"PATCH",
+			"/api/sources/$id",
+			json.encodeBody(
+				UpdateSourceRequest(
+					label = label,
+					autoBackup = autoBackup,
+					lastScanAt = lastScanAt,
+				),
+			),
+		)
+	}
+
+	suspend fun backupStatus(): List<BackupSourceStatusDto> =
+		json.decodeFromString<BackupStatusResponse>(execute("GET", "/api/backup/status")).sources
+
+	suspend fun timeline(): List<TimelineBucketDto> =
+		json.decodeFromString<TimelineResponse>(execute("GET", "/api/timeline")).buckets
+
+	suspend fun timelineItems(
+		fromIso: String,
+		toIso: String,
+		limit: Int = 200,
+		offset: Int = 0,
+	): MediaPageDto = json.decodeFromString(
+		execute(
+			"GET",
+			"/api/timeline/items",
+			query = mapOf(
+				"from" to fromIso,
+				"to" to toIso,
+				"limit" to "$limit",
+				"offset" to "$offset",
+			),
+		),
+	)
+
+	suspend fun albums(): List<AlbumDto> =
+		json.decodeFromString<AlbumsResponse>(execute("GET", "/api/albums")).albums
+
+	suspend fun createAlbum(
+		name: String,
+		kind: String = "manual",
+		rules: AlbumRulesDto? = null,
+		mediaIds: List<String>? = null,
+	): AlbumDto = json.decodeFromString<CreateAlbumResponse>(
+		execute(
+			"POST",
+			"/api/albums",
+			json.encodeBody(
+				CreateAlbumRequest(
+					name = name,
+					kind = kind,
+					rules = rules,
+					mediaIds = mediaIds?.takeIf { it.isNotEmpty() },
+				),
+			),
+		),
+	).album
+
+	suspend fun updateAlbum(
+		id: String,
+		name: String? = null,
+		rules: AlbumRulesDto? = null,
+		coverMediaId: String? = null,
+		clearCover: Boolean = false,
+	): AlbumDto = json.decodeFromString<CreateAlbumResponse>(
+		execute(
+			"PATCH",
+			"/api/albums/$id",
+			json.encodeBody(
+				UpdateAlbumRequest(
+					name = name,
+					rules = rules,
+					coverMediaId = coverMediaId,
+					clearCover = clearCover.takeIf { it },
+				),
+			),
+		),
+	).album
+
+	suspend fun deleteAlbum(id: String) {
+		execute("DELETE", "/api/albums/$id")
+	}
+
+	suspend fun albumMedia(
+		id: String,
+		limit: Int = 100,
+		offset: Int = 0,
+		backupStatus: String? = null,
+	): MediaPageDto = json.decodeFromString(
+		execute(
+			"GET",
+			"/api/albums/$id/media",
+			query = mapOf(
+				"limit" to "$limit",
+				"offset" to "$offset",
+				"backup_status" to backupStatus,
+			),
+		),
+	)
+
+	suspend fun previewAlbumRules(rules: AlbumRulesDto): Int =
+		json.decodeFromString<AlbumPreviewResponse>(
+			execute("POST", "/api/albums/preview", json.encodeBody(AlbumPreviewRequest(rules))),
+		).total
+
+	suspend fun addAlbumItems(albumId: String, mediaIds: List<String>): Int =
+		json.decodeFromString<AlbumItemsResponse>(
+			execute(
+				"POST",
+				"/api/albums/$albumId/items",
+				json.encodeBody(AlbumItemsRequest(mediaIds)),
+			),
+		).added
+
+	suspend fun removeAlbumItems(albumId: String, mediaIds: List<String>): Int =
+		json.decodeFromString<AlbumRemovedResponse>(
+			execute(
+				"DELETE",
+				"/api/albums/$albumId/items",
+				json.encodeBody(AlbumItemsRequest(mediaIds)),
+			),
+		).removed
+
 	suspend fun me(): AuthUserDto =
 		json.decodeFromString<MeResponse>(execute("GET", "/api/auth/me")).user
 

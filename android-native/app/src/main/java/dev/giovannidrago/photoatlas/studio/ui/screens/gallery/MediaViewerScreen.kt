@@ -54,7 +54,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +79,7 @@ import dev.giovannidrago.photoatlas.studio.R
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryEntry
 import dev.giovannidrago.photoatlas.studio.data.remote.MediaItemDto
 import java.net.URLEncoder
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -91,6 +94,8 @@ fun MediaViewerDialog(
 	onShare: (GalleryEntry) -> Unit = {},
 	onUpload: (GalleryEntry) -> Unit = {},
 	onDelete: (GalleryEntry) -> Unit = {},
+	loadNext: (suspend () -> List<GalleryEntry>)? = null,
+	loadPrevious: (suspend () -> List<GalleryEntry>)? = null,
 ) {
 	Dialog(
 		onDismissRequest = onDismiss,
@@ -99,22 +104,51 @@ fun MediaViewerDialog(
 			decorFitsSystemWindows = false,
 		),
 	) {
+		val galleryEntries = remember {
+			mutableStateListOf<GalleryEntry>().apply { addAll(entries) }
+		}
 		val pagerState = rememberPagerState(
-			initialPage = initialIndex.coerceIn(0, (entries.size - 1).coerceAtLeast(0)),
-			pageCount = { entries.size },
+			initialPage = initialIndex.coerceIn(0, (galleryEntries.size - 1).coerceAtLeast(0)),
+			pageCount = { galleryEntries.size },
 		)
 		val context = LocalContext.current
+		val scope = rememberCoroutineScope()
 		var zoomedKey by remember { mutableStateOf<String?>(null) }
+		var loadingNext by remember { mutableStateOf(false) }
+		var loadingPrevious by remember { mutableStateOf(false) }
+
+		// Continuous timeline: append the next period, prepend the previous one.
+		LaunchedEffect(pagerState.currentPage, galleryEntries.size) {
+			val page = pagerState.currentPage
+			if (loadNext != null && !loadingNext && page == galleryEntries.lastIndex) {
+				loadingNext = true
+				val more = runCatching { loadNext() }.getOrDefault(emptyList())
+				val known = galleryEntries.map { it.key }.toMutableSet()
+				galleryEntries.addAll(more.filter { known.add(it.key) })
+				loadingNext = false
+			}
+			if (loadPrevious != null && !loadingPrevious && page == 0) {
+				loadingPrevious = true
+				val before = runCatching { loadPrevious() }.getOrDefault(emptyList())
+				val known = galleryEntries.map { it.key }.toMutableSet()
+				val fresh = before.filter { known.add(it.key) }
+				if (fresh.isNotEmpty()) {
+					galleryEntries.addAll(0, fresh)
+					scope.launch { pagerState.jumpToPage(fresh.size) }
+				}
+				loadingPrevious = false
+			}
+		}
 
 		Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
 			BackHandler(enabled = zoomedKey != null) { zoomedKey = null }
-			if (entries.isEmpty() || pagerState.currentPage !in entries.indices) {
+			if (galleryEntries.isEmpty() || pagerState.currentPage !in galleryEntries.indices) {
 				Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
 					Text(stringResource(R.string.gallery_empty), color = Color.White)
 				}
 				return@Surface
 			}
-			val entry = entries[pagerState.currentPage]
+			val entry = galleryEntries[pagerState.currentPage]
 			if (zoomedKey == entry.key) {
 				ZoomedImage(entry = entry, onClose = { zoomedKey = null })
 				return@Surface
@@ -122,15 +156,15 @@ fun MediaViewerDialog(
 			Box(modifier = Modifier.fillMaxSize()) {
 				HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
 					ViewerPage(
-						entry = entries[page],
-						onZoom = { zoomedKey = entries[page].key },
+						entry = galleryEntries[page],
+						onZoom = { zoomedKey = galleryEntries[page].key },
 						context = context,
 					)
 				}
 				ViewerTopBar(
 					entry = entry,
 					position = pagerState.currentPage + 1,
-					total = entries.size,
+					total = galleryEntries.size,
 					onDismiss = onDismiss,
 					onSelect = { onSelect(entry) },
 					onShare = { onShare(entry) },

@@ -1,5 +1,6 @@
 package dev.giovannidrago.photoatlas.studio.ui.screens.gallery
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -204,4 +205,42 @@ private fun summary(state: GalleryUploadState): String = when {
 	state.cancelled -> "${state.uploaded}/${state.total}"
 	state.failed > 0 -> "${state.uploaded} ok · ${state.failed} failed"
 	else -> "${state.uploaded} ok"
+}
+
+/** Thin progress bar shown while an upload runs; tapped to open the sheet. */
+@Composable
+fun UploadProgressBar(state: GalleryUploadState, onClick: () -> Unit) {
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.background(MaterialTheme.colorScheme.surfaceContainer)
+			.padding(horizontal = 16.dp, vertical = 8.dp),
+	) {
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			Text(
+				text = state.currentName ?: state.label,
+				style = MaterialTheme.typography.bodySmall,
+				maxLines = 1,
+				modifier = Modifier.weight(1f),
+			)
+			Text(
+				text = "${state.done}/${state.total}",
+				style = MaterialTheme.typography.labelSmall,
+			)
+		}
+		Spacer(Modifier.height(4.dp))
+		val fraction = state.overallFraction?.toFloat()
+		if (fraction == null) {
+			LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+		} else {
+			LinearProgressIndicator(
+				progress = { fraction },
+				modifier = Modifier.fillMaxWidth(),
+			)
+		}
+		Spacer(Modifier.height(2.dp))
+		TextButton(onClick = onClick, modifier = Modifier.align(Alignment.End)) {
+			Text(stringResource(R.string.upload_details))
+		}
+	}
 }

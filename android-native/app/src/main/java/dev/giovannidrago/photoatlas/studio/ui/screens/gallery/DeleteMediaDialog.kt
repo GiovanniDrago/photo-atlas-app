@@ -27,14 +27,17 @@ import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryEntry
 @Composable
 fun DeleteMediaDialog(
 	entries: List<GalleryEntry>,
+	allowAlbum: Boolean = false,
 	onDismiss: () -> Unit,
-	onConfirm: (DeleteOptions) -> Unit,
+	onConfirm: (DeleteOptions, Boolean) -> Unit,
 ) {
 	val canCloud = entries.any { it.canDeleteCloud }
 	val canLocal = entries.any { it.canDeleteLocal }
+	val canAlbum = allowAlbum && entries.any { it.cloud != null }
 	var cloud by remember { mutableStateOf(canCloud) }
 	var local by remember { mutableStateOf(canLocal) }
-	val nothingSelected = !cloud && !local
+	var album by remember { mutableStateOf(false) }
+	val nothingSelected = !cloud && !local && !album
 
 	AlertDialog(
 		onDismissRequest = onDismiss,
@@ -80,11 +83,33 @@ fun DeleteMediaDialog(
 						)
 					}
 				}
+				if (allowAlbum) {
+					Spacer(Modifier.height(8.dp))
+					Row(verticalAlignment = Alignment.CenterVertically) {
+						Checkbox(
+							checked = album,
+							onCheckedChange = if (canAlbum) {
+								{ value -> album = value }
+							} else {
+								null
+							},
+						)
+						Spacer(Modifier.width(8.dp))
+						Column {
+							Text(stringResource(R.string.album_delete_from_album))
+							Text(
+								text = stringResource(R.string.album_delete_from_album_hint),
+								style = MaterialTheme.typography.labelSmall,
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						}
+					}
+				}
 			}
 		},
 		confirmButton = {
 			TextButton(
-				onClick = { onConfirm(DeleteOptions(cloud = cloud, local = local)) },
+				onClick = { onConfirm(DeleteOptions(cloud = cloud, local = local), album) },
 				enabled = !nothingSelected,
 			) {
 				Text(stringResource(R.string.delete_confirm))

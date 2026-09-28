@@ -37,4 +37,43 @@ class SourceMatcherTest {
 		val kdrive = MediaSourceDto(id = "1", kind = "kdrive", label = "Camera")
 		assertNull(SourceMatcher.findSource(listOf(kdrive), "Camera"))
 	}
+
+	@Test
+	fun `folder matching prefers the exact album id`() {
+		val exact = MediaSourceDto(
+			id = "exact",
+			kind = "local",
+			label = "DCIM/Camera",
+			rootPath = "album:42",
+			albumKey = "album:42",
+		)
+		val legacy = MediaSourceDto(
+			id = "legacy",
+			kind = "local",
+			label = "Camera",
+			rootPath = "album:path:Camera",
+			albumKey = "path:Camera",
+		)
+		val labelOnly = MediaSourceDto(
+			id = "label",
+			kind = "local",
+			label = "Camera",
+			rootPath = "album:path:Other",
+		)
+		val sources = listOf(labelOnly, legacy, exact)
+		assertEquals("exact", SourceMatcher.findSourceForFolder(sources, "42", "Camera")?.id)
+		assertEquals("legacy", SourceMatcher.findSourceForFolder(sources, "99", "Camera")?.id)
+		assertNull(SourceMatcher.findSourceForFolder(sources, "99", "Pictures"))
+	}
+
+	@Test
+	fun `folder matching ignores kdrive sources`() {
+		val kdrive = MediaSourceDto(
+			id = "k",
+			kind = "kdrive",
+			label = "Camera",
+			rootPath = "album:42",
+		)
+		assertNull(SourceMatcher.findSourceForFolder(listOf(kdrive), "42", "Camera"))
+	}
 }
