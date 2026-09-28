@@ -22,8 +22,8 @@ data class GalleryFilter(
 
 /** One gallery tile: the indexed record, the device file, or both. */
 data class GalleryEntry(
-	val cloud: MediaItemDto?,
-	val local: DeviceMedia?,
+	val cloud: MediaItemDto? = null,
+	val local: DeviceMedia? = null,
 ) {
 	companion object {
 		/** Local sources use the device asset id (or the absolute path). */
