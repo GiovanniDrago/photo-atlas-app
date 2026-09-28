@@ -18,6 +18,9 @@ import androidx.compose.material.icons.outlined.PhotoAlbum
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.TopAppBar
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -26,8 +29,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -42,6 +43,7 @@ import androidx.navigation.compose.rememberNavController
 import dev.giovannidrago.photoatlas.studio.R
 import dev.giovannidrago.photoatlas.studio.domain.auth.AuthRepository
 import dev.giovannidrago.photoatlas.studio.ui.screens.BackupScreen
+import dev.giovannidrago.photoatlas.studio.ui.screens.gallery.GalleryScreen
 import dev.giovannidrago.photoatlas.studio.ui.screens.PlaceholderScreen
 import dev.giovannidrago.photoatlas.studio.ui.screens.settings.SettingsScreen
 import dev.giovannidrago.photoatlas.studio.ui.settings.SettingsViewModel
@@ -115,22 +117,6 @@ fun StudioApp(auth: AuthRepository) {
 
 	Scaffold(
 		containerColor = MaterialTheme.colorScheme.background,
-		topBar = {
-			if (currentTab != null) {
-				TopAppBar(
-					title = {
-						Text(
-							text = stringResource(currentTab.labelRes),
-							style = MaterialTheme.typography.titleLarge,
-						)
-					},
-					colors = TopAppBarDefaults.topAppBarColors(
-						containerColor = MaterialTheme.colorScheme.background,
-						titleContentColor = MaterialTheme.colorScheme.onBackground,
-					),
-				)
-			}
-		},
 		bottomBar = {
 			if (currentTab != null) {
 				StudioBottomBar(
@@ -173,18 +159,15 @@ fun StudioApp(auth: AuthRepository) {
 		) {
 			StudioTab.entries.forEach { tab ->
 				composable(tab.route) {
-					if (tab == StudioTab.Settings) {
-						SettingsScreen(
+					when (tab) {
+						StudioTab.Gallery -> GalleryScreen()
+
+						StudioTab.Settings -> SettingsScreen(
 							auth = auth,
 							viewModel = hiltViewModel<SettingsViewModel>(),
 						)
-					} else {
-						PlaceholderScreen(
-							title = stringResource(tab.titleRes),
-							text = stringResource(tab.descriptionRes),
-							icon = tab.selectedIcon,
-							milestone = tab.milestone,
-						)
+
+						else -> PlaceholderTabScreen(tab)
 					}
 				}
 			}
@@ -214,6 +197,25 @@ private fun StudioBottomBar(
 				},
 				label = { Text(stringResource(tab.labelRes), maxLines = 1) },
 				alwaysShowLabel = true,
+			)
+		}
+	}
+}
+
+/** Placeholder tab with its own app bar, until its milestone ships. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlaceholderTabScreen(tab: StudioTab) {
+	Scaffold(
+		containerColor = MaterialTheme.colorScheme.background,
+		topBar = { TopAppBar(title = { Text(stringResource(tab.labelRes)) }) },
+	) { padding ->
+		Box(modifier = Modifier.padding(padding)) {
+			PlaceholderScreen(
+				title = stringResource(tab.titleRes),
+				text = stringResource(tab.descriptionRes),
+				icon = tab.selectedIcon,
+				milestone = tab.milestone,
 			)
 		}
 	}

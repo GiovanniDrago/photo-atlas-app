@@ -8,6 +8,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
@@ -30,6 +31,30 @@ class PhotoAtlasClient @Inject constructor(
 
 	suspend fun config(): ApiConfigDto =
 		json.decodeFromString(execute("GET", "/api/config"))
+
+	suspend fun media(
+		status: String = "all",
+		type: String = "all",
+		sourceId: String? = null,
+		backupStatus: String? = null,
+		limit: Int = 100,
+		offset: Int = 0,
+		order: String = "taken_at.desc",
+	): MediaPageDto = json.decodeFromString(
+		execute(
+			"GET",
+			"/api/media",
+			query = mapOf(
+				"status" to status,
+				"type" to type,
+				"source_id" to sourceId,
+				"backup_status" to backupStatus,
+				"limit" to "$limit",
+				"offset" to "$offset",
+				"order" to order,
+			),
+		),
+	)
 
 	suspend fun me(): AuthUserDto =
 		json.decodeFromString<MeResponse>(execute("GET", "/api/auth/me")).user
@@ -66,10 +91,15 @@ class PhotoAtlasClient @Inject constructor(
 		path: String,
 		body: RequestBody? = null,
 		timeoutMs: Long? = null,
+		query: Map<String, String?> = emptyMap(),
 	): String {
 		val baseUrl = settings.currentApiBaseUrl()
+		val urlBuilder = "$baseUrl$path".toHttpUrl().newBuilder()
+		query.forEach { (key, value) ->
+			if (value != null) urlBuilder.addQueryParameter(key, value)
+		}
 		val request = Request.Builder()
-			.url("$baseUrl$path")
+			.url(urlBuilder.build())
 			.method(method, if (method == "GET") null else (body ?: EmptyBody))
 			.build()
 		val http = if (timeoutMs == null) {

@@ -4,6 +4,13 @@
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+	<!-- Device media library (gallery, folder backup and indexing) -->
+	<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+	<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+	<uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
+
 	<!-- The API runs on the LAN over plain HTTP (http://<vm-ip>:8787): OkHttp
 	     enforces Android's cleartext policy, so it must be allowed explicitly. -->
 	<application
