@@ -230,6 +230,6 @@
 	<string name="server_test_timeout">Nessuna risposta (timeout)</string>
 	<string name="server_test_refused">Connessione rifiutata (il servizio è acceso?)</string>
 	<string name="server_test_http">Il server ha risposto con HTTP %1$d</string>
-	<string name="server_test_not_api">Risponde, ma non è l'API di Photo Atlas</string>
-	<string name="server_address_empty">Inserisci prima l'indirizzo del server</string>
+	<string name="server_test_not_api">Risponde, ma non è l\'API di Photo Atlas</string>
+	<string name="server_address_empty">Inserisci prima l\'indirizzo del server</string>
 </resources>
