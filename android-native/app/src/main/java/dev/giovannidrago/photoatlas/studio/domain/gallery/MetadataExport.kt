@@ -39,7 +39,10 @@ data class MetadataExportDocument(
 
 /** JSON export of the indexed metadata, same fields as the Flutter app. */
 object MetadataExport {
-	private val json = Json { prettyPrint = true }
+	private val json = Json {
+		prettyPrint = true
+		encodeDefaults = true
+	}
 
 	fun build(items: List<MediaItemDto>, exportedAtMs: Long): String {
 		val document = MetadataExportDocument(

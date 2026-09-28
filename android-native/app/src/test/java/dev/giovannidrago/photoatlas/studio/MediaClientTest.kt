@@ -82,8 +82,10 @@ class MediaClientTest {
 			),
 		)
 		val sources = client.sources()
+		val listPath = server.takeRequest().path.orEmpty()
 		assertEquals("label", "Camera", sources.first().label)
 		assertEquals("album key", "path:Camera", sources.first().albumKey)
+		assertEquals("list path: $listPath", "/api/sources", listPath)
 
 		server.enqueue(
 			MockResponse().setResponseCode(201).setBody(
