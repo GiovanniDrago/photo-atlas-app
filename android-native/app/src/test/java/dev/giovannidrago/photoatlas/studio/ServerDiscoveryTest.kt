@@ -81,9 +81,10 @@ class ServerDiscoveryTest {
 		assertEquals(500, (http as ProbeOutcome.HttpError).code)
 
 		route {
+			// Delaying the headers makes the whole call exceed the timeout.
 			MockResponse().setResponseCode(200)
 				.setBody("""{"status":"ok"}""")
-				.setBodyDelay(2, TimeUnit.SECONDS)
+				.setHeadersDelay(2, TimeUnit.SECONDS)
 		}
 		val timeout = discovery(server.url("/").toString())
 			.test(server.url("/").toString(), timeoutMs = 300)
