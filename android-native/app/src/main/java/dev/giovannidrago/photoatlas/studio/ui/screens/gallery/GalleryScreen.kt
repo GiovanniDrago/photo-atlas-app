@@ -79,6 +79,7 @@ import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryFilter
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryUploadFilter
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryUploadState
 import dev.giovannidrago.photoatlas.studio.domain.gallery.galleryIndexAt
+import dev.giovannidrago.photoatlas.studio.ui.gallery.GalleryScope
 import dev.giovannidrago.photoatlas.studio.ui.gallery.GalleryViewModel
 import dev.giovannidrago.photoatlas.studio.ui.gallery.UiMessage
 import kotlin.math.max
@@ -336,18 +337,7 @@ fun GalleryScreen(
 			} else {
 				TopAppBar(
 					title = { Text(album?.name ?: stringResource(R.string.tab_gallery)) },
-					navigationIcon = if (album != null) {
-						{
-							IconButton(onClick = onBack) {
-								Icon(
-									imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-									contentDescription = null,
-								)
-							}
-						}
-					} else {
-						null
-					},
+					navigationIcon = albumBackIcon(album != null, onBack),
 					actions = {
 						IconButton(
 							onClick = { viewModel.refresh() },
@@ -899,6 +889,22 @@ private fun AlbumHeader(
 					Text(stringResource(R.string.album_retry))
 				}
 			}
+		}
+	}
+}
+
+@Composable
+private fun albumBackIcon(
+	show: Boolean,
+	onBack: () -> Unit,
+): (@Composable () -> Unit)? {
+	if (!show) return null
+	return {
+		IconButton(onClick = onBack) {
+			Icon(
+				imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+				contentDescription = null,
+			)
 		}
 	}
 }

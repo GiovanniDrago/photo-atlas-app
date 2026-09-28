@@ -225,4 +225,5 @@
 	<string name="item_count">%1$d items</string>
 	<string name="error_loading_short">Could not load</string>
 	<string name="added_count">%1$d added</string>
+	<string name="album_set_cover">Use as cover</string>
 </resources>

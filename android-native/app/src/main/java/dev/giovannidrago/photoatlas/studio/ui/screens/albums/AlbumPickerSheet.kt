@@ -68,7 +68,6 @@ fun AlbumPickerSheet(
 							Icon(Icons.Filled.PhotoAlbum, contentDescription = null)
 						},
 						headlineContent = { Text(stringResource(R.string.album_no_manual)) },
-						enabled = false,
 					)
 				}
 			}

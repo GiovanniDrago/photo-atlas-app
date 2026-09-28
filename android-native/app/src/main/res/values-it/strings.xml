@@ -225,4 +225,5 @@
 	<string name="item_count">%1$d elementi</string>
 	<string name="error_loading_short">Caricamento non riuscito</string>
 	<string name="added_count">%1$d aggiunti</string>
+	<string name="album_set_cover">Usa come copertina</string>
 </resources>
