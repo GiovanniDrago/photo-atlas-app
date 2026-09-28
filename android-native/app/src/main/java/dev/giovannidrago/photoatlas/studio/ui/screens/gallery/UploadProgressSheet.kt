@@ -69,10 +69,15 @@ fun UploadProgressSheet(
 			)
 		}
 		Spacer(Modifier.height(6.dp))
-		LinearProgressIndicator(
-			value = state.overallFraction?.toFloat(),
-			modifier = Modifier.fillMaxWidth(),
-		)
+		val fraction = state.overallFraction?.toFloat()
+		if (fraction == null) {
+			LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+		} else {
+			LinearProgressIndicator(
+				progress = { fraction },
+				modifier = Modifier.fillMaxWidth(),
+			)
+		}
 		if (state.running && state.failures.isNotEmpty()) {
 			Spacer(Modifier.height(4.dp))
 			Text(

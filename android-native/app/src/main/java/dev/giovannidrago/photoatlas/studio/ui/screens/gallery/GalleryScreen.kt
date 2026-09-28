@@ -598,10 +598,15 @@ private fun UploadBar(state: GalleryUploadState, onClick: () -> Unit) {
 			)
 		}
 		Spacer(Modifier.height(4.dp))
-		LinearProgressIndicator(
-			value = state.overallFraction?.toFloat(),
-			modifier = Modifier.fillMaxWidth(),
-		)
+		val fraction = state.overallFraction?.toFloat()
+		if (fraction == null) {
+			LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+		} else {
+			LinearProgressIndicator(
+				progress = { fraction },
+				modifier = Modifier.fillMaxWidth(),
+			)
+		}
 		Spacer(Modifier.height(2.dp))
 		TextButton(onClick = onClick, modifier = Modifier.align(Alignment.End)) {
 			Text(stringResource(R.string.upload_details))
