@@ -66,10 +66,21 @@ class MediaStoreDeviceMediaSource @Inject constructor(
 			MediaStore.MediaColumns.BUCKET_ID,
 			MediaStore.MediaColumns.BUCKET_DISPLAY_NAME,
 		)
+		// Latitude/longitude live in the type-specific columns and need API 29.
+		val latColumn = when {
+			Build.VERSION.SDK_INT < Build.VERSION_CODES.Q -> null
+			video -> MediaStore.Video.VideoColumns.LATITUDE
+			else -> MediaStore.Images.ImageColumns.LATITUDE
+		}
+		val lonColumn = when {
+			Build.VERSION.SDK_INT < Build.VERSION_CODES.Q -> null
+			video -> MediaStore.Video.VideoColumns.LONGITUDE
+			else -> MediaStore.Images.ImageColumns.LONGITUDE
+		}
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
 			columns += MediaStore.MediaColumns.RELATIVE_PATH
-			columns += MediaStore.MediaColumns.LATITUDE
-			columns += MediaStore.MediaColumns.LONGITUDE
+			if (latColumn != null) columns += latColumn
+			if (lonColumn != null) columns += lonColumn
 		}
 		if (video) {
 			columns += MediaStore.Video.VideoColumns.DURATION
@@ -100,8 +111,8 @@ class MediaStoreDeviceMediaSource @Inject constructor(
 			val bucketIndex = rows.getColumnIndex(MediaStore.MediaColumns.BUCKET_ID)
 			val bucketNameIndex = rows.getColumnIndex(MediaStore.MediaColumns.BUCKET_DISPLAY_NAME)
 			val relativeIndex = rows.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH)
-			val latIndex = rows.getColumnIndex(MediaStore.MediaColumns.LATITUDE)
-			val lonIndex = rows.getColumnIndex(MediaStore.MediaColumns.LONGITUDE)
+			val latIndex = latColumn?.let { rows.getColumnIndex(it) } ?: -1
+			val lonIndex = lonColumn?.let { rows.getColumnIndex(it) } ?: -1
 			val durationIndex = if (video) {
 				rows.getColumnIndex(MediaStore.Video.VideoColumns.DURATION)
 			} else {

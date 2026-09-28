@@ -7,8 +7,10 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.InteractiveViewer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -47,12 +49,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -294,20 +300,34 @@ private fun ZoomedImage(entry: GalleryEntry, onClose: () -> Unit) {
 	Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
 		val model: Any? = entry.local?.uri ?: entry.cloud?.thumbnailUrl
 		if (model != null) {
-			InteractiveViewer(
-				panEnabled = true,
-				scaleEnabled = true,
-				minScale = 1f,
-				maxScale = 6f,
-				modifier = Modifier.fillMaxSize(),
-			) {
-				AsyncImage(
-					model = ImageRequest.Builder(context).data(model).crossfade(true).build(),
-					contentDescription = entry.name,
-					contentScale = ContentScale.Fit,
-					modifier = Modifier.fillMaxSize(),
-				)
+			var scale by remember { mutableFloatStateOf(1f) }
+			var offset by remember { mutableStateOf(Offset.Zero) }
+			val transformState = rememberTransformableState { zoomChange, panChange, _ ->
+				scale = (scale * zoomChange).coerceIn(1f, 6f)
+				offset = if (scale > 1f) offset + panChange else Offset.Zero
 			}
+			AsyncImage(
+				model = ImageRequest.Builder(context).data(model).crossfade(true).build(),
+				contentDescription = entry.name,
+				contentScale = ContentScale.Fit,
+				modifier = Modifier
+					.fillMaxSize()
+					.transformable(transformState)
+					.pointerInput(entry.key) {
+						detectTapGestures(
+							onDoubleTap = {
+								scale = 1f
+								offset = Offset.Zero
+							},
+						)
+					}
+					.graphicsLayer {
+						scaleX = scale
+						scaleY = scale
+						translationX = offset.x
+						translationY = offset.y
+					},
+			)
 		}
 		IconButton(
 			onClick = onClose,
@@ -345,12 +365,20 @@ private fun ViewerDetails(entry: GalleryEntry, context: Context) {
 		MetadataRow(R.string.field_size, formatBytes(entry.sizeBytes))
 		MetadataRow(
 			R.string.field_taken,
-			formatDate(cloud?.takenAtMs ?: entry.local?.takenAtMs),
+			formatDate(cloud?.takenAtMs ?: entry.local?.takenAtMs)
+				?: stringResource(R.string.not_available),
 		)
 		if (cloud?.fileCreatedAtMs != null) {
-			MetadataRow(R.string.field_file_created, formatDate(cloud.fileCreatedAtMs))
+			MetadataRow(
+				R.string.field_file_created,
+				formatDate(cloud.fileCreatedAtMs) ?: stringResource(R.string.not_available),
+			)
 		}
-		MetadataRow(R.string.field_modified, formatDate(cloud?.modifiedAtMs ?: entry.local?.modifiedAtMs))
+		MetadataRow(
+			R.string.field_modified,
+			formatDate(cloud?.modifiedAtMs ?: entry.local?.modifiedAtMs)
+				?: stringResource(R.string.not_available),
+		)
 		val lat = cloud?.lat ?: entry.local?.lat
 		val lon = cloud?.lon ?: entry.local?.lon
 		MetadataRow(

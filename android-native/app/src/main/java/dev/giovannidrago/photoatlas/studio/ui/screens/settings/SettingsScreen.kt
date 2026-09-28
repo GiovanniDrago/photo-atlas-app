@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -64,6 +65,7 @@ import dev.giovannidrago.photoatlas.studio.ui.settings.SettingsViewModel
 import kotlinx.coroutines.launch
 
 /** Settings tab: server, account, security and about. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
 	auth: AuthRepository,
