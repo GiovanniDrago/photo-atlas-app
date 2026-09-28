@@ -337,7 +337,16 @@ fun GalleryScreen(
 			} else {
 				TopAppBar(
 					title = { Text(album?.name ?: stringResource(R.string.tab_gallery)) },
-					navigationIcon = albumBackIcon(album != null, onBack),
+					navigationIcon = {
+						if (album != null) {
+							IconButton(onClick = onBack) {
+								Icon(
+									imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+									contentDescription = null,
+								)
+							}
+						}
+					},
 					actions = {
 						IconButton(
 							onClick = { viewModel.refresh() },
@@ -893,18 +902,3 @@ private fun AlbumHeader(
 	}
 }
 
-@Composable
-private fun albumBackIcon(
-	show: Boolean,
-	onBack: () -> Unit,
-): (@Composable () -> Unit)? {
-	if (!show) return null
-	return {
-		IconButton(onClick = onBack) {
-			Icon(
-				imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-				contentDescription = null,
-			)
-		}
-	}
-}
