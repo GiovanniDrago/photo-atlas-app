@@ -33,7 +33,28 @@ class SettingsStore @Inject constructor(
 		}
 	}
 
+	/** Stable per-installation device fingerprint (registered on the API). */
+	suspend fun deviceFingerprint(): String {
+		val existing = context.settingsDataStore.data.first()[DeviceFingerprintKey]
+		if (!existing.isNullOrBlank()) return existing
+		val generated = buildString {
+			val random = java.security.SecureRandom()
+			repeat(16) { append("%02x".format(random.nextInt(256))) }
+		}
+		context.settingsDataStore.edit { it[DeviceFingerprintKey] = generated }
+		return generated
+	}
+
+	suspend fun deviceId(): String? =
+		context.settingsDataStore.data.first()[DeviceIdKey]?.takeIf { it.isNotBlank() }
+
+	suspend fun setDeviceId(value: String) {
+		context.settingsDataStore.edit { it[DeviceIdKey] = value }
+	}
+
 	private companion object {
 		val ApiBaseUrlKey = stringPreferencesKey("api_base_url")
+		val DeviceFingerprintKey = stringPreferencesKey("device_fingerprint")
+		val DeviceIdKey = stringPreferencesKey("device_id")
 	}
 }

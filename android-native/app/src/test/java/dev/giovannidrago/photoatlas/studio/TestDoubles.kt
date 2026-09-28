@@ -1,5 +1,6 @@
 package dev.giovannidrago.photoatlas.studio
 
+import dev.giovannidrago.photoatlas.studio.data.auth.TokenProvider
 import dev.giovannidrago.photoatlas.studio.data.local.ApiBaseUrlProvider
 import kotlinx.serialization.json.Json
 import okhttp3.mockwebserver.Dispatcher
@@ -25,4 +26,10 @@ internal fun testJson(): Json = Json {
 	explicitNulls = false
 	encodeDefaults = true
 	isLenient = true
+}
+
+internal class FakeTokenProvider(var token: String? = null) : TokenProvider {
+	override fun currentToken(): String? = token
+
+	override fun refreshBlocking(): String? = token
 }

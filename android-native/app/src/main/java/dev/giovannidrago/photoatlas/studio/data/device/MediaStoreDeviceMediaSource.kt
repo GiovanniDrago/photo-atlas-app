@@ -156,12 +156,18 @@ class MediaStoreDeviceMediaSource @Inject constructor(
 						"media-$id"
 					},
 					uri = ContentUris.withAppendedId(collection, id).toString(),
+					mime = if (mimeIndex >= 0 && !rows.isNull(mimeIndex)) {
+						rows.getString(mimeIndex)
+					} else {
+						null
+					},
 					mediaType = if (video) "video" else "image",
 					sizeBytes = if (sizeIndex >= 0 && !rows.isNull(sizeIndex)) {
 						rows.getLong(sizeIndex).takeIf { it > 0L }
 					} else {
 						null
 					},
+					fileCreatedAtMs = (addedS * 1000L).takeIf { it > 0L },
 					takenAtMs = taken ?: (addedS * 1000L).takeIf { it > 0L },
 					modifiedAtMs = if (modifiedIndex >= 0 && !rows.isNull(modifiedIndex)) {
 						rows.getLong(modifiedIndex) * 1000L

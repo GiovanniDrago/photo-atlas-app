@@ -56,6 +56,64 @@ class PhotoAtlasClient @Inject constructor(
 		),
 	)
 
+	suspend fun registerDevice(
+		fingerprint: String,
+		name: String,
+		platform: String,
+	): String = json.decodeFromString<DeviceResponse>(
+		execute(
+			"POST",
+			"/api/devices",
+			json.encodeBody(RegisterDeviceBody(fingerprint, name, platform)),
+		),
+	).device.id
+
+	suspend fun sources(): List<MediaSourceDto> =
+		json.decodeFromString<SourcesResponse>(execute("GET", "/api/sources")).sources
+
+	suspend fun createSource(
+		kind: String,
+		label: String,
+		rootPath: String? = null,
+		deviceId: String? = null,
+		albumKey: String? = null,
+	): MediaSourceDto = json.decodeFromString<CreateSourceResponse>(
+		execute(
+			"POST",
+			"/api/sources",
+			json.encodeBody(
+				CreateSourceRequest(
+					kind = kind,
+					label = label,
+					rootPath = rootPath,
+					deviceId = deviceId,
+					albumKey = albumKey,
+				),
+			),
+		),
+	).source
+
+	suspend fun batchMedia(sourceId: String, items: List<BatchItem>): BatchMediaResponse =
+		json.decodeFromString(
+			execute(
+				"POST",
+				"/api/media/batch",
+				json.encodeBody(BatchMediaRequest(sourceId = sourceId, items = items)),
+			),
+		)
+
+	suspend fun deleteMedia(
+		ids: List<String>,
+		cloud: Boolean,
+		index: Boolean,
+	): DeleteMediaResponse = json.decodeFromString(
+		execute(
+			"POST",
+			"/api/media/delete",
+			json.encodeBody(DeleteMediaRequest(ids = ids, cloud = cloud, index = index)),
+		),
+	)
+
 	suspend fun me(): AuthUserDto =
 		json.decodeFromString<MeResponse>(execute("GET", "/api/auth/me")).user
 

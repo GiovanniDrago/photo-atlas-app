@@ -1,16 +1,27 @@
 package dev.giovannidrago.photoatlas.studio.ui.gallery
 
+import android.net.Uri
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.giovannidrago.photoatlas.studio.data.device.DeviceMedia
 import dev.giovannidrago.photoatlas.studio.data.device.DeviceMediaSource
+import dev.giovannidrago.photoatlas.studio.data.device.DeviceShareService
+import dev.giovannidrago.photoatlas.studio.data.device.DeviceTrashService
 import dev.giovannidrago.photoatlas.studio.data.remote.MediaItemDto
 import dev.giovannidrago.photoatlas.studio.data.remote.PhotoAtlasClient
+import dev.giovannidrago.photoatlas.studio.domain.gallery.DeleteOptions
+import dev.giovannidrago.photoatlas.studio.domain.gallery.FileProgressThrottle
+import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryActionsService
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryEntry
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryFilter
+import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryUploadState
 import dev.giovannidrago.photoatlas.studio.domain.gallery.galleryEntryMatches
 import dev.giovannidrago.photoatlas.studio.domain.gallery.mergeGalleryEntries
+import dev.giovannidrago.photoatlas.studio.domain.gallery.planDelete
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,14 +41,26 @@ data class GalleryState(
 	val permissionDenied: Boolean = false,
 )
 
+/** One-shot feedback for the UI (mapped to a localized snackbar there). */
+data class UiMessage(
+	val kind: Kind,
+	val count: Int = 0,
+	val detail: String? = null,
+) {
+	enum class Kind { Uploaded, Deleted, Shared, Exported, Failed }
+}
+
 /**
  * Loads the indexed items (paged) and the whole device library (one ordered
- * query) and merges them, like the Flutter gallery controller.
+ * query), merges them and runs the gallery actions.
  */
 @HiltViewModel
 class GalleryViewModel @Inject constructor(
 	private val api: PhotoAtlasClient,
 	private val device: DeviceMediaSource,
+	private val actions: GalleryActionsService,
+	private val shareService: DeviceShareService,
+	private val trashService: DeviceTrashService,
 ) : ViewModel() {
 	private val cloud = mutableListOf<MediaItemDto>()
 	private val cloudIds = mutableSetOf<String>()
@@ -47,9 +70,16 @@ class GalleryViewModel @Inject constructor(
 	private var deviceItems: List<DeviceMedia> = emptyList()
 	private var filter = GalleryFilter()
 	private var generation = 0
+	private var uploadCancelled = false
 
 	private val _state = MutableStateFlow(GalleryState())
 	val state: StateFlow<GalleryState> = _state.asStateFlow()
+
+	private val _upload = MutableStateFlow<GalleryUploadState?>(null)
+	val upload: StateFlow<GalleryUploadState?> = _upload.asStateFlow()
+
+	var message by mutableStateOf<UiMessage?>(null)
+		private set
 
 	init {
 		refresh()
@@ -77,6 +107,119 @@ class GalleryViewModel @Inject constructor(
 			_state.value = snapshot(loadingMore = false)
 		}
 	}
+
+	// --- Actions ---
+
+	fun startUpload(entries: List<GalleryEntry>, label: String) {
+		if (_upload.value?.running == true) return
+		val targets = entries.filter { it.canUpload }
+		if (targets.isEmpty()) {
+			message = UiMessage(UiMessage.Kind.Failed, detail = "no targets")
+			return
+		}
+		uploadCancelled = false
+		_upload.value = GalleryUploadState(
+			label = label,
+			targets = targets,
+			total = targets.size,
+		)
+		viewModelScope.launch {
+			val throttle = FileProgressThrottle()
+			val result = actions.upload(
+				targets,
+				onProgress = { progress ->
+					if (throttle.shouldEmit(progress)) {
+						_upload.value = _upload.value?.record(progress)
+					}
+				},
+				isCancelled = { uploadCancelled },
+			)
+			_upload.value = _upload.value?.finish(
+				uploaded = result.uploaded,
+				failed = result.failed,
+				cancelled = uploadCancelled,
+			)
+			message = if (result.errors.isNotEmpty()) {
+				UiMessage(UiMessage.Kind.Failed, detail = result.errors.first())
+			} else {
+				UiMessage(UiMessage.Kind.Uploaded, count = result.uploaded)
+			}
+			refresh()
+		}
+	}
+
+	fun cancelUpload() {
+		uploadCancelled = true
+		_upload.value = _upload.value?.markStopping()
+	}
+
+	fun dismissUpload() {
+		_upload.value = null
+	}
+
+	/** System trash request for the device copies of the selection (API 30+). */
+	fun trashRequest(entries: List<GalleryEntry>): android.content.IntentSender? =
+		trashService.trashRequest(deviceUris(entries))
+
+	/** Permanent delete for API 26-29, returning the ids actually removed. */
+	suspend fun deleteDeviceFiles(entries: List<GalleryEntry>): Set<Long> =
+		trashService.deletePermanently(deviceUris(entries))
+
+	fun applyDelete(
+		entries: List<GalleryEntry>,
+		options: DeleteOptions,
+		deletedLocalIds: Set<Long>,
+	) {
+		viewModelScope.launch {
+			val plan = planDelete(
+				entries = entries,
+				cloud = options.cloud,
+				local = options.local,
+				deletedLocalIds = deletedLocalIds,
+			)
+			val result = actions.applyDelete(plan)
+			val deletedCount = deletedLocalIds.size + result.deletedCount
+			message = if (result.errors.isNotEmpty() && deletedCount == 0) {
+				UiMessage(UiMessage.Kind.Failed, detail = result.errors.first())
+			} else {
+				UiMessage(UiMessage.Kind.Deleted, count = deletedCount)
+			}
+			device.invalidate()
+			refresh()
+		}
+	}
+
+	fun share(entries: List<GalleryEntry>) {
+		viewModelScope.launch {
+			val result = shareService.shareEntries(entries)
+			message = if (result.errors.isNotEmpty()) {
+				UiMessage(UiMessage.Kind.Failed, detail = result.errors.first())
+			} else {
+				UiMessage(UiMessage.Kind.Shared, count = result.shared)
+			}
+		}
+	}
+
+	fun exportMetadata(entries: List<GalleryEntry>) {
+		viewModelScope.launch {
+			try {
+				val file = shareService.exportMetadata(entries)
+				message = UiMessage(UiMessage.Kind.Exported, detail = file.absolutePath)
+				shareService.shareFile(file)
+			} catch (error: Exception) {
+				message = UiMessage(UiMessage.Kind.Failed, detail = error.message)
+			}
+		}
+	}
+
+	fun consumeMessage() {
+		message = null
+	}
+
+	private fun deviceUris(entries: List<GalleryEntry>): List<Uri> =
+		entries.mapNotNull { entry -> entry.local?.uri?.let { Uri.parse(it) } }
+
+	// --- Loading ---
 
 	private fun restart(loadDevice: Boolean) {
 		generation += 1

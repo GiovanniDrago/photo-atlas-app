@@ -153,4 +153,25 @@
 	<string name="status_upload_failed">Caricamento fallito</string>
 	<string name="not_available">Non disponibile</string>
 	<string name="open_folder_failed">Impossibile aprire la cartella</string>
+	<string name="gallery_upload">Carica</string>
+	<string name="gallery_share">Condividi</string>
+	<string name="gallery_delete">Elimina</string>
+	<string name="gallery_uploading">Caricamento</string>
+	<string name="upload_details">Dettagli caricamento</string>
+	<string name="upload_stop">Stop</string>
+	<string name="upload_stopping">Interruzione…</string>
+	<string name="failed_count">%1$d non riusciti</string>
+	<string name="uploaded_count">%1$d caricati</string>
+	<string name="deleted_count">%1$d eliminati</string>
+	<string name="shared_count">%1$d condivisi</string>
+	<string name="delete_title">Eliminare la selezione?</string>
+	<string name="delete_cloud">Dal cloud</string>
+	<string name="delete_cloud_hint">Sposta le copie kDrive nel cestino (recuperabile)</string>
+	<string name="delete_local">Dal dispositivo</string>
+	<string name="delete_local_hint">Rimuove i file dal telefono (cestino di sistema su Android 11+, definitivo prima)</string>
+	<string name="delete_confirm">Elimina</string>
+	<string name="delete_cancelled">Eliminazione annullata</string>
+	<string name="export_metadata">Esporta metadati</string>
+	<string name="export_done">Esportazione pronta</string>
+	<string name="action_failed">Operazione non riuscita</string>
 </resources>

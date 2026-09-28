@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.ImageNotSupported
@@ -39,6 +40,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -85,6 +88,9 @@ fun MediaViewerDialog(
 	initialIndex: Int,
 	onDismiss: () -> Unit,
 	onSelect: (GalleryEntry) -> Unit,
+	onShare: (GalleryEntry) -> Unit = {},
+	onUpload: (GalleryEntry) -> Unit = {},
+	onDelete: (GalleryEntry) -> Unit = {},
 ) {
 	Dialog(
 		onDismissRequest = onDismiss,
@@ -127,6 +133,9 @@ fun MediaViewerDialog(
 					total = entries.size,
 					onDismiss = onDismiss,
 					onSelect = { onSelect(entry) },
+					onShare = { onShare(entry) },
+					onUpload = { onUpload(entry) },
+					onDelete = { onDelete(entry) },
 					context = context,
 				)
 			}
@@ -141,6 +150,9 @@ private fun ViewerTopBar(
 	total: Int,
 	onDismiss: () -> Unit,
 	onSelect: () -> Unit,
+	onShare: () -> Unit,
+	onUpload: () -> Unit,
+	onDelete: () -> Unit,
 	context: Context,
 ) {
 	var menuOpen by remember { mutableStateOf(false) }
@@ -172,6 +184,28 @@ private fun ViewerTopBar(
 				Icon(Icons.Filled.MoreVert, contentDescription = null, tint = Color.White)
 			}
 			DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+				DropdownMenuItem(
+					text = { Text(stringResource(R.string.gallery_share)) },
+					leadingIcon = {
+						Icon(Icons.Filled.Share, contentDescription = null)
+					},
+					onClick = {
+						menuOpen = false
+						onShare()
+					},
+				)
+				if (entry.canUpload) {
+					DropdownMenuItem(
+						text = { Text(stringResource(R.string.gallery_upload)) },
+						leadingIcon = {
+							Icon(Icons.Filled.Upload, contentDescription = null)
+						},
+						onClick = {
+							menuOpen = false
+							onUpload()
+						},
+					)
+				}
 				val downloadUrl = entry.cloud?.downloadUrl
 				if (!downloadUrl.isNullOrBlank()) {
 					DropdownMenuItem(
@@ -193,6 +227,14 @@ private fun ViewerTopBar(
 						},
 					)
 				}
+				DropdownMenuItem(
+					text = { Text(stringResource(R.string.gallery_delete)) },
+					leadingIcon = { Icon(Icons.Filled.DeleteOutline, contentDescription = null) },
+					onClick = {
+						menuOpen = false
+						onDelete()
+					},
+				)
 				DropdownMenuItem(
 					text = { Text(stringResource(R.string.viewer_select)) },
 					onClick = {

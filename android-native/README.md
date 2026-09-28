@@ -31,7 +31,7 @@ phone storage shared with Debian) together with its SHA-256 and a `LEGGIMI.txt`.
 | **M0** | Gradle project, Material 3 theme, shell with the 5 tabs + center action, CI workflow | done |
 | **M1** | Server discovery/bootstrap, Supabase auth (login, signup, MFA TOTP, recovery codes), secure token storage, REST client, full Settings screen | done |
 | **M2a** | Gallery: MediaStore + cloud merge, badges, filters, drag selection, full screen viewer (tag `native-v0.3.0`) | done |
-| **M2b** | Gallery actions: upload/index, share, delete (cloud/device), export metadata (tag `native-v0.4.0`) | next |
+| **M2b** | Gallery actions: upload/index, share, delete (cloud/device), export metadata (tag `native-v0.4.0`) | done |
 | **M3** | Collections, timeline, albums (manual + smart rules with map radius, upload retries, covers) | |
 | **M4** | Curated 3D globe (custom Canvas renderer) + detailed map (osmdroid) + clusters | |
 | **M5** | Backup: manual uploads, per-folder backup, verification, WorkManager job + foreground service, kDrive | |

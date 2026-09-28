@@ -153,4 +153,25 @@
 	<string name="status_upload_failed">Upload failed</string>
 	<string name="not_available">Not available</string>
 	<string name="open_folder_failed">Could not open the folder</string>
+	<string name="gallery_upload">Upload</string>
+	<string name="gallery_share">Share</string>
+	<string name="gallery_delete">Delete</string>
+	<string name="gallery_uploading">Uploading</string>
+	<string name="upload_details">Upload details</string>
+	<string name="upload_stop">Stop</string>
+	<string name="upload_stopping">Stopping…</string>
+	<string name="failed_count">%1$d failed</string>
+	<string name="uploaded_count">%1$d uploaded</string>
+	<string name="deleted_count">%1$d deleted</string>
+	<string name="shared_count">%1$d shared</string>
+	<string name="delete_title">Delete selection</string>
+	<string name="delete_cloud">From the cloud</string>
+	<string name="delete_cloud_hint">Moves the kDrive copies to the trash (recoverable)</string>
+	<string name="delete_local">From the device</string>
+	<string name="delete_local_hint">Removes the files from the phone (system trash on Android 11+, permanent on older versions)</string>
+	<string name="delete_confirm">Delete</string>
+	<string name="delete_cancelled">Deletion cancelled</string>
+	<string name="export_metadata">Export metadata</string>
+	<string name="export_done">Export ready</string>
+	<string name="action_failed">Operation failed</string>
 </resources>

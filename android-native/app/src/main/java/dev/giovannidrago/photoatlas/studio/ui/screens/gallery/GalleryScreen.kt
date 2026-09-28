@@ -1,6 +1,8 @@
 package dev.giovannidrago.photoatlas.studio.ui.screens.gallery
 
+import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -24,27 +26,37 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -61,25 +73,42 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.giovannidrago.photoatlas.studio.R
 import dev.giovannidrago.photoatlas.studio.data.device.PhotoPermissions
+import dev.giovannidrago.photoatlas.studio.domain.gallery.DeleteOptions
+import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryEntry
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryFilter
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryUploadFilter
+import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryUploadState
 import dev.giovannidrago.photoatlas.studio.domain.gallery.galleryIndexAt
 import dev.giovannidrago.photoatlas.studio.ui.gallery.GalleryViewModel
+import dev.giovannidrago.photoatlas.studio.ui.gallery.UiMessage
 import kotlin.math.max
 import kotlin.math.min
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+private data class PendingTrash(
+	val entries: List<GalleryEntry>,
+	val options: DeleteOptions,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 	val state by viewModel.state.collectAsStateWithLifecycle()
+	val uploadState by viewModel.upload.collectAsStateWithLifecycle()
 	val context = LocalContext.current
+	val scope = rememberCoroutineScope()
 	val listState = rememberLazyGridState()
 	val entries = rememberUpdatedState(state.entries)
+	val snackbar = remember { SnackbarHostState() }
 
 	val selected = remember { mutableStateListOf<String>() }
 	var selectionMode by remember { mutableStateOf(false) }
 	var viewerIndex by remember { mutableStateOf<Int?>(null) }
+	var showDeleteDialog by remember { mutableStateOf(false) }
+	var deleteTargets by remember { mutableStateOf<List<GalleryEntry>>(emptyList()) }
+	var pendingTrash by remember { mutableStateOf<PendingTrash?>(null) }
+	var showUploadSheet by remember { mutableStateOf(false) }
 
 	// Drag selection state.
 	var dragActive by remember { mutableStateOf(false) }
@@ -93,15 +122,46 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 	val tilePx = with(density) { tileSize.toPx() }
 	val spacingPx = with(density) { 6.dp.toPx() }
 
+	val uploadLabel = stringResource(R.string.gallery_uploading)
+
 	val permissionLauncher = rememberLauncherForActivityResult(
 		ActivityResultContracts.RequestMultiplePermissions(),
 	) { grants ->
 		if (grants.values.all { it }) viewModel.refresh()
 	}
+	val trashLauncher = rememberLauncherForActivityResult(
+		ActivityResultContracts.StartIntentSenderForResult(),
+	) { result ->
+		val pending = pendingTrash
+		pendingTrash = null
+		if (pending == null) return@rememberLauncherForActivityResult
+		if (result.resultCode == Activity.RESULT_OK) {
+			val ids = pending.entries.mapNotNull { it.local?.id }.toSet()
+			viewModel.applyDelete(pending.entries, pending.options, ids)
+		} else {
+			scope.launch { snackbar.showSnackbar(context.getString(R.string.delete_cancelled)) }
+		}
+	}
 
 	LaunchedEffect(Unit) {
 		if (!PhotoPermissions.has(context)) {
 			permissionLauncher.launch(PhotoPermissions.required().toTypedArray())
+		}
+	}
+
+	LaunchedEffect(viewModel) {
+		snapshotFlow { viewModel.message }.collect { message ->
+			val current = message ?: return@collect
+			val detail = current.detail?.let { ": $it" }.orEmpty()
+			val text = when (current.kind) {
+				UiMessage.Kind.Uploaded -> context.getString(R.string.uploaded_count, current.count)
+				UiMessage.Kind.Deleted -> context.getString(R.string.deleted_count, current.count)
+				UiMessage.Kind.Shared -> context.getString(R.string.shared_count, current.count)
+				UiMessage.Kind.Exported -> context.getString(R.string.export_done) + detail
+				UiMessage.Kind.Failed -> context.getString(R.string.action_failed) + detail
+			}
+			snackbar.showSnackbar(text)
+			viewModel.consumeMessage()
 		}
 	}
 
@@ -151,8 +211,49 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 		selected.clear()
 	}
 
+	fun selectedEntries(): List<GalleryEntry> =
+		state.entries.filter { selected.contains(it.key) }
+
+	fun runUpload(entriesToUpload: List<GalleryEntry>) {
+		viewModel.startUpload(entriesToUpload, uploadLabel)
+		exitSelection()
+	}
+
+	fun runShare(entriesToShare: List<GalleryEntry>) {
+		viewModel.share(entriesToShare)
+		exitSelection()
+	}
+
+	fun runDelete(entriesToDelete: List<GalleryEntry>) {
+		if (entriesToDelete.isEmpty()) return
+		deleteTargets = entriesToDelete
+		showDeleteDialog = true
+	}
+
+	fun confirmDelete(options: DeleteOptions) {
+		val targets = deleteTargets
+		showDeleteDialog = false
+		if (targets.isEmpty() || (!options.cloud && !options.local)) return
+		exitSelection()
+		if (!options.local) {
+			viewModel.applyDelete(targets, options, emptySet())
+			return
+		}
+		scope.launch {
+			val sender = viewModel.trashRequest(targets)
+			if (sender != null) {
+				pendingTrash = PendingTrash(targets, options)
+				trashLauncher.launch(IntentSenderRequest.Builder(sender).build())
+			} else {
+				val deleted = viewModel.deleteDeviceFiles(targets)
+				viewModel.applyDelete(targets, options, deleted)
+			}
+		}
+	}
+
 	Scaffold(
 		containerColor = Color.Transparent,
+		snackbarHost = { SnackbarHost(snackbar) },
 		topBar = {
 			if (selectionMode) {
 				TopAppBar(
@@ -163,6 +264,15 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 						}
 					},
 					actions = {
+						IconButton(
+							onClick = { viewModel.exportMetadata(selectedEntries()) },
+							enabled = selected.isNotEmpty(),
+						) {
+							Icon(
+								imageVector = Icons.Filled.Download,
+								contentDescription = stringResource(R.string.export_metadata),
+							)
+						}
 						IconButton(
 							onClick = {
 								if (selected.size == state.entries.size) {
@@ -191,6 +301,26 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 							Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.retry))
 						}
 					},
+				)
+			}
+		},
+		bottomBar = {
+			val running = uploadState
+			if (running != null) {
+				UploadBar(
+					state = running,
+					onClick = { showUploadSheet = true },
+				)
+			} else if (selectionMode) {
+				SelectionActionBar(
+					canUpload = selectedEntries().any { it.canUpload },
+					canShare = selectedEntries().any {
+						it.hasLocal || !it.cloud?.downloadUrl.isNullOrBlank()
+					},
+					canDelete = selectedEntries().any { it.canDeleteCloud || it.canDeleteLocal },
+					onUpload = { runUpload(selectedEntries()) },
+					onShare = { runShare(selectedEntries()) },
+					onDelete = { runDelete(selectedEntries()) },
 				)
 			}
 		},
@@ -256,11 +386,7 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 				text = if (state.deviceLoading) {
 					stringResource(R.string.gallery_device_loading)
 				} else {
-					stringResource(
-						R.string.gallery_counts,
-						state.deviceTotal,
-						state.cloudTotal,
-					)
+					stringResource(R.string.gallery_counts, state.deviceTotal, state.cloudTotal)
 				},
 				style = MaterialTheme.typography.labelSmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -401,6 +527,32 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 		}
 	}
 
+	if (showDeleteDialog) {
+		DeleteMediaDialog(
+			entries = deleteTargets,
+			onDismiss = { showDeleteDialog = false },
+			onConfirm = { options -> confirmDelete(options) },
+		)
+	}
+
+	val sheetUpload = uploadState
+	if (showUploadSheet && sheetUpload != null) {
+		val sheetState = rememberModalBottomSheetState()
+		ModalBottomSheet(
+			onDismissRequest = { showUploadSheet = false },
+			sheetState = sheetState,
+		) {
+			UploadProgressSheet(
+				state = sheetUpload,
+				onStop = { viewModel.cancelUpload() },
+				onDismiss = {
+					showUploadSheet = false
+					viewModel.dismissUpload()
+				},
+			)
+		}
+	}
+
 	val index = viewerIndex
 	if (index != null && index in state.entries.indices) {
 		MediaViewerDialog(
@@ -412,7 +564,93 @@ fun GalleryScreen(viewModel: GalleryViewModel = hiltViewModel()) {
 				selectionMode = true
 				if (!selected.contains(entry.key)) selected.add(entry.key)
 			},
+			onShare = { entry -> viewModel.share(listOf(entry)) },
+			onUpload = { entry ->
+				viewerIndex = null
+				viewModel.startUpload(listOf(entry), uploadLabel)
+			},
+			onDelete = { entry ->
+				viewerIndex = null
+				runDelete(listOf(entry))
+			},
 		)
+	}
+}
+
+@Composable
+private fun UploadBar(state: GalleryUploadState, onClick: () -> Unit) {
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.background(MaterialTheme.colorScheme.surfaceContainer)
+			.padding(horizontal = 16.dp, vertical = 8.dp),
+	) {
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			Text(
+				text = state.currentName ?: state.label,
+				style = MaterialTheme.typography.bodySmall,
+				maxLines = 1,
+				modifier = Modifier.weight(1f),
+			)
+			Text(
+				text = "${state.done}/${state.total}",
+				style = MaterialTheme.typography.labelSmall,
+			)
+		}
+		Spacer(Modifier.height(4.dp))
+		LinearProgressIndicator(
+			value = state.overallFraction?.toFloat(),
+			modifier = Modifier.fillMaxWidth(),
+		)
+		Spacer(Modifier.height(2.dp))
+		TextButton(onClick = onClick, modifier = Modifier.align(Alignment.End)) {
+			Text(stringResource(R.string.upload_details))
+		}
+	}
+}
+
+@Composable
+private fun SelectionActionBar(
+	canUpload: Boolean,
+	canShare: Boolean,
+	canDelete: Boolean,
+	onUpload: () -> Unit,
+	onShare: () -> Unit,
+	onDelete: () -> Unit,
+) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.background(MaterialTheme.colorScheme.surfaceContainer)
+			.padding(horizontal = 8.dp, vertical = 4.dp),
+	) {
+		TextButton(
+			onClick = onUpload,
+			enabled = canUpload,
+			modifier = Modifier.weight(1f),
+		) {
+			Icon(Icons.Filled.Upload, contentDescription = null, modifier = Modifier.size(18.dp))
+			Spacer(Modifier.size(6.dp))
+			Text(stringResource(R.string.gallery_upload))
+		}
+		TextButton(
+			onClick = onShare,
+			enabled = canShare,
+			modifier = Modifier.weight(1f),
+		) {
+			Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+			Spacer(Modifier.size(6.dp))
+			Text(stringResource(R.string.gallery_share))
+		}
+		TextButton(
+			onClick = onDelete,
+			enabled = canDelete,
+			modifier = Modifier.weight(1f),
+		) {
+			Icon(Icons.Filled.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
+			Spacer(Modifier.size(6.dp))
+			Text(stringResource(R.string.gallery_delete))
+		}
 	}
 }
 

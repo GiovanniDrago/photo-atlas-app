@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+	<!-- Cloud-only downloads prepared for sharing, and the metadata exports. -->
+	<cache-path
+		name="share"
+		path="share/" />
+	<external-files-path
+		name="exports"
+		path="exports/" />
+</paths>
