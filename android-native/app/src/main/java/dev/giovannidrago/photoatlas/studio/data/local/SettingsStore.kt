@@ -21,13 +21,15 @@ class SettingsStore @Inject constructor(
 	@ApplicationContext private val context: Context,
 ) : ApiBaseUrlProvider {
 	val apiBaseUrl: Flow<String> = context.settingsDataStore.data.map { preferences ->
-		preferences[ApiBaseUrlKey] ?: ServerCandidates.DefaultApiBaseUrl
+		ServerCandidates.resolveStored(preferences[ApiBaseUrlKey])
 	}
 
 	override suspend fun currentApiBaseUrl(): String = apiBaseUrl.first()
 
 	override suspend fun setApiBaseUrl(value: String) {
 		val normalized = ServerCandidates.normalize(value)
+		// An empty address would poison every later request: ignore it.
+		if (normalized.isEmpty()) return
 		context.settingsDataStore.edit { preferences ->
 			preferences[ApiBaseUrlKey] = normalized
 		}

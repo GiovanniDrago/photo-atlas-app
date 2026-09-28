@@ -35,6 +35,17 @@ class ServerCandidatesTest {
 	}
 
 	@Test
+	fun `a blank stored value falls back to the default`() {
+		assertEquals(ServerCandidates.DefaultApiBaseUrl, ServerCandidates.resolveStored(null))
+		assertEquals(ServerCandidates.DefaultApiBaseUrl, ServerCandidates.resolveStored(""))
+		assertEquals(ServerCandidates.DefaultApiBaseUrl, ServerCandidates.resolveStored("   "))
+		assertEquals(
+			"http://10.0.0.9:8787",
+			ServerCandidates.resolveStored("http://10.0.0.9:8787/"),
+		)
+	}
+
+	@Test
 	fun `candidates skip empty values`() {
 		val candidates = ServerCandidates.candidates(saved = "  ")
 		assertEquals(ServerCandidates.DefaultApiBaseUrl, candidates.first())

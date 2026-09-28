@@ -39,6 +39,11 @@ phone storage shared with Debian) together with its SHA-256 and a `LEGGIMI.txt`.
 
 ## Fixes
 
+- **0.5.1** — a blank server address can no longer be stored (it poisoned every request and made
+  the app report "unreachable" forever). Detection now also verifies `/api/config` before adopting
+  an address, the LAN scan waits longer per host and the error screen shows the reason for every
+  tried address (`timeout`, `connection refused`, `HTTP 500`, `not the Photo Atlas API`).
+
 - **0.2.1** — the bootstrap now runs at startup (it only ran when the server address was saved from
   the settings dialog, so a fresh install stayed on the splash). The error screen also gained
   **Retry**, **Test connection**, the list of tried addresses and the detected candidates.

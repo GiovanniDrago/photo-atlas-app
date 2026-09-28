@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.giovannidrago.photoatlas.studio.data.discovery.ProbeOutcome
 import dev.giovannidrago.photoatlas.studio.data.discovery.ServerCandidates
 import dev.giovannidrago.photoatlas.studio.data.discovery.ServerDiscovery
 import dev.giovannidrago.photoatlas.studio.data.local.SettingsStore
@@ -37,7 +38,7 @@ class SettingsViewModel @Inject constructor(
 		private set
 	var result by mutableStateOf<ServerResult?>(null)
 		private set
-	var testResult by mutableStateOf<Boolean?>(null)
+	var testOutcome by mutableStateOf<ProbeOutcome?>(null)
 		private set
 	var candidates by mutableStateOf<List<String>>(emptyList())
 		private set
@@ -51,15 +52,19 @@ class SettingsViewModel @Inject constructor(
 
 	fun onServerUrlChange(value: String) {
 		serverUrl = value
-		testResult = null
+		testOutcome = null
 	}
 
 	/** Saves the address and retries the whole bootstrap. */
 	fun save() {
 		viewModelScope.launch {
+			if (serverUrl.isBlank()) {
+				testOutcome = ProbeOutcome.Failure("", "empty address")
+				return@launch
+			}
 			settingsStore.setApiBaseUrl(serverUrl)
 			result = ServerResult.Saved
-			testResult = null
+			testOutcome = null
 			bootstrap.bootstrap(prefer = serverUrl)
 		}
 	}
@@ -69,7 +74,7 @@ class SettingsViewModel @Inject constructor(
 	fun detect() {
 		viewModelScope.launch {
 			detecting = true
-			testResult = null
+			testOutcome = null
 			val detected = discovery.detectAndSave(prefer = serverUrl, scanLan = true)
 			detecting = false
 			candidates = detected.tried
@@ -88,7 +93,7 @@ class SettingsViewModel @Inject constructor(
 		viewModelScope.launch {
 			testing = true
 			result = null
-			testResult = discovery.isOnline(serverUrl, timeoutMs = 4000)
+			testOutcome = discovery.test(serverUrl, timeoutMs = 4000)
 			testing = false
 		}
 	}

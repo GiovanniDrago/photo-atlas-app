@@ -68,8 +68,10 @@ class BootstrapController @Inject constructor(
 	}
 
 	private fun unreachableMessage(detected: DetectResult): String {
-		val tried = detected.tried.joinToString(", ")
-		val lan = if (detected.scannedLan) "; LAN scan: nothing found" else ""
-		return "No reachable API server (tried: $tried$lan)"
+		val tried = detected.attempts.joinToString("; ") { outcome ->
+			"${outcome.url} -> ${outcome.reason()}"
+		}
+		val lan = if (detected.scannedLan) "; LAN scan: no server found" else ""
+		return "No reachable API server ($tried$lan)"
 	}
 }

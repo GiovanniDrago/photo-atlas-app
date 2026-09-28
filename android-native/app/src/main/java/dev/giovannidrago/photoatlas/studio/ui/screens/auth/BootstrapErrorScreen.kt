@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.giovannidrago.photoatlas.studio.R
+import dev.giovannidrago.photoatlas.studio.data.discovery.ProbeOutcome
 import dev.giovannidrago.photoatlas.studio.ui.components.ServerPanel
 import dev.giovannidrago.photoatlas.studio.ui.settings.ServerResult
 import dev.giovannidrago.photoatlas.studio.ui.settings.SettingsViewModel
@@ -74,6 +75,13 @@ fun BootstrapErrorScreen(
 			text = message,
 			style = MaterialTheme.typography.labelSmall,
 			color = MaterialTheme.colorScheme.error,
+			textAlign = TextAlign.Center,
+		)
+		Spacer(Modifier.height(8.dp))
+		Text(
+			text = stringResource(R.string.bootstrap_scan_hint),
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
 			textAlign = TextAlign.Center,
 		)
 		Spacer(Modifier.height(20.dp))
@@ -136,12 +144,19 @@ fun BootstrapErrorScreen(
 /** Message + whether it is a failure, for the last action. */
 @Composable
 private fun resultMessage(viewModel: SettingsViewModel): Pair<String, Boolean>? {
-	viewModel.testResult?.let { online ->
-		return if (online) {
-			stringResource(R.string.server_test_ok) to false
-		} else {
-			stringResource(R.string.server_test_failed) to true
+	viewModel.testOutcome?.let { outcome ->
+		val text = when (outcome) {
+			is ProbeOutcome.Success -> stringResource(R.string.server_test_ok)
+			is ProbeOutcome.Timeout -> stringResource(R.string.server_test_timeout)
+			is ProbeOutcome.Refused -> stringResource(R.string.server_test_refused)
+			is ProbeOutcome.HttpError -> stringResource(R.string.server_test_http, outcome.code)
+			is ProbeOutcome.Failure -> when (outcome.reason) {
+				"empty address" -> stringResource(R.string.server_address_empty)
+				"not the Photo Atlas API" -> stringResource(R.string.server_test_not_api)
+				else -> "${stringResource(R.string.server_test_failed)}: ${outcome.reason}"
+			}
 		}
+		return text to (outcome !is ProbeOutcome.Success)
 	}
 	return when (val result = viewModel.result) {
 		is ServerResult.Found -> stringResource(R.string.server_found, result.url) to false

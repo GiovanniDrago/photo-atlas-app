@@ -226,4 +226,10 @@
 	<string name="error_loading_short">Could not load</string>
 	<string name="added_count">%1$d added</string>
 	<string name="album_set_cover">Use as cover</string>
+	<string name="bootstrap_scan_hint">No server reachable: tap Detect to look for it on the local network.</string>
+	<string name="server_test_timeout">No answer (timeout)</string>
+	<string name="server_test_refused">Connection refused (is the service running?)</string>
+	<string name="server_test_http">The server answered with HTTP %1$d</string>
+	<string name="server_test_not_api">It answers, but it is not the Photo Atlas API</string>
+	<string name="server_address_empty">Enter the server address first</string>
 </resources>

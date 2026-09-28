@@ -226,4 +226,10 @@
 	<string name="error_loading_short">Caricamento non riuscito</string>
 	<string name="added_count">%1$d aggiunti</string>
 	<string name="album_set_cover">Usa come copertina</string>
+	<string name="bootstrap_scan_hint">Nessun server raggiungibile: tocca Rileva per cercarlo nella rete locale.</string>
+	<string name="server_test_timeout">Nessuna risposta (timeout)</string>
+	<string name="server_test_refused">Connessione rifiutata (il servizio è acceso?)</string>
+	<string name="server_test_http">Il server ha risposto con HTTP %1$d</string>
+	<string name="server_test_not_api">Risponde, ma non è l'API di Photo Atlas</string>
+	<string name="server_address_empty">Inserisci prima l'indirizzo del server</string>
 </resources>

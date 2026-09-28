@@ -6,11 +6,17 @@ package dev.giovannidrago.photoatlas.studio.data.discovery
  * (and a LAN scan) find the server when it does not answer.
  */
 object ServerCandidates {
-	const val DefaultApiBaseUrl = "http://10.234.121.225:8787"
+	const val DefaultApiBaseUrl = "http://10.238.220.225:8787"
 	const val FallbackApiBaseUrl = "http://localhost:8787"
 	const val Port = 8787
 
 	fun normalize(value: String): String = value.trim().trimEnd('/')
+
+	/** A blank stored value must never win over the baked default. */
+	fun resolveStored(value: String?): String {
+		val normalized = normalize(value.orEmpty())
+		return normalized.ifEmpty { DefaultApiBaseUrl }
+	}
 
 	/** Most likely first, unique, without empty values. */
 	fun candidates(prefer: String? = null, saved: String? = null): List<String> {
