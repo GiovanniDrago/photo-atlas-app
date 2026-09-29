@@ -42,6 +42,11 @@ checksums of a published release (the `LEGGIMI.txt` text stays hand-written).
 
 ## Fixes
 
+- **0.7.4** — the Cloud check gained a **Media response** step (raw body size, `items` keys and
+  parsed items/total of the same query the Gallery uses) plus a temporary state line in the
+  Gallery, to pin down why cloud items do not show up on a device. R8 keep rules for
+  kotlinx-serialization and the DTO fields were added as well.
+
 - **0.7.3** — Settings has a **Cloud check** card: a read-only button that runs the whole cloud
   chain (server address, account email, kDrive status, sources, backup totals, uploaded items,
   clusters) and shows the outcome or the error of every step. It makes a screenshot enough to

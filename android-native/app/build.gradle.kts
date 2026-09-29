@@ -36,8 +36,8 @@ android {
 		applicationId = "dev.giovannidrago.photoatlas.studio"
 		minSdk = 26
 		targetSdk = 37
-		versionCode = 12
-		versionName = "0.7.3"
+		versionCode = 13
+		versionName = "0.7.4"
 	}
 
 	signingConfigs {
