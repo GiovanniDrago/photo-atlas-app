@@ -38,10 +38,19 @@ if [[ ! -f "$DEST/${APK_NAME}.sha256" ]]; then
   exit 1
 fi
 
-(cd "$DEST" && sha256sum -c "${APK_NAME}.sha256")
+# The CI checksum file stores the build path; verify the hash and normalize it
+# to the bare file name, as the previous deliveries did.
+EXPECTED="$(cut -d' ' -f1 "$DEST/${APK_NAME}.sha256")"
+ACTUAL="$(sha256sum "$DEST/$APK_NAME" | cut -d' ' -f1)"
+if [[ "$EXPECTED" != "$ACTUAL" ]]; then
+  echo "Checksum mismatch for ${APK_NAME}: expected ${EXPECTED}, got ${ACTUAL}" >&2
+  exit 1
+fi
+
+(cd "$DEST" && sha256sum "$APK_NAME" > "${APK_NAME}.sha256")
 (cd "$DEST" && sha256sum PhotoAtlasStudio-*.apk > SHA256.txt)
 
-CHECKSUM="$(cd "$DEST" && sha256sum "$APK_NAME" | cut -d' ' -f 1)"
+CHECKSUM="$ACTUAL"
 
 echo "Delivered ${APK_NAME} to ${DEST}"
 echo "SHA-256: ${CHECKSUM}"
