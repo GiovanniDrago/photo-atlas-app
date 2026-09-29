@@ -42,6 +42,12 @@ checksums of a published release (the `LEGGIMI.txt` text stays hand-written).
 
 ## Fixes
 
+- **0.7.1** — cloud failures are no longer silent: the Gallery now shows the real error with a
+  **Retry** button (also while local files are listed) and the empty messages no longer mention
+  future milestones; they point to **Settings → kDrive** instead. Gallery and Timeline refresh
+  when the app comes back to the foreground, so a kDrive scan, an upload or a fixed server
+  address shows up immediately.
+
 - **0.5.1** — a blank server address can no longer be stored (it poisoned every request and made
   the app report "unreachable" forever). Detection now also verifies `/api/config` before adopting
   an address, the LAN scan waits longer per host and the error screen shows the reason for every
