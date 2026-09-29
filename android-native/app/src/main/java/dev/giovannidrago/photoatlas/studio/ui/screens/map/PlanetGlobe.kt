@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import dev.giovannidrago.photoatlas.studio.data.remote.MediaClusterDto
 import dev.giovannidrago.photoatlas.studio.domain.map.GlobeMath
@@ -56,6 +57,7 @@ fun PlanetGlobe(
 	val currentCenter = rememberUpdatedState(centerLat to centerLon)
 	val currentScale = rememberUpdatedState(scale)
 	val currentClusters = rememberUpdatedState(clusters)
+	val tapDistancePx = with(LocalDensity.current) { GlobeMath.TapDistance.dp.toPx() }
 	val hitPoints = remember { mutableListOf<Pair<Float, Float>>() }
 	val hitIndices = remember { mutableListOf<Int>() }
 	val velocity = remember { FloatArray(2) }
@@ -133,7 +135,7 @@ fun PlanetGlobe(
 			}
 			.pointerInput(clusters) {
 				detectTapGestures { offset ->
-					val hit = GlobeMath.hitTest(hitPoints, offset.x, offset.y)
+					val hit = GlobeMath.hitTest(hitPoints, offset.x, offset.y, tapDistancePx)
 						?: return@detectTapGestures
 					val index = hitIndices.getOrNull(hit) ?: return@detectTapGestures
 					currentClusters.value.getOrNull(index)?.let(onClusterTap)
