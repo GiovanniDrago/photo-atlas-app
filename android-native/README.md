@@ -36,7 +36,8 @@ checksums of a published release (the `LEGGIMI.txt` text stays hand-written).
 | **M2b** | Gallery actions: upload/index, share, delete (cloud/device), export metadata (tag `native-v0.4.0`) | done |
 | **M3** | Collections (folders + auto backup switch), timeline (day/week/month + continuous viewer) and albums (manual + smart rules with preview, upload retries, covers) — tag `native-v0.5.0` | done |
 | **M4** | Curated 3D globe (custom Canvas renderer) + detailed map (osmdroid) + clusters + smart-album location rule — tag `native-v0.6.0` | done |
-| **M5** | Backup: manual uploads, per-folder backup, verification, WorkManager job + foreground service, kDrive | |
+| **M5a** | kDrive settings (connect, folder scans, previews, enrich) and the Backup screen: manual uploads, per-folder backup and verification — tag `native-v0.7.0` | done |
+| **M5b** | Automatic backup: WorkManager job + foreground service, auto-backup card, banner and run sheet | |
 | **M6** | Polish, it/en localization, tests, docs, parity checklist with the Flutter app | |
 
 ## Fixes
