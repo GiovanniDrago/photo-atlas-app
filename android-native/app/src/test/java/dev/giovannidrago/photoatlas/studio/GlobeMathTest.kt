@@ -70,9 +70,9 @@ class GlobeMathTest {
 		val small = GlobeMath.clusterRadius(100f, count = 1, maxCount = 100)
 		val medium = GlobeMath.clusterRadius(100f, count = 25, maxCount = 100)
 		val big = GlobeMath.clusterRadius(100f, count = 100, maxCount = 100)
-		assertEquals(100f * (0.025 + 0.075 * 0.1) + 3f, small, 0.01f)
-		assertEquals(100f * (0.025 + 0.075 * 0.5) + 3f, medium, 0.01f)
-		assertEquals(100f * (0.025 + 0.075) + 3f, big, 0.01f)
+		assertEquals((100f * (0.025 + 0.075 * 0.1) + 3f).toFloat(), small, 0.01f)
+		assertEquals((100f * (0.025 + 0.075 * 0.5) + 3f).toFloat(), medium, 0.01f)
+		assertEquals((100f * (0.025 + 0.075) + 3f).toFloat(), big, 0.01f)
 		assertEquals(0f, GlobeMath.clusterLabelSize(0f), 0.001f)
 		assertEquals(13f, GlobeMath.clusterLabelSize(100f), 0.001f)
 	}
