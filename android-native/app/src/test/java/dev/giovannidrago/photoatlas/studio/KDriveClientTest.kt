@@ -133,6 +133,8 @@ class KDriveClientTest {
 			),
 		)
 		val enrich = client.kdriveEnrichState()
+		val enrichPath = server.takeRequest().path.orEmpty()
+		assertEquals("/api/kdrive/enrich", enrichPath)
 		assertTrue(enrich.running)
 		assertEquals(12, enrich.processed)
 		assertEquals(9, enrich.updated)

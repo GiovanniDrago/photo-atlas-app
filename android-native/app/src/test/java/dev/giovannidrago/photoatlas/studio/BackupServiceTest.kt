@@ -91,7 +91,7 @@ class BackupServiceTest {
 	@Test
 	fun `backup run uploads the pending claims and completes`() = runTest {
 		coEvery { device.resolveForItems(any()) } returns mapOf("42" to localMedia("a.jpg"))
-		every { indexer.openStream(any()) } returns ByteArrayInputStream(ByteArray(100))
+		every { indexer.openStream(any()) } answers { ByteArrayInputStream(ByteArray(100)) }
 
 		server.enqueue(MockResponse().setResponseCode(201).setBody(runBody()))
 		server.enqueue(
@@ -119,7 +119,7 @@ class BackupServiceTest {
 	@Test
 	fun `failed uploads are not retried inside the same run`() = runTest {
 		coEvery { device.resolveForItems(any()) } returns mapOf("42" to localMedia("a.jpg"))
-		every { indexer.openStream(any()) } returns ByteArrayInputStream(ByteArray(100))
+		every { indexer.openStream(any()) } answers { ByteArrayInputStream(ByteArray(100)) }
 
 		server.enqueue(MockResponse().setResponseCode(201).setBody(runBody()))
 		server.enqueue(
@@ -143,7 +143,7 @@ class BackupServiceTest {
 	@Test
 	fun `cancelling releases the claims of the current batch`() = runTest {
 		coEvery { device.resolveForItems(any()) } returns mapOf("42" to localMedia("a.jpg"))
-		every { indexer.openStream(any()) } returns ByteArrayInputStream(ByteArray(100))
+		every { indexer.openStream(any()) } answers { ByteArrayInputStream(ByteArray(100)) }
 
 		server.enqueue(MockResponse().setResponseCode(201).setBody(runBody()))
 		server.enqueue(

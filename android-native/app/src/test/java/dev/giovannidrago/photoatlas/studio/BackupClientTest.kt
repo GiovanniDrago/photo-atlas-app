@@ -84,8 +84,10 @@ class BackupClientTest {
 			),
 		)
 		val queue = client.verifyQueue(sourceId = "s1", limit = 500)
+		val queuePath = server.takeRequest().path.orEmpty()
 		assertEquals(1, queue.size)
 		assertEquals(987L, queue.first().kdriveFileId)
+		assertTrue("queue: $queuePath", queuePath.startsWith("/api/backup/verify-queue"))
 
 		server.enqueue(
 			MockResponse().setResponseCode(200).setBody(
