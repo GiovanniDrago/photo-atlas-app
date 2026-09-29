@@ -8,7 +8,6 @@ import dev.giovannidrago.photoatlas.studio.data.remote.MediaClusterDto
 import kotlin.math.sqrt
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
-import org.osmdroid.views.Projection
 import org.osmdroid.views.overlay.Overlay
 
 /**
@@ -25,18 +24,17 @@ class ClusterOverlay(
 	var labelColor: Int = 0xFF161D1D.toInt()
 
 	private val density = context.resources.displayMetrics.density
-	private val projection = Projection()
 	private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 	private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
 	private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
 
 	override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
 		if (shadow || clusters.isEmpty()) return
-		projection.fromMapView(mapView)
+		val projection = mapView.projection
 		val maxCount = clusters.maxOfOrNull { it.count }?.coerceAtLeast(1) ?: 1
 		for (cluster in clusters) {
 			val point = projection.toPixels(GeoPoint(cluster.lat, cluster.lon), null)
-			val radius = (10f + 26f * sqrt(cluster.count.toDouble() / maxCount)) * density
+			val radius = ((10f + 26f * sqrt(cluster.count.toDouble() / maxCount)) * density).toFloat()
 			val selected = cluster.key == selectedKey
 			fillPaint.color = withAlpha(primaryColor, if (selected) 0.85f else 0.4f)
 			canvas.drawCircle(point.x.toFloat(), point.y.toFloat(), radius, fillPaint)
@@ -57,7 +55,7 @@ class ClusterOverlay(
 
 	override fun onSingleTapConfirmed(event: MotionEvent, mapView: MapView): Boolean {
 		if (clusters.isEmpty()) return false
-		projection.fromMapView(mapView)
+		val projection = mapView.projection
 		val maxDistance = 40f * density
 		var best: Int? = null
 		var bestDistance = maxDistance

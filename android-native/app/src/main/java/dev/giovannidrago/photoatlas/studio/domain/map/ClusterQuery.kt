@@ -1,5 +1,7 @@
 package dev.giovannidrago.photoatlas.studio.domain.map
 
+import java.util.Objects
+
 /** Cluster query key: same fields as the Flutter app (west/south/east/north/zoom). */
 data class ClusterQuery(
 	val west: Double,
@@ -20,7 +22,7 @@ data class ClusterQuery(
 			other.north == north &&
 			other.zoom == zoom
 
-	override fun hashCode(): Int = Object.hash(west, south, east, north, zoom)
+	override fun hashCode(): Int = Objects.hash(west, south, east, north, zoom)
 }
 
 /** Zoom buckets and mode thresholds, ported from the Flutter map screen. */

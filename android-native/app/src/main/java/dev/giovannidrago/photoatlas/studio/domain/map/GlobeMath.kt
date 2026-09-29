@@ -33,8 +33,8 @@ object GlobeMath {
 		val dlon = lon - Math.toRadians(centerLon)
 		val cosc = sin(lat0) * sin(lat) + cos(lat0) * cos(lat) * cos(dlon)
 		if (cosc < -0.03) return null
-		val x = radius * cos(lat) * sin(dlon)
-		val y = -radius * (cos(lat0) * sin(lat) - sin(lat0) * cos(lat) * cos(dlon))
+		val x = (radius * cos(lat) * sin(dlon)).toFloat()
+		val y = (-radius * (cos(lat0) * sin(lat) - sin(lat0) * cos(lat) * cos(dlon))).toFloat()
 		return (originX + x) to (originY + y)
 	}
 

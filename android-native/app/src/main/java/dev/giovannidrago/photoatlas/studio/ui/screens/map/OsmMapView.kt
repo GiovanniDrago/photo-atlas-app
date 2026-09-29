@@ -54,15 +54,9 @@ fun OsmMapView(
 	val currentOnMoved by rememberUpdatedState(onMoved)
 
 	var mapView by remember { mutableStateOf<MapView?>(null) }
+	var markerOverlay by remember { mutableStateOf<Marker?>(null) }
 	val overlay = remember {
 		ClusterOverlay(context) { cluster -> currentOnSelect(cluster) }
-	}
-	val markerOverlay = remember {
-		Marker(context).apply {
-			setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-			icon = ContextCompat.getDrawable(context, R.drawable.ic_map_pin)
-			isEnabled = false
-		}
 	}
 
 	AndroidView(
@@ -77,7 +71,14 @@ fun OsmMapView(
 				setMapOrientation(0f)
 				isTilesScaledToDpi = false
 				overlays.add(overlay)
-				overlays.add(markerOverlay)
+				Marker(this).apply {
+					setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+					icon = ContextCompat.getDrawable(viewContext, R.drawable.ic_map_pin)
+					isEnabled = false
+				}.let { marker ->
+					overlays.add(marker)
+					markerOverlay = marker
+				}
 				controller.setCenter(GeoPoint(center.first, center.second))
 				controller.setZoom(zoom)
 				if (interactive) {
@@ -123,11 +124,13 @@ fun OsmMapView(
 			overlay.selectedKey = selectedKey
 			overlay.primaryColor = primary.toArgb()
 			overlay.labelColor = onSurface.toArgb()
-			if (marker != null) {
-				markerOverlay.isEnabled = true
-				markerOverlay.position = GeoPoint(marker.first, marker.second)
-			} else {
-				markerOverlay.isEnabled = false
+			markerOverlay?.let { overlayMarker ->
+				if (marker != null) {
+					overlayMarker.isEnabled = true
+					overlayMarker.position = GeoPoint(marker.first, marker.second)
+				} else {
+					overlayMarker.isEnabled = false
+				}
 			}
 			view.invalidate()
 		},

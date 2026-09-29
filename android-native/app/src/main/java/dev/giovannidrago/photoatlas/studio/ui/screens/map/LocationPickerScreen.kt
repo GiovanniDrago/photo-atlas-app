@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -64,7 +63,6 @@ fun LocationPickerScreen(
 	onDone: (Double, Double, Double) -> Unit,
 	onBack: () -> Unit,
 ) {
-	val context = LocalContext.current
 	val density = LocalDensity.current.density
 	val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 	val primary = MaterialTheme.colorScheme.primary
@@ -75,14 +73,8 @@ fun LocationPickerScreen(
 	}
 	var radiusM by remember { mutableStateOf(LocationPicker.clampRadius(initialRadiusM)) }
 	var mapView by remember { mutableStateOf<MapView?>(null) }
+	var markerOverlay by remember { mutableStateOf<Marker?>(null) }
 	val circleOverlay = remember { Polygon().apply { isEnabled = false } }
-	val markerOverlay = remember {
-		Marker(context).apply {
-			setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-			icon = ContextCompat.getDrawable(context, R.drawable.ic_map_pin)
-			isEnabled = false
-		}
-	}
 	val eventsOverlay = remember {
 		MapEventsOverlay(
 			object : MapEventsReceiver {
@@ -131,7 +123,14 @@ fun LocationPickerScreen(
 						setMapOrientation(0f)
 						isTilesScaledToDpi = false
 						overlays.add(circleOverlay)
-						overlays.add(markerOverlay)
+						Marker(this).apply {
+							setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+							icon = ContextCompat.getDrawable(viewContext, R.drawable.ic_map_pin)
+							isEnabled = false
+						}.let { marker ->
+							overlays.add(marker)
+							markerOverlay = marker
+						}
 						overlays.add(eventsOverlay)
 						val initial = center
 						controller.setCenter(
@@ -156,9 +155,11 @@ fun LocationPickerScreen(
 						circleOverlay.outlinePaint.color = primary.toArgb()
 						circleOverlay.outlinePaint.strokeWidth = 2f * density
 					}
-					markerOverlay.isEnabled = current != null
-					if (current != null) {
-						markerOverlay.position = GeoPoint(current.first, current.second)
+					markerOverlay?.let { marker ->
+						marker.isEnabled = current != null
+						if (current != null) {
+							marker.position = GeoPoint(current.first, current.second)
+						}
 					}
 					view.invalidate()
 				},
@@ -193,7 +194,7 @@ fun LocationPickerScreen(
 					)
 					Text("${LocationPicker.radiusKmLabel(radiusM)} km")
 				}
-				FilledButton(
+				Button(
 					onClick = {
 						center?.let { point -> onDone(point.first, point.second, radiusM) }
 					},

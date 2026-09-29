@@ -253,6 +253,7 @@ fun PlanetGlobe(
 			}
 		for (index in order) {
 			val point = projected[index]!!
+			val offset = Offset(point.first, point.second)
 			val cluster = clusters[index]
 			hitPoints.add(point)
 			hitIndices.add(index)
@@ -264,24 +265,24 @@ fun PlanetGlobe(
 						primary.copy(alpha = if (selected) 0.95f else 0.7f),
 						Color.Transparent,
 					),
-					center = point,
+					center = offset,
 					radius = circleRadius * 2.4f,
 				),
 				radius = circleRadius * 2.4f,
-				center = point,
+				center = offset,
 			)
-			drawCircle(primary.copy(alpha = if (selected) 0.95f else 0.8f), circleRadius, point)
+			drawCircle(primary.copy(alpha = if (selected) 0.95f else 0.8f), circleRadius, offset)
 			drawCircle(
 				color = scheme.onPrimary.copy(alpha = 0.9f),
 				radius = circleRadius,
-				center = point,
+				center = offset,
 				style = Stroke(width = if (selected) 2.6.dp.toPx() else 1.1.dp.toPx()),
 			)
 			if (selected) {
 				drawCircle(
 					color = primary.copy(alpha = 0.2f + 0.35f * pulse.value),
 					radius = circleRadius + 6.dp.toPx(),
-					center = point,
+					center = offset,
 					style = Stroke(width = 1.6.dp.toPx()),
 				)
 			}
@@ -290,8 +291,8 @@ fun PlanetGlobe(
 				labelPaint.textSize = GlobeMath.clusterLabelSize(circleRadius / density) * density
 				drawContext.canvas.nativeCanvas.drawText(
 					cluster.count.toString(),
-					point.x,
-					point.y + labelPaint.textSize / 3f,
+					offset.x,
+					offset.y + labelPaint.textSize / 3f,
 					labelPaint,
 				)
 			}

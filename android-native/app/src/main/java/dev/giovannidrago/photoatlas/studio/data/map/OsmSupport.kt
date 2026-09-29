@@ -3,7 +3,7 @@ package dev.giovannidrago.photoatlas.studio.data.map
 import android.content.Context
 import java.io.File
 import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
+import org.osmdroid.tileprovider.tilesource.XYTileSource
 
 /** osmdroid setup and the CARTO raster tile sources (same look as Flutter). */
 object OsmSupport {
@@ -18,30 +18,34 @@ object OsmSupport {
 	}
 
 	/** CARTO light basemap, 512 px @2x tiles (crisper on high density screens). */
-	object CartoLightTileSource : OnlineTileSourceBase(
+	object CartoLightTileSource : XYTileSource(
 		"CARTO Light",
 		2,
 		20,
 		512,
 		"@2x.png",
-		"https://a.basemaps.cartocdn.com/light_all/",
-		"https://b.basemaps.cartocdn.com/light_all/",
-		"https://c.basemaps.cartocdn.com/light_all/",
-		"https://d.basemaps.cartocdn.com/light_all/",
+		arrayOf(
+			"https://a.basemaps.cartocdn.com/light_all/",
+			"https://b.basemaps.cartocdn.com/light_all/",
+			"https://c.basemaps.cartocdn.com/light_all/",
+			"https://d.basemaps.cartocdn.com/light_all/",
+		),
 	)
 
-	object CartoDarkTileSource : OnlineTileSourceBase(
+	object CartoDarkTileSource : XYTileSource(
 		"CARTO Dark",
 		2,
 		20,
 		512,
 		"@2x.png",
-		"https://a.basemaps.cartocdn.com/dark_all/",
-		"https://b.basemaps.cartocdn.com/dark_all/",
-		"https://c.basemaps.cartocdn.com/dark_all/",
-		"https://d.basemaps.cartocdn.com/dark_all/",
+		arrayOf(
+			"https://a.basemaps.cartocdn.com/dark_all/",
+			"https://b.basemaps.cartocdn.com/dark_all/",
+			"https://c.basemaps.cartocdn.com/dark_all/",
+			"https://d.basemaps.cartocdn.com/dark_all/",
+		),
 	)
 
-	fun tileSource(dark: Boolean): OnlineTileSourceBase =
+	fun tileSource(dark: Boolean): XYTileSource =
 		if (dark) CartoDarkTileSource else CartoLightTileSource
 }
