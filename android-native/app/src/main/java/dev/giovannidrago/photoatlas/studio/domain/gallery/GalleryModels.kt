@@ -119,3 +119,13 @@ fun galleryEntryMatches(entry: GalleryEntry, filter: GalleryFilter): Boolean {
 	}
 	return true
 }
+
+/** Why the gallery grid has no entries, so the UI picks the right message. */
+enum class GalleryEmptyReason { Uploaded, NotUploaded, Filtered, NoMedia }
+
+fun galleryEmptyReason(filter: GalleryFilter): GalleryEmptyReason = when {
+	filter.upload == GalleryUploadFilter.Uploaded -> GalleryEmptyReason.Uploaded
+	filter.upload == GalleryUploadFilter.Pending -> GalleryEmptyReason.NotUploaded
+	filter.type != "all" || filter.missingOnly -> GalleryEmptyReason.Filtered
+	else -> GalleryEmptyReason.NoMedia
+}

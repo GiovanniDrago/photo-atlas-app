@@ -51,6 +51,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -70,14 +71,19 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.giovannidrago.photoatlas.studio.R
 import dev.giovannidrago.photoatlas.studio.data.device.PhotoPermissions
 import dev.giovannidrago.photoatlas.studio.domain.gallery.DeleteOptions
+import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryEmptyReason
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryEntry
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryFilter
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryUploadFilter
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryUploadState
+import dev.giovannidrago.photoatlas.studio.domain.gallery.galleryEmptyReason
 import dev.giovannidrago.photoatlas.studio.domain.gallery.galleryIndexAt
 import dev.giovannidrago.photoatlas.studio.ui.gallery.GalleryScope
 import dev.giovannidrago.photoatlas.studio.ui.gallery.GalleryViewModel
@@ -114,6 +120,7 @@ fun GalleryScreen(
 	albumsViewModel: AlbumsViewModel? = null,
 	onBack: () -> Unit = {},
 	onEditAlbum: (String) -> Unit = {},
+	onOpenSettings: (() -> Unit)? = null,
 	header: (@Composable () -> Unit)? = null,
 ) {
 	val state by viewModel.state.collectAsStateWithLifecycle()
@@ -174,6 +181,22 @@ fun GalleryScreen(
 		if (!PhotoPermissions.has(context)) {
 			permissionLauncher.launch(PhotoPermissions.required().toTypedArray())
 		}
+	}
+
+	// Cloud data can change while the screen is in the background (kDrive scans,
+	// uploads, server address fixes): refresh when it comes back to the front.
+	val lifecycleOwner = LocalLifecycleOwner.current
+	var pausedOnce by remember { mutableStateOf(false) }
+	DisposableEffect(lifecycleOwner) {
+		val observer = LifecycleEventObserver { _, event ->
+			when (event) {
+				Lifecycle.Event.ON_PAUSE -> pausedOnce = true
+				Lifecycle.Event.ON_RESUME -> if (pausedOnce) viewModel.refresh(forceDevice = false)
+				else -> Unit
+			}
+		}
+		lifecycleOwner.lifecycle.addObserver(observer)
+		onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
 	}
 
 	LaunchedEffect(viewModel) {
@@ -551,6 +574,12 @@ fun GalleryScreen(
 			if (state.permissionDenied) {
 				PermissionBanner(onOpenSettings = { PhotoPermissions.openSettings(context) })
 			}
+			if (state.error != null && state.entries.isNotEmpty()) {
+				CloudErrorBanner(
+					message = state.error.orEmpty(),
+					onRetry = { viewModel.refresh() },
+				)
+			}
 			Box(modifier = Modifier.weight(1f)) {
 				when {
 					state.cloudLoading && state.entries.isEmpty() -> {
@@ -571,11 +600,10 @@ fun GalleryScreen(
 					}
 
 					state.entries.isEmpty() -> {
-						Text(
-							text = stringResource(R.string.gallery_empty),
-							modifier = Modifier
-								.align(Alignment.Center)
-								.padding(24.dp),
+						EmptyGallery(
+							reason = galleryEmptyReason(state.filter),
+							onOpenSettings = onOpenSettings,
+							modifier = Modifier.align(Alignment.Center),
 						)
 					}
 
@@ -806,6 +834,72 @@ private fun PermissionBanner(onOpenSettings: () -> Unit) {
 		TextButton(onClick = onOpenSettings) {
 			Icon(Icons.Filled.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
 			Text(text = stringResource(R.string.gallery_open_settings))
+		}
+	}
+}
+
+/** Cloud failure banner shown while local entries are still visible. */
+@Composable
+private fun CloudErrorBanner(message: String, onRetry: () -> Unit) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = 12.dp, vertical = 4.dp)
+			.background(
+				color = MaterialTheme.colorScheme.errorContainer,
+				shape = MaterialTheme.shapes.small,
+			)
+			.padding(horizontal = 12.dp, vertical = 8.dp),
+		verticalAlignment = Alignment.CenterVertically,
+	) {
+		Text(
+			text = stringResource(R.string.gallery_cloud_error) + ": " + message,
+			modifier = Modifier
+				.weight(1f)
+				.padding(end = 8.dp),
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onErrorContainer,
+		)
+		TextButton(onClick = onRetry) {
+			Text(stringResource(R.string.retry))
+		}
+	}
+}
+
+/** Empty grid message, contextual to the filter and to the kDrive settings. */
+@Composable
+private fun EmptyGallery(
+	reason: GalleryEmptyReason,
+	onOpenSettings: (() -> Unit)?,
+	modifier: Modifier = Modifier,
+) {
+	Column(
+		modifier = modifier.padding(24.dp),
+		horizontalAlignment = Alignment.CenterHorizontally,
+	) {
+		Text(
+			text = stringResource(
+				when (reason) {
+					GalleryEmptyReason.Uploaded -> R.string.gallery_empty_uploaded
+					GalleryEmptyReason.NotUploaded -> R.string.gallery_empty_not_uploaded
+					GalleryEmptyReason.Filtered -> R.string.gallery_empty_filtered
+					GalleryEmptyReason.NoMedia -> R.string.gallery_empty
+				},
+			),
+			style = MaterialTheme.typography.bodyMedium,
+		)
+		if (reason == GalleryEmptyReason.NoMedia) {
+			Spacer(Modifier.height(8.dp))
+			Text(
+				text = stringResource(R.string.gallery_empty_hint),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+			if (onOpenSettings != null) {
+				TextButton(onClick = onOpenSettings) {
+					Text(stringResource(R.string.gallery_open_settings))
+				}
+			}
 		}
 	}
 }

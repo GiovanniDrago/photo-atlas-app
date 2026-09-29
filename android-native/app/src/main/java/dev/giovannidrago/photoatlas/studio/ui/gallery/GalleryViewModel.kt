@@ -82,6 +82,7 @@ class GalleryViewModel @Inject constructor(
 	private var deviceTotal = 0
 	private var filter = GalleryFilter()
 	private var generation = 0
+	private var cloudError: String? = null
 
 	private val _state = MutableStateFlow(GalleryState())
 	val state: StateFlow<GalleryState> = _state.asStateFlow()
@@ -120,12 +121,13 @@ class GalleryViewModel @Inject constructor(
 		val current = generation
 		_state.value = _state.value.copy(loadingMore = true)
 		viewModelScope.launch {
+			cloudError = null
 			runCatching {
 				if (!cloudDone) fetchCloud(cloudPage)
 				val folderScope = scope as? GalleryScope.Folder
 				if (folderScope != null && !folderDone) fetchFolderPage(folderScope.albumId)
 			}.onFailure {
-				if (current == generation) _state.value = _state.value.copy(error = it.message)
+				if (current == generation) cloudError = it.message
 			}
 			if (current != generation) return@launch
 			_state.value = snapshot(loadingMore = false)
@@ -347,6 +349,7 @@ class GalleryViewModel @Inject constructor(
 		cloudPage = 0
 		cloudTotal = 0
 		cloudDone = false
+		cloudError = null
 		folderPage = 0
 		folderDone = scope !is GalleryScope.Folder || !loadDevice
 		if (loadDevice) deviceItems = emptyList()
@@ -356,7 +359,7 @@ class GalleryViewModel @Inject constructor(
 			if (scope.isFolder) resolveSource()
 			runCatching { fetchCloud(0) }
 				.onFailure {
-					if (current == generation) _state.value = _state.value.copy(error = it.message)
+					if (current == generation) cloudError = it.message
 				}
 			if (current != generation) return@launch
 			_state.value = snapshot(cloudLoading = false, deviceLoading = loadDevice)
@@ -497,7 +500,7 @@ class GalleryViewModel @Inject constructor(
 			deviceLoading = deviceLoading,
 			loadingMore = loadingMore,
 			hasMore = !cloudDone || !folderDone,
-			error = null,
+			error = cloudError,
 			permissionDenied = permissionDenied,
 		)
 	}

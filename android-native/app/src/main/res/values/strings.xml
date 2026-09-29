@@ -121,7 +121,12 @@
 	<string name="gallery_local_permission_denied">Photo access is denied: only cloud items are shown.</string>
 	<string name="gallery_open_settings">Settings</string>
 	<string name="gallery_local_only">On device</string>
-	<string name="gallery_empty">No media yet: connect kDrive or scan a folder from Settings (next milestones).</string>
+	<string name="gallery_empty">No media yet.</string>
+	<string name="gallery_empty_hint">Add or scan a kDrive folder in Settings → kDrive, or grant photo access.</string>
+	<string name="gallery_empty_uploaded">Nothing is uploaded yet.</string>
+	<string name="gallery_empty_not_uploaded">Everything is uploaded.</string>
+	<string name="gallery_empty_filtered">No items match the filter.</string>
+	<string name="gallery_cloud_error">Could not load cloud media</string>
 	<string name="no_metadata">No metadata</string>
 	<string name="partial_metadata">Partial metadata</string>
 	<string name="selected_count">%1$d selected</string>
@@ -186,6 +191,7 @@
 	<string name="timeline_title">Timeline</string>
 	<string name="timeline_subtitle">The most recent photos, grouped by day and month</string>
 	<string name="timeline_empty">The timeline will appear once media with dates are indexed.</string>
+	<string name="timeline_bucket_empty">No media in this period</string>
 	<string name="folder_auto_upload">Automatic backup</string>
 	<string name="folder_uploaded_of">%1$d/%2$d uploaded</string>
 	<string name="folder_last_run">Last: %1$s</string>

@@ -130,6 +130,15 @@ fun StudioApp(auth: AuthRepository) {
 	val currentTab = StudioTab.entries.firstOrNull { it.route == currentRoute }
 	val albumsViewModel: AlbumsViewModel = hiltViewModel()
 	val collectionsViewModel: CollectionsViewModel = hiltViewModel()
+	val openSettings: () -> Unit = {
+		navController.navigate(StudioTab.Settings.route) {
+			popUpTo(navController.graph.findStartDestination().id) {
+				saveState = true
+			}
+			launchSingleTop = true
+			restoreState = true
+		}
+	}
 
 	Scaffold(
 		containerColor = MaterialTheme.colorScheme.background,
@@ -178,7 +187,10 @@ fun StudioApp(auth: AuthRepository) {
 					when (tab) {
 						StudioTab.Map -> MapScreen()
 
-						StudioTab.Gallery -> GalleryScreen(albumsViewModel = albumsViewModel)
+						StudioTab.Gallery -> GalleryScreen(
+							albumsViewModel = albumsViewModel,
+							onOpenSettings = openSettings,
+						)
 
 						StudioTab.Collections -> CollectionsScreen(
 							viewModel = collectionsViewModel,
@@ -223,6 +235,7 @@ fun StudioApp(auth: AuthRepository) {
 				GalleryScreen(
 					albumsViewModel = albumsViewModel,
 					onBack = { navController.popBackStack() },
+					onOpenSettings = openSettings,
 					header = {
 						FolderHeader(folderId = folderId, viewModel = collectionsViewModel)
 					},
@@ -238,6 +251,7 @@ fun StudioApp(auth: AuthRepository) {
 					albumsViewModel = albumsViewModel,
 					onBack = { navController.popBackStack() },
 					onEditAlbum = { id -> navController.navigate("albumEdit?albumId=$id") },
+					onOpenSettings = openSettings,
 				)
 			}
 			composable(

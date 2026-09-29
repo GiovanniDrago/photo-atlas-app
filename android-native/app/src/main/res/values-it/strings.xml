@@ -121,7 +121,12 @@
 	<string name="gallery_local_permission_denied">Accesso alle foto negato: vengono mostrati solo gli elementi cloud.</string>
 	<string name="gallery_open_settings">Impostazioni</string>
 	<string name="gallery_local_only">Sul dispositivo</string>
-	<string name="gallery_empty">Ancora nessun media: collega kDrive o scansiona una cartella dalle Impostazioni (prossime milestone).</string>
+	<string name="gallery_empty">Ancora nessun media.</string>
+	<string name="gallery_empty_hint">Aggiungi o scansiona una cartella kDrive in Impostazioni → kDrive, oppure concedi l\'accesso alle foto.</string>
+	<string name="gallery_empty_uploaded">Niente di caricato per ora.</string>
+	<string name="gallery_empty_not_uploaded">Tutto caricato.</string>
+	<string name="gallery_empty_filtered">Nessun elemento corrisponde al filtro.</string>
+	<string name="gallery_cloud_error">Impossibile caricare i media cloud</string>
 	<string name="no_metadata">Senza metadati</string>
 	<string name="partial_metadata">Metadati parziali</string>
 	<string name="selected_count">%1$d selezionati</string>
@@ -186,6 +191,7 @@
 	<string name="timeline_title">Timeline</string>
 	<string name="timeline_subtitle">Le foto più recenti, raggruppate per giorno e mese</string>
 	<string name="timeline_empty">La timeline apparirà quando ci saranno media con date indicizzate.</string>
+	<string name="timeline_bucket_empty">Nessun media in questo periodo</string>
 	<string name="folder_auto_upload">Backup automatico</string>
 	<string name="folder_uploaded_of">%1$d/%2$d caricati</string>
 	<string name="folder_last_run">Ultimo: %1$s</string>

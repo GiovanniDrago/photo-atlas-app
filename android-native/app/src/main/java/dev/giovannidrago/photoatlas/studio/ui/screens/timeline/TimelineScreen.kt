@@ -48,6 +48,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -65,6 +66,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -107,6 +111,22 @@ fun TimelineScreen(
 	var showDeleteDialog by remember { mutableStateOf(false) }
 	var showAlbumPicker by remember { mutableStateOf(false) }
 	BackHandler { onBack() }
+
+	// Cloud data can change while the screen is in the background (kDrive scans,
+	// uploads, server address fixes): refresh when it comes back to the front.
+	val lifecycleOwner = LocalLifecycleOwner.current
+	var pausedOnce by remember { mutableStateOf(false) }
+	DisposableEffect(lifecycleOwner) {
+		val observer = LifecycleEventObserver { _, event ->
+			when (event) {
+				Lifecycle.Event.ON_PAUSE -> pausedOnce = true
+				Lifecycle.Event.ON_RESUME -> if (pausedOnce) viewModel.refresh()
+				else -> Unit
+			}
+		}
+		lifecycleOwner.lifecycle.addObserver(observer)
+		onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+	}
 
 	LaunchedEffect(outcome) {
 		val current = outcome ?: return@LaunchedEffect
@@ -379,7 +399,7 @@ private fun BucketCard(
 
 					state.items.isEmpty() -> {
 						Text(
-							text = stringResource(R.string.gallery_empty),
+							text = stringResource(R.string.timeline_bucket_empty),
 							style = MaterialTheme.typography.bodySmall,
 						)
 					}
