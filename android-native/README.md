@@ -42,6 +42,11 @@ checksums of a published release (the `LEGGIMI.txt` text stays hand-written).
 
 ## Fixes
 
+- **0.7.3** — Settings has a **Cloud check** card: a read-only button that runs the whole cloud
+  chain (server address, account email, kDrive status, sources, backup totals, uploaded items,
+  clusters) and shows the outcome or the error of every step. It makes a screenshot enough to
+  see where the cloud data stops.
+
 - **0.7.2** — the cluster tap target on the globe now scales with the screen density (it used to be
   32 physical pixels, so on high-density phones most taps missed the cluster and nothing happened).
 
