@@ -322,4 +322,16 @@
 	<string name="backup_selected_count">%1$d selected</string>
 	<string name="backup_no_permission">Photo access is denied: allow it in the system settings to pick files.</string>
 	<string name="backup_last_run">Last run: %1$s</string>
+
+	<!-- Cloud check (diagnostics) -->
+	<string name="cloud_check_title">Cloud check</string>
+	<string name="cloud_check_hint">Runs a read-only test of the cloud chain and shows the outcome of every step; useful to understand why cloud photos are not visible.</string>
+	<string name="cloud_check_run">Run the check</string>
+	<string name="cloud_check_step_server">Server address</string>
+	<string name="cloud_check_step_account">Account</string>
+	<string name="cloud_check_step_kdrive">kDrive</string>
+	<string name="cloud_check_step_sources">Sources</string>
+	<string name="cloud_check_step_totals">Backup totals</string>
+	<string name="cloud_check_step_uploaded">Uploaded items</string>
+	<string name="cloud_check_step_clusters">Clusters</string>
 </resources>

@@ -160,6 +160,7 @@ fun SettingsScreen(
 			)
 			ServerCard(viewModel)
 			KDriveCard(kdriveViewModel)
+			CloudCheckCard()
 			AboutCard()
 		}
 	}
