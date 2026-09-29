@@ -51,7 +51,7 @@ class CloudCheckViewModel @Inject constructor(
 				_state.value = CloudCheckState(running = true, results = results.toList())
 			}
 			step(CloudCheckStep.Server) { baseUrls.currentApiBaseUrl() }
-			step(CloudCheckStep.Account) { api.me().email.ifBlank { "(no email)" } }
+			step(CloudCheckStep.Account) { api.me().email?.ifBlank { "(no email)" } ?: "(no email)" }
 			step(CloudCheckStep.KDrive) {
 				val status = api.kdriveStatus()
 				"connected=${status.connected} drive=${status.account?.driveId ?: "-"}"
