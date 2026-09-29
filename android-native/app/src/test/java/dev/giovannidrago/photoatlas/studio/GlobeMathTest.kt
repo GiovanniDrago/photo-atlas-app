@@ -34,8 +34,8 @@ class GlobeMathTest {
 		assertNull(GlobeMath.project(0.0, 180.0, 0.0, 0.0, 100f, 100f, 50f))
 		// Center (0,0) and 90 degrees away is on the rim (cosc = 0 > -0.03).
 		assertNotNull(GlobeMath.project(0.0, 90.0, 0.0, 0.0, 100f, 100f, 50f))
-		// The same point seen from lon 180 is hidden.
-		assertNull(GlobeMath.project(0.0, 90.0, 0.0, 180.0, 100f, 100f, 50f))
+		// Seen from lon 180 the antipode (0,0) is hidden.
+		assertNull(GlobeMath.project(0.0, 0.0, 0.0, 180.0, 100f, 100f, 50f))
 	}
 
 	@Test
