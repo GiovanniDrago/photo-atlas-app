@@ -42,6 +42,9 @@ checksums of a published release (the `LEGGIMI.txt` text stays hand-written).
 
 ## Fixes
 
+- **0.7.2** — the cluster tap target on the globe now scales with the screen density (it used to be
+  32 physical pixels, so on high-density phones most taps missed the cluster and nothing happened).
+
 - **0.7.1** — cloud failures are no longer silent: the Gallery now shows the real error with a
   **Retry** button (also while local files are listed) and the empty messages no longer mention
   future milestones; they point to **Settings → kDrive** instead. Gallery and Timeline refresh
