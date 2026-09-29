@@ -244,4 +244,76 @@
 	<string name="server_test_http">Il server ha risposto con HTTP %1$d</string>
 	<string name="server_test_not_api">Risponde, ma non è l\'API di Photo Atlas</string>
 	<string name="server_address_empty">Inserisci prima l\'indirizzo del server</string>
+
+	<!-- kDrive -->
+	<string name="kdrive_section">kDrive</string>
+	<string name="kdrive_info_title">Token kDrive e ID del drive</string>
+	<string name="kdrive_info_body">1. Apri la pagina dei token API Infomaniak (link sotto) e crea un token con lo scope drive.\n\n2. Apri la web app kDrive e copia il numero alla fine dell\'URL (l\'ID del drive).\n\n3. Incolla token e ID del drive qui e premi Collega. Il token viene salvato cifrato sul server e non viene mai mostrato ai client.\n\nNote: l\'API kDrive consente circa 60 richieste al minuto; l\'arricchimento dei metadati scarica solo la prima parte di ogni immagine.</string>
+	<string name="kdrive_info_token_page">Apri la pagina dei token</string>
+	<string name="kdrive_info_web_app">Apri la web app kDrive</string>
+	<string name="kdrive_token">Token API</string>
+	<string name="kdrive_drive_id">ID del drive</string>
+	<string name="kdrive_connect">Collega</string>
+	<string name="kdrive_connected">Collegato al drive %1$s</string>
+	<string name="kdrive_not_connected">Non collegato</string>
+	<string name="kdrive_how_to">Crea un token con lo scope drive nel manager Infomaniak, poi incollalo qui.</string>
+	<string name="kdrive_token_saved">Token salvato (cifrato). Inseriscine uno nuovo solo per sostituirlo.</string>
+	<string name="kdrive_replace_token">Sostituisci token</string>
+	<string name="kdrive_checking">Verifica della connessione…</string>
+	<string name="kdrive_status_unknown">Impossibile verificare la connessione</string>
+	<string name="kdrive_folders_section">Cartelle in kDrive</string>
+	<string name="kdrive_add_folder">Aggiungi una cartella kDrive</string>
+	<string name="kdrive_no_folders">Nessuna cartella kDrive aggiunta.</string>
+	<string name="kdrive_no_subfolders">Nessuna sottocartella qui</string>
+	<string name="kdrive_select_folder">Seleziona questa cartella</string>
+	<string name="kdrive_root">Radice</string>
+	<string name="kdrive_root_warning">La radice scansiona l\'intero drive.</string>
+	<string name="kdrive_subfolders">Includi sottocartelle</string>
+	<string name="kdrive_subfolders_on">Sottocartelle incluse</string>
+	<string name="kdrive_subfolders_off">Solo questa cartella</string>
+	<string name="kdrive_scan_again">Scansiona di nuovo</string>
+	<string name="kdrive_delete_folder">Elimina</string>
+	<string name="kdrive_delete_title">Eliminare %1$s?</string>
+	<string name="kdrive_delete_body">Rimuove %1$d elementi indicizzati da Photo Atlas. I file su kDrive non vengono toccati.</string>
+	<string name="kdrive_last_scan">Ultima scansione: %1$s</string>
+	<string name="kdrive_scan">Scansiona cartella kDrive</string>
+	<string name="kdrive_folder_id">ID cartella (1 = radice)</string>
+	<string name="kdrive_advanced">Avanzate</string>
+	<string name="kdrive_scanning">Scansione… visti %1$d, indicizzati %2$d</string>
+	<string name="kdrive_scan_complete">Scansione completata</string>
+	<string name="kdrive_scan_failed">Scansione non riuscita</string>
+	<string name="kdrive_previews">Anteprime</string>
+	<string name="kdrive_previews_running">Anteprime in corso…</string>
+	<string name="kdrive_previews_progress">Anteprime: %1$d elaborate (%2$d aggiornate)</string>
+	<string name="kdrive_enrich">Arricchisci metadati (date e GPS)</string>
+	<string name="kdrive_enrich_running">Arricchimento in corso… %1$d elaborati, %2$d aggiornati</string>
+	<string name="kdrive_enrich_done">Arricchimento completato</string>
+	<string name="kdrive_enrich_progress">%1$d elaborati, %2$d aggiornati</string>
+	<string name="open_link_failed">Impossibile aprire il link</string>
+
+	<!-- Backup -->
+	<string name="backup_upload_files">Carica file</string>
+	<string name="backup_back_up_all">Backup di tutto</string>
+	<string name="backup_verify_all">Verifica backup</string>
+	<string name="backup_running">Backup in corso</string>
+	<string name="backup_verify_running">Verifica in corso</string>
+	<string name="backup_stop">Ferma</string>
+	<string name="backup_folders">Cartelle</string>
+	<string name="backup_no_folders">Ancora nessuna cartella: scansiona prima una cartella.</string>
+	<string name="backup_now">Esegui backup</string>
+	<string name="backup_verify">Verifica</string>
+	<string name="backup_totals">%1$d/%2$d caricati · %3$s</string>
+	<string name="backup_uploaded_of">%1$d di %2$d caricati</string>
+	<string name="backup_failed_count">%1$d falliti</string>
+	<string name="backup_counters">%1$d caricati · %2$d falliti</string>
+	<string name="backup_upload_result">%1$d caricati, %2$d falliti</string>
+	<string name="backup_verify_counters">%1$d ok · %2$d mancanti</string>
+	<string name="backup_nothing_to_verify">Niente da verificare: prima carica qualche file.</string>
+	<string name="backup_picker_title">Seleziona foto e video</string>
+	<string name="backup_upload_count">Carica (%1$d)</string>
+	<string name="backup_select_all">Seleziona tutto</string>
+	<string name="backup_deselect_all">Deseleziona tutto</string>
+	<string name="backup_selected_count">%1$d selezionati</string>
+	<string name="backup_no_permission">Accesso alle foto negato: consentilo nelle impostazioni di sistema per scegliere i file.</string>
+	<string name="backup_last_run">Ultima esecuzione: %1$s</string>
 </resources>

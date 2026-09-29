@@ -8,6 +8,7 @@ import kotlinx.serialization.json.JsonObject
 data class UpdateSourceRequest(
 	val label: String? = null,
 	@SerialName("auto_backup") val autoBackup: Boolean? = null,
+	@SerialName("include_subfolders") val includeSubfolders: Boolean? = null,
 	@SerialName("last_scan_at") val lastScanAt: String? = null,
 )
 
@@ -97,6 +98,7 @@ data class BackupSourceStatusDto(
 @Serializable
 data class BackupStatusResponse(
 	val sources: List<BackupSourceStatusDto> = emptyList(),
+	val totals: BackupTotalsDto = BackupTotalsDto(),
 )
 
 @Serializable

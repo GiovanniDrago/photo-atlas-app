@@ -75,6 +75,18 @@ class UploadServiceTest {
 	}
 
 	@Test
+	fun `manual destination goes in the query`() = runBlocking {
+		server.enqueue(MockResponse().setResponseCode(200).setBody("""{"ok":true}"""))
+		service.upload(
+			mediaId = "media-4",
+			openStream = { ByteArrayInputStream(ByteArray(10)) },
+			contentLength = 10L,
+			destination = "manual",
+		)
+		assertEquals("/api/media/media-4/upload?destination=manual", server.takeRequest().path)
+	}
+
+	@Test
 	fun `server errors become api exceptions`() {
 		server.enqueue(
 			MockResponse().setResponseCode(400).setBody("""{"error":"empty_body"}"""),

@@ -99,6 +99,10 @@ class PhotoAtlasClient @Inject constructor(
 	suspend fun sources(): List<MediaSourceDto> =
 		json.decodeFromString<SourcesResponse>(execute("GET", "/api/sources")).sources
 
+	suspend fun deleteSource(id: String) {
+		execute("DELETE", "/api/sources/$id")
+	}
+
 	suspend fun createSource(
 		kind: String,
 		label: String,
@@ -146,6 +150,7 @@ class PhotoAtlasClient @Inject constructor(
 		id: String,
 		autoBackup: Boolean? = null,
 		label: String? = null,
+		includeSubfolders: Boolean? = null,
 		lastScanAt: String? = null,
 	) {
 		execute(
@@ -155,14 +160,135 @@ class PhotoAtlasClient @Inject constructor(
 				UpdateSourceRequest(
 					label = label,
 					autoBackup = autoBackup,
+					includeSubfolders = includeSubfolders,
 					lastScanAt = lastScanAt,
 				),
 			),
 		)
 	}
 
-	suspend fun backupStatus(): List<BackupSourceStatusDto> =
-		json.decodeFromString<BackupStatusResponse>(execute("GET", "/api/backup/status")).sources
+	suspend fun kdriveStatus(): KDriveStatusResponse =
+		json.decodeFromString(execute("GET", "/api/kdrive/status"))
+
+	suspend fun connectKDrive(
+		token: String,
+		driveId: String,
+		label: String? = null,
+	): KDriveAccountDto = json.decodeFromString<ConnectKDriveResponse>(
+		execute(
+			"POST",
+			"/api/kdrive/connect",
+			json.encodeBody(ConnectKDriveBody(token = token, driveId = driveId, label = label)),
+		),
+	).account
+
+	suspend fun kdriveFolders(
+		parentId: Long = 1,
+		cursor: String? = null,
+	): KDriveFoldersResponse = json.decodeFromString(
+		execute(
+			"GET",
+			"/api/kdrive/folders",
+			query = mapOf(
+				"parent_id" to "$parentId",
+				"cursor" to cursor,
+			),
+		),
+	)
+
+	suspend fun kdriveScan(
+		folderId: Long,
+		includeSubfolders: Boolean,
+		label: String? = null,
+	): KDriveScanResponse = json.decodeFromString(
+		execute(
+			"POST",
+			"/api/kdrive/scan",
+			json.encodeBody(
+				KDriveScanBody(
+					folderId = folderId,
+					includeSubfolders = includeSubfolders,
+					label = label,
+				),
+			),
+		),
+	)
+
+	suspend fun scanRun(id: String): ScanRunDto =
+		json.decodeFromString<ScanRunResponse>(execute("GET", "/api/scan-runs/$id")).scan_run
+
+	suspend fun kdriveEnrich(limit: Int = 50) {
+		execute("POST", "/api/kdrive/enrich", json.encodeBody(KDriveEnrichBody(limit)))
+	}
+
+	suspend fun kdriveEnrichState(): KDriveEnrichStateDto =
+		json.decodeFromString(execute("GET", "/api/kdrive/enrich"))
+
+	suspend fun kdrivePreviews() {
+		execute("POST", "/api/kdrive/previews")
+	}
+
+	suspend fun kdrivePreviewsState(): KDrivePreviewStateDto =
+		json.decodeFromString(execute("GET", "/api/kdrive/previews"))
+
+	suspend fun backupStatus(): List<BackupSourceStatusDto> = backupStatusFull().sources
+
+	suspend fun backupStatusFull(): BackupStatusResponse =
+		json.decodeFromString(execute("GET", "/api/backup/status"))
+
+	suspend fun backupPending(
+		sourceId: String? = null,
+		limit: Int = 5,
+	): List<PendingBackupItemDto> = json.decodeFromString<PendingBackupResponse>(
+		execute(
+			"GET",
+			"/api/backup/pending",
+			query = mapOf(
+				"source_id" to sourceId,
+				"limit" to "$limit",
+			),
+		),
+	).items
+
+	suspend fun backupRelease(ids: List<String>): Int = json.decodeFromString<ReleaseClaimsResponse>(
+		execute("POST", "/api/backup/release", json.encodeBody(ReleaseClaimsRequest(ids))),
+	).released
+
+	suspend fun verifyQueue(
+		sourceId: String? = null,
+		limit: Int = 20,
+	): List<VerifyQueueItemDto> = json.decodeFromString<VerifyQueueResponse>(
+		execute(
+			"GET",
+			"/api/backup/verify-queue",
+			query = mapOf(
+				"source_id" to sourceId,
+				"limit" to "$limit",
+			),
+		),
+	).items
+
+	suspend fun verifyMedia(id: String): VerifyResultDto =
+		json.decodeFromString(execute("POST", "/api/media/$id/verify"))
+
+	suspend fun createBackupRun(
+		kind: String,
+		sourceId: String? = null,
+		deviceId: String? = null,
+	): BackupRunDto = json.decodeFromString<BackupRunResponse>(
+		execute(
+			"POST",
+			"/api/backup/runs",
+			json.encodeBody(
+				CreateBackupRunBody(kind = kind, sourceId = sourceId, deviceId = deviceId),
+			),
+		),
+	).run
+
+	suspend fun patchBackupRun(id: String, body: PatchBackupRunBody): BackupRunDto =
+		json.decodeFromString<BackupRunResponse>(
+			execute("PATCH", "/api/backup/runs/$id", json.encodeBody(body)),
+		).run
 
 	suspend fun timeline(): List<TimelineBucketDto> =
 		json.decodeFromString<TimelineResponse>(execute("GET", "/api/timeline")).buckets

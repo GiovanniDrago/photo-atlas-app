@@ -34,13 +34,18 @@ class UploadService @Inject constructor(
 		mediaId: String,
 		openStream: () -> InputStream?,
 		contentLength: Long?,
+		destination: String? = null,
 		onProgress: (sent: Long, total: Long) -> Unit = { _, _ -> },
 		isCancelled: () -> Boolean = { false },
 	) {
 		val baseUrl = settings.currentApiBaseUrl()
 		val body = StreamBody(openStream, contentLength, onProgress, isCancelled)
+		val url = buildString {
+			append("$baseUrl/api/media/$mediaId/upload")
+			if (destination != null) append("?destination=$destination")
+		}
 		val request = Request.Builder()
-			.url("$baseUrl/api/media/$mediaId/upload")
+			.url(url)
 			.post(body)
 			.header("Content-Type", "application/octet-stream")
 			.apply {

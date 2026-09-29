@@ -24,10 +24,16 @@ data class MediaSourceDto(
 	@SerialName("root_path") val rootPath: String? = null,
 	@SerialName("album_key") val albumKey: String? = null,
 	@SerialName("device_id") val deviceId: String? = null,
+	@SerialName("kdrive_drive_id") val kdriveDriveId: Long? = null,
+	@SerialName("kdrive_folder_id") val kdriveFolderId: Long? = null,
+	@SerialName("include_subfolders") val includeSubfolders: Boolean = true,
 	@SerialName("item_count") val itemCount: Int = 0,
 	@SerialName("auto_backup") val autoBackup: Boolean = false,
 	@SerialName("backup_folder_path") val backupFolderPath: String? = null,
-)
+	@SerialName("last_scan_at") val lastScanAt: String? = null,
+) {
+	val isKDrive: Boolean get() = kind == "kdrive"
+}
 
 @Serializable
 data class SourcesResponse(val sources: List<MediaSourceDto> = emptyList())

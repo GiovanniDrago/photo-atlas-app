@@ -51,6 +51,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.navigation.compose.hiltViewModel
 import dev.giovannidrago.photoatlas.studio.BuildConfig
 import dev.giovannidrago.photoatlas.studio.R
 import dev.giovannidrago.photoatlas.studio.data.remote.AuthUserDto
@@ -60,16 +61,18 @@ import dev.giovannidrago.photoatlas.studio.domain.auth.AuthState
 import dev.giovannidrago.photoatlas.studio.ui.components.QrCode
 import dev.giovannidrago.photoatlas.studio.ui.components.RecoveryCodesDialog
 import dev.giovannidrago.photoatlas.studio.ui.components.ServerPanel
+import dev.giovannidrago.photoatlas.studio.ui.settings.KDriveViewModel
 import dev.giovannidrago.photoatlas.studio.ui.settings.ServerResult
 import dev.giovannidrago.photoatlas.studio.ui.settings.SettingsViewModel
 import kotlinx.coroutines.launch
 
-/** Settings tab: server, account, security and about. */
+/** Settings tab: server, kDrive, account, security and about. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
 	auth: AuthRepository,
 	viewModel: SettingsViewModel,
+	kdriveViewModel: KDriveViewModel = hiltViewModel(),
 ) {
 	val authState by auth.state.collectAsStateWithLifecycle()
 	val user = (authState as? AuthState.SignedIn)?.user
@@ -156,6 +159,7 @@ fun SettingsScreen(
 				onChangePassword = { showChangePassword = true },
 			)
 			ServerCard(viewModel)
+			KDriveCard(kdriveViewModel)
 			AboutCard()
 		}
 	}

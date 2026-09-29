@@ -13,7 +13,9 @@ import dev.giovannidrago.photoatlas.studio.data.device.DeviceMediaSource
 import dev.giovannidrago.photoatlas.studio.data.device.DeviceRegistrar
 import dev.giovannidrago.photoatlas.studio.data.remote.BackupSourceStatusDto
 import dev.giovannidrago.photoatlas.studio.data.remote.PhotoAtlasClient
-import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryActionsService
+import dev.giovannidrago.photoatlas.studio.domain.backup.BackupService
+import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryActionProgress
+import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryActionResult
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryEntry
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryUploadState
 import dev.giovannidrago.photoatlas.studio.domain.gallery.SourceMatcher
@@ -45,7 +47,7 @@ data class CollectionsState(
 class CollectionsViewModel @Inject constructor(
 	private val api: PhotoAtlasClient,
 	private val device: DeviceMediaSource,
-	private val actions: GalleryActionsService,
+	private val backup: BackupService,
 	private val registrar: DeviceRegistrar,
 	private val indexer: DeviceMediaIndexer,
 	private val runner: UploadRunner,
@@ -98,8 +100,8 @@ class CollectionsViewModel @Inject constructor(
 
 	/**
 	 * Folder switch: turning it off only clears the flag; turning it on ensures
-	 * the source, indexes the folder and uploads what is missing right away
-	 * (the background job arrives with M5).
+	 * the source, indexes the folder and runs the server-side backup queue for
+	 * it right away (claims included; the background job arrives with M5b).
 	 */
 	fun toggle(folder: DeviceFolder, enabled: Boolean, uploadLabel: String) {
 		if (folder.id in preparingFolderIds) return
@@ -171,12 +173,30 @@ class CollectionsViewModel @Inject constructor(
 			.filter { it.canUpload }
 		if (targets.isEmpty()) return
 		runner.begin(label, targets)
-		val result = actions.upload(
-			targets,
-			onProgress = runner::record,
+		val result = backup.runBackup(
+			sourceId = sourceId,
+			onProgress = { progress ->
+				runner.record(
+					GalleryActionProgress(
+						done = progress.uploaded + progress.failed,
+						total = targets.size,
+						currentName = progress.currentName,
+						failedName = progress.failedName,
+						error = progress.error,
+						fileSent = progress.fileSent.takeIf { it > 0L },
+						fileTotal = progress.fileTotal.takeIf { it > 0L },
+					),
+				)
+			},
 			isCancelled = runner::isCancelled,
 		)
-		runner.finish(result)
+		runner.finish(
+			GalleryActionResult(
+				uploaded = result.uploaded,
+				failed = result.failed,
+				errors = result.errors,
+			),
+		)
 		message = if (result.errors.isNotEmpty()) {
 			UiMessage(UiMessage.Kind.Failed, detail = result.errors.first())
 		} else {

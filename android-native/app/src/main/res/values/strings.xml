@@ -244,4 +244,76 @@
 	<string name="server_test_http">The server answered with HTTP %1$d</string>
 	<string name="server_test_not_api">It answers, but it is not the Photo Atlas API</string>
 	<string name="server_address_empty">Enter the server address first</string>
+
+	<!-- kDrive -->
+	<string name="kdrive_section">kDrive</string>
+	<string name="kdrive_info_title">kDrive token and Drive ID</string>
+	<string name="kdrive_info_body">1. Open the Infomaniak API token page (link below) and create a token with the drive scope.\n\n2. Open the kDrive web app and copy the number at the end of the URL (the drive id).\n\n3. Paste the token and the Drive ID here and tap Connect. The token is stored encrypted on your server and is never shown to clients.\n\nNotes: the kDrive API allows about 60 requests per minute; metadata enrichment downloads only the first part of each image.</string>
+	<string name="kdrive_info_token_page">Open the API token page</string>
+	<string name="kdrive_info_web_app">Open the kDrive web app</string>
+	<string name="kdrive_token">API token</string>
+	<string name="kdrive_drive_id">Drive ID</string>
+	<string name="kdrive_connect">Connect</string>
+	<string name="kdrive_connected">Connected to drive %1$s</string>
+	<string name="kdrive_not_connected">Not connected</string>
+	<string name="kdrive_how_to">Create a token with the drive scope in the Infomaniak manager, then paste it here.</string>
+	<string name="kdrive_token_saved">Token saved (encrypted). Enter a new one only to replace it.</string>
+	<string name="kdrive_replace_token">Replace token</string>
+	<string name="kdrive_checking">Checking connection…</string>
+	<string name="kdrive_status_unknown">Could not check the connection</string>
+	<string name="kdrive_folders_section">Folders in kDrive</string>
+	<string name="kdrive_add_folder">Add a kDrive folder</string>
+	<string name="kdrive_no_folders">No kDrive folders added yet.</string>
+	<string name="kdrive_no_subfolders">No subfolders here</string>
+	<string name="kdrive_select_folder">Select this folder</string>
+	<string name="kdrive_root">Root</string>
+	<string name="kdrive_root_warning">Root scans the entire drive.</string>
+	<string name="kdrive_subfolders">Include subfolders</string>
+	<string name="kdrive_subfolders_on">Subfolders included</string>
+	<string name="kdrive_subfolders_off">This folder only</string>
+	<string name="kdrive_scan_again">Scan again</string>
+	<string name="kdrive_delete_folder">Delete</string>
+	<string name="kdrive_delete_title">Delete %1$s?</string>
+	<string name="kdrive_delete_body">Removes %1$d indexed items from Photo Atlas. Files in kDrive are not touched.</string>
+	<string name="kdrive_last_scan">Last scan: %1$s</string>
+	<string name="kdrive_scan">Scan kDrive folder</string>
+	<string name="kdrive_folder_id">Folder ID (1 = root)</string>
+	<string name="kdrive_advanced">Advanced</string>
+	<string name="kdrive_scanning">Scanning… seen %1$d, indexed %2$d</string>
+	<string name="kdrive_scan_complete">Scan complete</string>
+	<string name="kdrive_scan_failed">Scan failed</string>
+	<string name="kdrive_previews">Previews</string>
+	<string name="kdrive_previews_running">Previews running…</string>
+	<string name="kdrive_previews_progress">Previews: %1$d processed (%2$d updated)</string>
+	<string name="kdrive_enrich">Enrich metadata (dates and GPS)</string>
+	<string name="kdrive_enrich_running">Enrichment running… %1$d processed, %2$d updated</string>
+	<string name="kdrive_enrich_done">Enrichment finished</string>
+	<string name="kdrive_enrich_progress">%1$d processed, %2$d updated</string>
+	<string name="open_link_failed">Could not open the link</string>
+
+	<!-- Backup -->
+	<string name="backup_upload_files">Upload files</string>
+	<string name="backup_back_up_all">Back up all</string>
+	<string name="backup_verify_all">Verify backup</string>
+	<string name="backup_running">Backup in progress</string>
+	<string name="backup_verify_running">Verification in progress</string>
+	<string name="backup_stop">Stop</string>
+	<string name="backup_folders">Folders</string>
+	<string name="backup_no_folders">No folders yet: scan a folder first.</string>
+	<string name="backup_now">Back up now</string>
+	<string name="backup_verify">Verify</string>
+	<string name="backup_totals">%1$d/%2$d uploaded · %3$s</string>
+	<string name="backup_uploaded_of">%1$d of %2$d uploaded</string>
+	<string name="backup_failed_count">%1$d failed</string>
+	<string name="backup_counters">%1$d uploaded · %2$d failed</string>
+	<string name="backup_upload_result">%1$d uploaded, %2$d failed</string>
+	<string name="backup_verify_counters">%1$d ok · %2$d missing</string>
+	<string name="backup_nothing_to_verify">Nothing to verify: back up some files first.</string>
+	<string name="backup_picker_title">Select photos and videos</string>
+	<string name="backup_upload_count">Upload (%1$d)</string>
+	<string name="backup_select_all">Select all</string>
+	<string name="backup_deselect_all">Deselect all</string>
+	<string name="backup_selected_count">%1$d selected</string>
+	<string name="backup_no_permission">Photo access is denied: allow it in the system settings to pick files.</string>
+	<string name="backup_last_run">Last run: %1$s</string>
 </resources>
