@@ -17,6 +17,10 @@
 
 	<string name="placeholder_map_title">Planet map</string>
 	<string name="placeholder_map_text">The curated 3D globe with your media, cluster sections and the detailed map land here in milestone M4.</string>
+	<string name="map_planet_hint">Drag to rotate, pinch to zoom in</string>
+	<string name="map_show_map">Show detailed map</string>
+	<string name="map_show_globe">Show globe</string>
+	<string name="map_section_selected">Photos in this section</string>
 	<string name="placeholder_collections_title">Collections</string>
 	<string name="placeholder_collections_text">Timeline card and device folders with the automatic upload switch arrive in milestone M3.</string>
 	<string name="placeholder_gallery_title">Gallery</string>
@@ -123,6 +127,7 @@
 	<string name="selected_count">%1$d selected</string>
 	<string name="select_all">Select all</string>
 	<string name="viewer_position">%1$d of %2$d</string>
+	<string name="viewer_location">Position</string>
 	<string name="viewer_scroll_details">Scroll for details</string>
 	<string name="viewer_open_in_maps">Open in Maps</string>
 	<string name="viewer_select">Select</string>
@@ -219,6 +224,13 @@
 	<string name="album_rule_from">From</string>
 	<string name="album_rule_to">To</string>
 	<string name="album_rule_clear">Clear</string>
+	<string name="album_rule_location">Location</string>
+	<string name="album_rule_no_location">No location</string>
+	<string name="album_rule_remove_location">Remove location</string>
+	<string name="album_location_title">Album location</string>
+	<string name="album_location_hint">Tap the map to choose the center</string>
+	<string name="album_location_apply">Apply</string>
+	<string name="album_radius">Radius</string>
 	<string name="album_preview">%1$d matching items</string>
 	<string name="album_delete_from_album">From the album</string>
 	<string name="album_delete_from_album_hint">Removes only the link: photos and files stay</string>

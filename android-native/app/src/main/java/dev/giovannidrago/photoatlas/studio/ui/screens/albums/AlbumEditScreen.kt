@@ -1,5 +1,6 @@
 package dev.giovannidrago.photoatlas.studio.ui.screens.albums
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -51,7 +52,9 @@ import dev.giovannidrago.photoatlas.studio.R
 import dev.giovannidrago.photoatlas.studio.data.remote.AlbumDto
 import dev.giovannidrago.photoatlas.studio.domain.gallery.AlbumRuleDraft
 import dev.giovannidrago.photoatlas.studio.domain.gallery.AlbumRuleState
+import dev.giovannidrago.photoatlas.studio.domain.map.LocationPicker
 import dev.giovannidrago.photoatlas.studio.ui.albums.AlbumsViewModel
+import dev.giovannidrago.photoatlas.studio.ui.screens.map.LocationPickerScreen
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -82,8 +85,25 @@ fun AlbumEditScreen(
 	var error by remember { mutableStateOf<String?>(null) }
 	var saving by remember { mutableStateOf(false) }
 	var picker by remember { mutableStateOf<DateField?>(null) }
+	var showLocationPicker by remember { mutableStateOf(false) }
 	val scope = rememberCoroutineScope()
 	val dateFormat = DateTimeFormatter.ISO_LOCAL_DATE
+
+	BackHandler(enabled = showLocationPicker) { showLocationPicker = false }
+
+	if (showLocationPicker) {
+		LocationPickerScreen(
+			initialLat = rules.latitude,
+			initialLon = rules.longitude,
+			initialRadiusM = rules.radiusM,
+			onDone = { lat, lon, radius ->
+				rules = rules.copy(latitude = lat, longitude = lon, radiusM = radius)
+				showLocationPicker = false
+			},
+			onBack = { showLocationPicker = false },
+		)
+		return
+	}
 
 	LaunchedEffect(rules) {
 		if (rules.isEmpty) {
@@ -195,6 +215,44 @@ fun AlbumEditScreen(
 						shape = SegmentedButtonDefaults.itemShape(index, options.size),
 					) {
 						Text(label)
+					}
+				}
+			}
+			SectionTitle(stringResource(R.string.album_rule_location))
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(8.dp),
+			) {
+				OutlinedButton(
+					onClick = { showLocationPicker = true },
+					modifier = Modifier.weight(1f),
+				) {
+					val latitude = rules.latitude
+					val longitude = rules.longitude
+					val radiusM = rules.radiusM
+					Text(
+						text = if (latitude != null && longitude != null && radiusM != null) {
+							"%.4f, %.4f · %s km".format(
+								latitude,
+								longitude,
+								LocationPicker.radiusKmLabel(radiusM),
+							)
+						} else {
+							stringResource(R.string.album_rule_no_location)
+						},
+					)
+				}
+				if (rules.hasLocation) {
+					IconButton(
+						onClick = {
+							rules = rules.copy(latitude = null, longitude = null, radiusM = null)
+						},
+					) {
+						Icon(
+							imageVector = Icons.Filled.Clear,
+							contentDescription = stringResource(R.string.album_rule_remove_location),
+						)
 					}
 				}
 			}

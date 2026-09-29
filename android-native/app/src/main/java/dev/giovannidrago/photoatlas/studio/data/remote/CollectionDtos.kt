@@ -98,3 +98,24 @@ data class BackupSourceStatusDto(
 data class BackupStatusResponse(
 	val sources: List<BackupSourceStatusDto> = emptyList(),
 )
+
+@Serializable
+data class ClusterBoundsDto(
+	val west: Double = 0.0,
+	val south: Double = 0.0,
+	val east: Double = 0.0,
+	val north: Double = 0.0,
+)
+
+@Serializable
+data class MediaClusterDto(
+	val key: String = "",
+	val lat: Double = 0.0,
+	val lon: Double = 0.0,
+	val count: Int = 0,
+	val bounds: ClusterBoundsDto = ClusterBoundsDto(),
+	@SerialName("representative_id") val representativeId: String? = null,
+)
+
+@Serializable
+data class ClustersResponse(val clusters: List<MediaClusterDto> = emptyList())

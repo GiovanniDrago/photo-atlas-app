@@ -36,8 +36,8 @@ android {
 		applicationId = "dev.giovannidrago.photoatlas.studio"
 		minSdk = 26
 		targetSdk = 37
-		versionCode = 7
-		versionName = "0.5.1"
+		versionCode = 8
+		versionName = "0.6.0"
 	}
 
 	signingConfigs {
@@ -115,6 +115,7 @@ dependencies {
 	implementation(libs.zxing.core)
 	implementation(libs.coil.compose)
 	implementation(libs.coil.video)
+	implementation(libs.osmdroid.android)
 
 	testImplementation(libs.junit)
 	testImplementation(libs.kotlinx.coroutines.test)

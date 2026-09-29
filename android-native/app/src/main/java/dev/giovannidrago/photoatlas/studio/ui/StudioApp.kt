@@ -53,6 +53,7 @@ import dev.giovannidrago.photoatlas.studio.ui.screens.collections.CollectionsScr
 import dev.giovannidrago.photoatlas.studio.ui.screens.timeline.TimelineScreen
 import dev.giovannidrago.photoatlas.studio.ui.screens.BackupScreen
 import dev.giovannidrago.photoatlas.studio.ui.screens.gallery.GalleryScreen
+import dev.giovannidrago.photoatlas.studio.ui.screens.map.MapScreen
 import dev.giovannidrago.photoatlas.studio.ui.screens.PlaceholderScreen
 import dev.giovannidrago.photoatlas.studio.ui.screens.settings.SettingsScreen
 import dev.giovannidrago.photoatlas.studio.ui.settings.SettingsViewModel
@@ -175,6 +176,8 @@ fun StudioApp(auth: AuthRepository) {
 			StudioTab.entries.forEach { tab ->
 				composable(tab.route) {
 					when (tab) {
+						StudioTab.Map -> MapScreen()
+
 						StudioTab.Gallery -> GalleryScreen(albumsViewModel = albumsViewModel)
 
 						StudioTab.Collections -> CollectionsScreen(

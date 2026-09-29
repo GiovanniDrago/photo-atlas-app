@@ -79,6 +79,7 @@ import coil.request.ImageRequest
 import dev.giovannidrago.photoatlas.studio.R
 import dev.giovannidrago.photoatlas.studio.domain.gallery.GalleryEntry
 import dev.giovannidrago.photoatlas.studio.data.remote.MediaItemDto
+import dev.giovannidrago.photoatlas.studio.ui.screens.map.MiniMap
 import java.net.URLEncoder
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -466,6 +467,20 @@ private fun ViewerDetails(entry: GalleryEntry, context: Context) {
 				stringResource(R.string.not_available)
 			},
 		)
+		if (lat != null && lon != null) {
+			Spacer(Modifier.height(12.dp))
+			Text(
+				text = stringResource(R.string.viewer_location),
+				color = Color.White,
+				style = MaterialTheme.typography.titleSmall,
+			)
+			Spacer(Modifier.height(8.dp))
+			MiniMap(
+				lat = lat,
+				lon = lon,
+				onOpen = { openInMaps(context, entry) },
+			)
+		}
 		val width = cloud?.width ?: entry.local?.width
 		val height = cloud?.height ?: entry.local?.height
 		MetadataRow(

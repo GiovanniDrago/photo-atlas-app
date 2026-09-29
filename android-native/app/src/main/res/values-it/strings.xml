@@ -17,6 +17,10 @@
 
 	<string name="placeholder_map_title">Mappa del pianeta</string>
 	<string name="placeholder_map_text">Il globo 3D curato con i tuoi media, le sezioni a cluster e la mappa dettagliata arrivano con la milestone M4.</string>
+	<string name="map_planet_hint">Trascina per ruotare, pizzica per ingrandire</string>
+	<string name="map_show_map">Mostra mappa dettagliata</string>
+	<string name="map_show_globe">Mostra globo</string>
+	<string name="map_section_selected">Foto in questa sezione</string>
 	<string name="placeholder_collections_title">Raccolte</string>
 	<string name="placeholder_collections_text">La card della timeline e le cartelle del dispositivo con lo switch di caricamento automatico arrivano con la milestone M3.</string>
 	<string name="placeholder_gallery_title">Galleria</string>
@@ -123,6 +127,7 @@
 	<string name="selected_count">%1$d selezionati</string>
 	<string name="select_all">Seleziona tutto</string>
 	<string name="viewer_position">%1$d di %2$d</string>
+	<string name="viewer_location">Posizione</string>
 	<string name="viewer_scroll_details">Scorri per i dettagli</string>
 	<string name="viewer_open_in_maps">Apri in Maps</string>
 	<string name="viewer_select">Seleziona</string>
@@ -219,6 +224,13 @@
 	<string name="album_rule_from">Da</string>
 	<string name="album_rule_to">A</string>
 	<string name="album_rule_clear">Cancella</string>
+	<string name="album_rule_location">Luogo</string>
+	<string name="album_rule_no_location">Nessun luogo</string>
+	<string name="album_rule_remove_location">Rimuovi luogo</string>
+	<string name="album_location_title">Luogo dell\'album</string>
+	<string name="album_location_hint">Tocca la mappa per scegliere il centro</string>
+	<string name="album_location_apply">Applica</string>
+	<string name="album_radius">Raggio</string>
 	<string name="album_preview">%1$d elementi corrispondenti</string>
 	<string name="album_delete_from_album">Dall\'album</string>
 	<string name="album_delete_from_album_hint">Rimuove solo il collegamento: foto e file restano</string>

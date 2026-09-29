@@ -37,6 +37,10 @@ class PhotoAtlasClient @Inject constructor(
 		type: String = "all",
 		sourceId: String? = null,
 		backupStatus: String? = null,
+		west: Double? = null,
+		south: Double? = null,
+		east: Double? = null,
+		north: Double? = null,
 		limit: Int = 100,
 		offset: Int = 0,
 		order: String = "taken_at.desc",
@@ -49,12 +53,36 @@ class PhotoAtlasClient @Inject constructor(
 				"type" to type,
 				"source_id" to sourceId,
 				"backup_status" to backupStatus,
+				"west" to west?.toString(),
+				"south" to south?.toString(),
+				"east" to east?.toString(),
+				"north" to north?.toString(),
 				"limit" to "$limit",
 				"offset" to "$offset",
 				"order" to order,
 			),
 		),
 	)
+
+	suspend fun clusters(
+		west: Double,
+		south: Double,
+		east: Double,
+		north: Double,
+		zoom: Int,
+	): List<MediaClusterDto> = json.decodeFromString<ClustersResponse>(
+		execute(
+			"GET",
+			"/api/clusters",
+			query = mapOf(
+				"west" to "$west",
+				"south" to "$south",
+				"east" to "$east",
+				"north" to "$north",
+				"zoom" to "$zoom",
+			),
+		),
+	).clusters
 
 	suspend fun registerDevice(
 		fingerprint: String,

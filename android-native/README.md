@@ -23,6 +23,8 @@ assembleRelease`, signs the release APK with the repository keystore secrets and
 
 The APK that goes to the phone is copied to `/mnt/shared/debian/photo-atlas-studio/` (the
 phone storage shared with Debian) together with its SHA-256 and a `LEGGIMI.txt`.
+`android-native/scripts/deliver-to-shared.sh <tag>` automates the download and the
+checksums of a published release (the `LEGGIMI.txt` text stays hand-written).
 
 ## Milestones
 
@@ -33,7 +35,7 @@ phone storage shared with Debian) together with its SHA-256 and a `LEGGIMI.txt`.
 | **M2a** | Gallery: MediaStore + cloud merge, badges, filters, drag selection, full screen viewer (tag `native-v0.3.0`) | done |
 | **M2b** | Gallery actions: upload/index, share, delete (cloud/device), export metadata (tag `native-v0.4.0`) | done |
 | **M3** | Collections (folders + auto backup switch), timeline (day/week/month + continuous viewer) and albums (manual + smart rules with preview, upload retries, covers) — tag `native-v0.5.0` | done |
-| **M4** | Curated 3D globe (custom Canvas renderer) + detailed map (osmdroid) + clusters + smart-album location rule | |
+| **M4** | Curated 3D globe (custom Canvas renderer) + detailed map (osmdroid) + clusters + smart-album location rule — tag `native-v0.6.0` | done |
 | **M5** | Backup: manual uploads, per-folder backup, verification, WorkManager job + foreground service, kDrive | |
 | **M6** | Polish, it/en localization, tests, docs, parity checklist with the Flutter app | |
 
