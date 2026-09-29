@@ -233,6 +233,10 @@ class PhotoAtlasClient @Inject constructor(
 
 	suspend fun backupStatus(): List<BackupSourceStatusDto> = backupStatusFull().sources
 
+	/** Raw response body, used by the cloud diagnostics panel. */
+	suspend fun raw(path: String, query: Map<String, String?> = emptyMap()): String =
+		execute("GET", path, query = query)
+
 	suspend fun backupStatusFull(): BackupStatusResponse =
 		json.decodeFromString(execute("GET", "/api/backup/status"))
 

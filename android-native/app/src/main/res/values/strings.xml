@@ -333,5 +333,6 @@
 	<string name="cloud_check_step_sources">Sources</string>
 	<string name="cloud_check_step_totals">Backup totals</string>
 	<string name="cloud_check_step_uploaded">Uploaded items</string>
+	<string name="cloud_check_step_media_raw">Media response</string>
 	<string name="cloud_check_step_clusters">Clusters</string>
 </resources>

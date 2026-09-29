@@ -333,5 +333,6 @@
 	<string name="cloud_check_step_sources">Sorgenti</string>
 	<string name="cloud_check_step_totals">Totali backup</string>
 	<string name="cloud_check_step_uploaded">Elementi caricati</string>
+	<string name="cloud_check_step_media_raw">Risposta media</string>
 	<string name="cloud_check_step_clusters">Cluster</string>
 </resources>

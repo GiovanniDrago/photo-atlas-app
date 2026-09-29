@@ -559,6 +559,16 @@ fun GalleryScreen(
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 				modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
 			)
+			// Temporary diagnostics line (cloud visibility investigation).
+			Text(
+				text = "E:${state.entries.size} C:${state.cloudTotal} D:${state.deviceTotal} " +
+					"L:${if (state.cloudLoading) 1 else 0} " +
+					"P:${if (state.permissionDenied) 1 else 0} " +
+					"err:${state.error?.take(60) ?: "-"}",
+				style = MaterialTheme.typography.labelSmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.padding(horizontal = 12.dp),
+			)
 			album?.let { current ->
 				AlbumHeader(
 					album = current,

@@ -102,5 +102,6 @@ private fun CloudCheckStep.labelRes(): Int = when (this) {
 	CloudCheckStep.Sources -> R.string.cloud_check_step_sources
 	CloudCheckStep.Totals -> R.string.cloud_check_step_totals
 	CloudCheckStep.Uploaded -> R.string.cloud_check_step_uploaded
+	CloudCheckStep.MediaRaw -> R.string.cloud_check_step_media_raw
 	CloudCheckStep.Clusters -> R.string.cloud_check_step_clusters
 }

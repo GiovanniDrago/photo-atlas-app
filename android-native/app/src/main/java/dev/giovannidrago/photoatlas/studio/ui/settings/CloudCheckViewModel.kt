@@ -4,15 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.giovannidrago.photoatlas.studio.data.local.ApiBaseUrlProvider
+import dev.giovannidrago.photoatlas.studio.data.remote.MediaPageDto
 import dev.giovannidrago.photoatlas.studio.data.remote.PhotoAtlasClient
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 
 /** One step of the cloud self check, so the UI can show a localized label. */
-enum class CloudCheckStep { Server, Account, KDrive, Sources, Totals, Uploaded, Clusters }
+enum class CloudCheckStep { Server, Account, KDrive, Sources, Totals, Uploaded, MediaRaw, Clusters }
 
 data class CloudCheckResult(
 	val step: CloudCheckStep,
@@ -34,6 +36,7 @@ data class CloudCheckState(
 class CloudCheckViewModel @Inject constructor(
 	private val api: PhotoAtlasClient,
 	private val baseUrls: ApiBaseUrlProvider,
+	private val json: Json,
 ) : ViewModel() {
 	private val _state = MutableStateFlow(CloudCheckState())
 	val state: StateFlow<CloudCheckState> = _state.asStateFlow()
@@ -68,6 +71,23 @@ class CloudCheckViewModel @Inject constructor(
 			}
 			step(CloudCheckStep.Uploaded) {
 				"total=${api.media(backupStatus = "uploaded", limit = 1).total}"
+			}
+			step(CloudCheckStep.MediaRaw) {
+				val body = api.raw(
+					"/api/media",
+					mapOf(
+						"status" to "all",
+						"type" to "all",
+						"backup_status" to "uploaded",
+						"limit" to "100",
+						"offset" to "0",
+						"order" to "taken_at.desc",
+					),
+				)
+				val itemsKey = Regex("\"items\"").findAll(body).count()
+				val page = runCatching { json.decodeFromString<MediaPageDto>(body) }.getOrNull()
+				"bytes=${body.length} itemsKey=$itemsKey " +
+					"parsed=${page?.items?.size ?: -1} total=${page?.total ?: -1}"
 			}
 			step(CloudCheckStep.Clusters) {
 				"clusters=" + api.clusters(
