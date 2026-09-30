@@ -42,6 +42,13 @@ checksums of a published release (the `LEGGIMI.txt` text stays hand-written).
 
 ## Fixes
 
+- **0.7.5** — the server address saved by hand is now **pinned**: it is probed (up to 8 s, adding
+  `http://` when the scheme is missing) and, when it answers, it is never replaced by a fallback;
+  an unreachable address shows the real probe outcome instead of silently reverting to localhost.
+  OkHttp **connection reuse was disabled** as well: through the phone's localhost port bridge the
+  keep-alive stream could desync on large responses ("Unexpected status line"), hiding every cloud
+  list while small calls (status, clusters) kept working.
+
 - **0.7.4** — the Cloud check gained a **Media response** step (raw body size, `items` keys and
   parsed items/total of the same query the Gallery uses) plus a temporary state line in the
   Gallery, to pin down why cloud items do not show up on a device. R8 keep rules for
