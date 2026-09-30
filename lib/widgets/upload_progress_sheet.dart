@@ -134,6 +134,17 @@ class UploadProgressSheet extends StatelessWidget {
   }
 }
 
+/// Turns technical upload failures into a message users can act on: network
+/// errors from the API (5xx, "fetch failed", socket resets) become the
+/// localized retry hint, everything else stays verbatim for diagnosis.
+String _friendlyError(AppLocalizations l10n, String error) {
+  final networkish = error.contains('ApiException(5') ||
+      error.contains('fetch failed') ||
+      error.contains('upload request failed') ||
+      error.contains('Connection closed');
+  return networkish ? l10n.uploadNetworkError : error;
+}
+
 class _UploadRow extends StatelessWidget {
   final GalleryEntry entry;
   final UploadEntryStatus status;
@@ -202,7 +213,7 @@ class _UploadRow extends StatelessWidget {
           : null,
       subtitle: switch (status) {
         UploadEntryStatus.failed when error != null => Text(
-          error!,
+          _friendlyError(AppLocalizations.of(context)!, error!),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.labelSmall

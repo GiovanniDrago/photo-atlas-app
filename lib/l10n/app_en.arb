@@ -889,5 +889,7 @@
 "uploadStopping": "Stopping…",
 "@uploadStopping": {"placeholders": {}},
 "uploadStopped": "Stopped",
-"@uploadStopped": {"placeholders": {}}
+"@uploadStopped": {"placeholders": {}},
+"uploadNetworkError": "Network error while uploading. Check the connection and retry",
+"@uploadNetworkError": {"placeholders": {}}
 }

@@ -380,5 +380,6 @@
 "albumRetryNoFiles": "I file sul dispositivo non sono più disponibili",
 "uploadDetails": "Dettagli caricamento",
 "uploadStopping": "Interruzione…",
-"uploadStopped": "Interrotto"
+"uploadStopped": "Interrotto",
+"uploadNetworkError": "Errore di rete durante il caricamento. Controlla la connessione e riprova"
 }
