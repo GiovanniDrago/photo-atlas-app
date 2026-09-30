@@ -381,5 +381,6 @@
 "uploadDetails": "Dettagli caricamento",
 "uploadStopping": "Interruzione…",
 "uploadStopped": "Interrotto",
-"uploadNetworkError": "Errore di rete durante il caricamento. Controlla la connessione e riprova"
+"uploadNetworkError": "Errore di rete durante il caricamento. Controlla la connessione e riprova",
+"uploadToKDrive": "Caricamento su kDrive…"
 }

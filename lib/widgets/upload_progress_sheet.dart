@@ -195,6 +195,11 @@ class _UploadRow extends StatelessWidget {
     };
     final showFileProgress =
         status == UploadEntryStatus.current && fileFraction != null;
+    // Bytes are all sent but the API has not answered yet: the file is now
+    // travelling from the server to kDrive, which can take minutes for big
+    // videos. Show an indeterminate state instead of a frozen 100%.
+    final waitingKDrive =
+        status == UploadEntryStatus.current && fileTotal > 0 && fileSent >= fileTotal;
     return ListTile(
       dense: true,
       contentPadding: EdgeInsets.zero,
@@ -205,7 +210,7 @@ class _UploadRow extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.bodySmall,
       ),
-      trailing: showFileProgress
+      trailing: showFileProgress && !waitingKDrive
           ? Text(
               '${(fileFraction! * 100).floor()}%',
               style: Theme.of(context).textTheme.labelMedium,
@@ -218,6 +223,20 @@ class _UploadRow extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.labelSmall
               ?.copyWith(color: scheme.error),
+        ),
+        UploadEntryStatus.current when waitingKDrive => Row(
+          children: [
+            const SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              AppLocalizations.of(context)!.uploadToKDrive,
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+          ],
         ),
         UploadEntryStatus.current when showFileProgress => Column(
           crossAxisAlignment: CrossAxisAlignment.start,

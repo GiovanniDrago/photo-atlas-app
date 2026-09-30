@@ -891,5 +891,7 @@
 "uploadStopped": "Stopped",
 "@uploadStopped": {"placeholders": {}},
 "uploadNetworkError": "Network error while uploading. Check the connection and retry",
-"@uploadNetworkError": {"placeholders": {}}
+"@uploadNetworkError": {"placeholders": {}},
+"uploadToKDrive": "Uploading to kDrive…",
+"@uploadToKDrive": {"placeholders": {}}
 }
