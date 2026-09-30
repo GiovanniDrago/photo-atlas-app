@@ -61,8 +61,8 @@ import dev.giovannidrago.photoatlas.studio.domain.auth.AuthState
 import dev.giovannidrago.photoatlas.studio.ui.components.QrCode
 import dev.giovannidrago.photoatlas.studio.ui.components.RecoveryCodesDialog
 import dev.giovannidrago.photoatlas.studio.ui.components.ServerPanel
+import dev.giovannidrago.photoatlas.studio.ui.screens.auth.resultMessage
 import dev.giovannidrago.photoatlas.studio.ui.settings.KDriveViewModel
-import dev.giovannidrago.photoatlas.studio.ui.settings.ServerResult
 import dev.giovannidrago.photoatlas.studio.ui.settings.SettingsViewModel
 import kotlinx.coroutines.launch
 
@@ -328,7 +328,6 @@ private fun SecurityCard(
 
 @Composable
 private fun ServerCard(viewModel: SettingsViewModel) {
-	val result = viewModel.result
 	Card(modifier = Modifier.fillMaxWidth()) {
 		Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
 			Text(
@@ -342,21 +341,16 @@ private fun ServerCard(viewModel: SettingsViewModel) {
 				onDetect = viewModel::detect,
 				detecting = viewModel.detecting,
 			)
-			when (result) {
-				is ServerResult.Found -> Text(
-					text = stringResource(R.string.server_found, result.url),
+			resultMessage(viewModel)?.let { (text, isError) ->
+				Text(
+					text = text,
 					style = MaterialTheme.typography.bodySmall,
+					color = if (isError) {
+						MaterialTheme.colorScheme.error
+					} else {
+						MaterialTheme.colorScheme.onSurface
+					},
 				)
-				ServerResult.NotFound -> Text(
-					text = stringResource(R.string.server_not_found),
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.error,
-				)
-				ServerResult.Saved -> Text(
-					text = stringResource(R.string.saved),
-					style = MaterialTheme.typography.bodySmall,
-				)
-				null -> Unit
 			}
 		}
 	}

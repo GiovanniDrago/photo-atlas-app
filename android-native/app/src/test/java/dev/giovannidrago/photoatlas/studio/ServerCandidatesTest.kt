@@ -51,4 +51,12 @@ class ServerCandidatesTest {
 		assertEquals(ServerCandidates.DefaultApiBaseUrl, candidates.first())
 		assertTrue(candidates.none { it.isEmpty() })
 	}
+
+	@Test
+	fun `a bare address gets the http scheme`() {
+		assertEquals("http://10.0.0.9:8787", ServerCandidates.normalize("10.0.0.9:8787"))
+		assertEquals("http://10.0.0.9:8787", ServerCandidates.normalize(" 10.0.0.9:8787/ "))
+		assertEquals("https://example.test", ServerCandidates.normalize("https://example.test/"))
+		assertEquals("", ServerCandidates.normalize("   "))
+	}
 }

@@ -143,7 +143,7 @@ fun BootstrapErrorScreen(
 
 /** Message + whether it is a failure, for the last action. */
 @Composable
-private fun resultMessage(viewModel: SettingsViewModel): Pair<String, Boolean>? {
+internal fun resultMessage(viewModel: SettingsViewModel): Pair<String, Boolean>? {
 	viewModel.testOutcome?.let { outcome ->
 		val text = when (outcome) {
 			is ProbeOutcome.Success -> stringResource(R.string.server_test_ok)

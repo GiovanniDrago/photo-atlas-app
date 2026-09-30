@@ -55,17 +55,30 @@ class SettingsViewModel @Inject constructor(
 		testOutcome = null
 	}
 
-	/** Saves the address and retries the whole bootstrap. */
+	/**
+	 * Saves the address only after it answered: the typed address is pinned and
+	 * never replaced by a fallback silently (only Detect may switch it).
+	 */
 	fun save() {
 		viewModelScope.launch {
-			if (serverUrl.isBlank()) {
+			val normalized = ServerCandidates.normalize(serverUrl)
+			if (normalized.isEmpty()) {
 				testOutcome = ProbeOutcome.Failure("", "empty address")
+				result = null
 				return@launch
 			}
-			settingsStore.setApiBaseUrl(serverUrl)
-			result = ServerResult.Saved
+			serverUrl = normalized
+			result = null
 			testOutcome = null
-			bootstrap.bootstrap(prefer = serverUrl)
+			testing = true
+			val outcome = discovery.test(normalized, timeoutMs = SaveProbeTimeoutMs)
+			testing = false
+			testOutcome = outcome
+			if (outcome is ProbeOutcome.Success) {
+				settingsStore.setApiBaseUrl(normalized)
+				result = ServerResult.Saved
+				bootstrap.bootstrap(prefer = normalized, pin = true)
+			}
 		}
 	}
 
@@ -100,5 +113,10 @@ class SettingsViewModel @Inject constructor(
 
 	fun clearResult() {
 		result = null
+	}
+
+	private companion object {
+		/** An explicitly saved address gets time to answer before it is stored. */
+		const val SaveProbeTimeoutMs = 8000L
 	}
 }

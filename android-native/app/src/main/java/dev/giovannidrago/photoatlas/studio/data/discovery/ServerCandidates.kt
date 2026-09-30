@@ -10,7 +10,15 @@ object ServerCandidates {
 	const val FallbackApiBaseUrl = "http://localhost:8787"
 	const val Port = 8787
 
-	fun normalize(value: String): String = value.trim().trimEnd('/')
+	fun normalize(value: String): String {
+		val trimmed = value.trim().trimEnd('/')
+		if (trimmed.isEmpty()) return ""
+		return if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+			trimmed
+		} else {
+			"http://$trimmed"
+		}
+	}
 
 	/** A blank stored value must never win over the baked default. */
 	fun resolveStored(value: String?): String {

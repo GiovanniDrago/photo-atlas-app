@@ -136,4 +136,42 @@ class ServerDiscoveryTest {
 			},
 		)
 	}
+
+	@Test
+	fun `pin saves the address only when it answers`() = runBlocking {
+		route { path ->
+			when (path) {
+				"/health" -> MockResponse().setResponseCode(200).setBody("""{"status":"ok"}""")
+				"/api/config" -> MockResponse().setResponseCode(200).setBody(configBody)
+				else -> MockResponse().setResponseCode(404)
+			}
+		}
+		val reachable = server.url("/").toString().trimEnd('/')
+		val settings = FakeBaseUrlProvider("http://localhost:8787")
+		val discovery = ServerDiscovery(settings, OkHttpClient())
+
+		val result = discovery.detectAndSave(prefer = reachable, pin = true)
+		assertEquals(reachable, result.url)
+		assertEquals(reachable, settings.url)
+	}
+
+	@Test
+	fun `pin never falls back to the saved address`() = runBlocking {
+		route { path ->
+			when (path) {
+				"/health" -> MockResponse().setResponseCode(200).setBody("""{"status":"ok"}""")
+				"/api/config" -> MockResponse().setResponseCode(200).setBody(configBody)
+				else -> MockResponse().setResponseCode(404)
+			}
+		}
+		// The saved address answers, but pinning a refused one must fail without
+		// replacing the stored value (no silent fallback on an explicit save).
+		val reachable = server.url("/").toString().trimEnd('/')
+		val settings = FakeBaseUrlProvider(reachable)
+		val discovery = ServerDiscovery(settings, OkHttpClient())
+
+		val result = discovery.detectAndSave(prefer = "http://127.0.0.1:2", pin = true)
+		assertNull(result.url)
+		assertEquals(reachable, settings.url)
+	}
 }

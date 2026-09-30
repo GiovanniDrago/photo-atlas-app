@@ -20,6 +20,7 @@ import javax.inject.Named
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 import okhttp3.Authenticator
+import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 
@@ -59,6 +60,10 @@ object AppModule {
 		.connectTimeout(8, TimeUnit.SECONDS)
 		.readTimeout(30, TimeUnit.SECONDS)
 		.writeTimeout(30, TimeUnit.SECONDS)
+		// No connection reuse: through the phone's localhost port bridge the
+		// keep-alive stream can desync on large responses ("Unexpected status
+		// line"), so every request gets a fresh connection.
+		.connectionPool(ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
 		.addInterceptor(
 			HttpLoggingInterceptor().apply {
 				level = if (BuildConfig.DEBUG) {

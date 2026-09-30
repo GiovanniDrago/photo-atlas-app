@@ -82,8 +82,34 @@ class ServerDiscovery @Inject constructor(
 		}
 	}
 
-	/** Tries the known candidates, then (optionally) the whole private subnets. */
-	suspend fun detectAndSave(prefer: String? = null, scanLan: Boolean = false): DetectResult {
+	/**
+	 * Tries the known candidates, then (optionally) the whole private subnets.
+	 * With [pin] only the preferred address is probed: when the user saves an
+	 * address explicitly it must never be replaced by a fallback silently.
+	 */
+	suspend fun detectAndSave(
+		prefer: String? = null,
+		scanLan: Boolean = false,
+		pin: Boolean = false,
+	): DetectResult {
+		val pinned = prefer?.let { ServerCandidates.normalize(it) }.orEmpty()
+		if (pin && pinned.isNotEmpty()) {
+			val outcome = probe(pinned, PinProbeTimeoutMs)
+			if (outcome is ProbeOutcome.Success && isOurApi(pinned)) {
+				settings.setApiBaseUrl(pinned)
+				return DetectResult(
+					url = pinned,
+					attempts = listOf(outcome.copy(configOk = true)),
+					scannedLan = false,
+				)
+			}
+			val failure = if (outcome is ProbeOutcome.Success) {
+				ProbeOutcome.Failure(pinned, "not the Photo Atlas API")
+			} else {
+				outcome
+			}
+			return DetectResult(url = null, attempts = listOf(failure), scannedLan = false)
+		}
 		val candidates = ServerCandidates.candidates(
 			prefer = prefer,
 			saved = runCatching { settings.currentApiBaseUrl() }.getOrNull(),
@@ -212,5 +238,8 @@ class ServerDiscovery @Inject constructor(
 	private companion object {
 		/** Wi-Fi first packets can take a moment (ARP), so be generous. */
 		const val ScanProbeTimeoutMs = 800L
+
+		/** The user explicitly saved this address: give it time to answer. */
+		const val PinProbeTimeoutMs = 8000L
 	}
 }

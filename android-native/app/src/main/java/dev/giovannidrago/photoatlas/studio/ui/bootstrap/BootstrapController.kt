@@ -48,12 +48,12 @@ class BootstrapController @Inject constructor(
 		bootstrap()
 	}
 
-	fun bootstrap(prefer: String? = null, scanLan: Boolean = false) {
+	fun bootstrap(prefer: String? = null, scanLan: Boolean = false, pin: Boolean = false) {
 		job?.cancel()
 		job = scope.launch {
 			_state.value = BootstrapState.Loading
 			try {
-				val detected = discovery.detectAndSave(prefer = prefer, scanLan = scanLan)
+				val detected = discovery.detectAndSave(prefer = prefer, scanLan = scanLan, pin = pin)
 				detected.url ?: throw ConnectionException(unreachableMessage(detected))
 				val config = api.config()
 				if (config.supabaseUrl.isBlank() || config.supabasePublishableKey.isBlank()) {
