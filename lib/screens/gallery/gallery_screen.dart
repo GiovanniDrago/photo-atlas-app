@@ -896,8 +896,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     final l10n = AppLocalizations.of(context)!;
     final entries = [
       for (final entry in _selectedEntries)
-        if (!entry.hasLocal && (entry.cloud?.downloadUrl ?? '').isNotEmpty)
-          entry,
+        if (entry.canDownloadToDevice) entry,
     ];
     if (entries.isEmpty) {
       _snack(l10n.downloadUnavailable);
@@ -907,9 +906,14 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
       // Web: hand the signed urls to the browser.
       var failed = 0;
       for (final entry in entries) {
+        final url = entry.cloud?.downloadUrl;
+        if (url == null || url.isEmpty) {
+          failed += 1;
+          continue;
+        }
         try {
           final opened = await launchUrl(
-            Uri.parse(entry.cloud!.downloadUrl!),
+            Uri.parse(url),
             mode: LaunchMode.externalApplication,
           );
           if (!opened) failed += 1;
@@ -936,8 +940,14 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
             },
           );
       if (!mounted) return;
-      if (result.restored > 0 && result.destinations.isNotEmpty) {
-        _snack(l10n.restoreDone(result.destinations.join(', ')));
+      if (result.restored > 0) {
+        _snack(
+          result.destinations.isEmpty
+              ? l10n.restoreDoneGeneric
+              : l10n.restoreDone(result.destinations.join(', ')),
+        );
+      } else if (result.cancelled > 0 && result.failed == 0) {
+        _snack(l10n.restoreCancelled);
       } else {
         _snack(
           result.errors.isEmpty ? l10n.restoreFailed : result.errors.first,
@@ -1064,10 +1074,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
         (entry) =>
             entry.hasLocal || (entry.cloud?.downloadUrl ?? '').isNotEmpty,
       );
-      final canDownload = entries.any(
-        (entry) =>
-            !entry.hasLocal && (entry.cloud?.downloadUrl ?? '').isNotEmpty,
-      );
+      final canDownload = entries.any((entry) => entry.canDownloadToDevice);
       final canRemove = entries.any((entry) => entry.cloud != null);
       final canDelete = entries.any(
         (entry) => entry.canDeleteCloud || entry.canDeleteLocal,
@@ -1112,10 +1119,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     final canShare = entries.any(
       (entry) => entry.hasLocal || (entry.cloud?.downloadUrl ?? '').isNotEmpty,
     );
-    final canDownload = entries.any(
-      (entry) =>
-          !entry.hasLocal && (entry.cloud?.downloadUrl ?? '').isNotEmpty,
-    );
+    final canDownload = entries.any((entry) => entry.canDownloadToDevice);
     final canDelete = entries.any(
       (entry) => entry.canDeleteCloud || entry.canDeleteLocal,
     );

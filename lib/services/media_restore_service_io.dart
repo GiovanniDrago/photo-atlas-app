@@ -3,10 +3,37 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 
+import '../models/gallery_entry.dart';
 import 'download_service.dart';
+import 'local_media_service_io.dart' show androidSdkVersion;
 import 'media_restore_service.dart';
 
 bool get canRestoreInApp => true;
+
+bool get canRestoreFromTrash {
+  if (!Platform.isAndroid) return false;
+  final sdk = androidSdkVersion();
+  return sdk == null || sdk >= 30;
+}
+
+/// Restores a trashed device file through the Android system trash (API 30+).
+/// The system shows a confirmation prompt unless the app has media management
+/// access; an empty result means the prompt was dismissed.
+Future<TrashRestoreOutcome> restoreFromDeviceTrash(LocalMedia media) async {
+  if (!Platform.isAndroid) return TrashRestoreOutcome.unsupported;
+  final asset = media.asset;
+  if (asset == null) return TrashRestoreOutcome.unsupported;
+  try {
+    final restored = await PhotoManager.editor.android.restoreFromTrash([
+      asset,
+    ]);
+    return restored.contains(asset.id)
+        ? TrashRestoreOutcome.restored
+        : TrashRestoreOutcome.cancelled;
+  } catch (_) {
+    return TrashRestoreOutcome.unsupported;
+  }
+}
 
 /// Downloads the cloud file and puts it back into the device library: the
 /// original folder when it can be written, the downloads folder otherwise.

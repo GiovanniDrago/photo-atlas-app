@@ -902,6 +902,10 @@
 "@restoreAlreadyLocal": {"placeholders": {}},
 "restoreFailed": "Download failed",
 "@restoreFailed": {"placeholders": {}},
+"restoreCancelled": "Restore cancelled",
+"@restoreCancelled": {"placeholders": {}},
+"restoreDoneGeneric": "Restored",
+"@restoreDoneGeneric": {"placeholders": {}},
 "videoPlaybackError": "Video playback failed",
 "@videoPlaybackError": {"placeholders": {}}
 }

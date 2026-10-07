@@ -387,5 +387,7 @@
 "restoreDone": "Ripristinato in {destination}",
 "restoreAlreadyLocal": "Già presente sul dispositivo",
 "restoreFailed": "Download non riuscito",
+"restoreCancelled": "Ripristino annullato",
+"restoreDoneGeneric": "Ripristinato",
 "videoPlaybackError": "Impossibile riprodurre il video"
 }

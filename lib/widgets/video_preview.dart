@@ -21,6 +21,8 @@ class _VideoPreviewState extends State<VideoPreview> {
   VideoPlayerController? _controller;
   bool _starting = false;
   String? _error;
+  bool _scrubbing = false;
+  Duration? _scrubPosition;
 
   Future<void> _start() async {
     if (_starting || _controller != null) return;
@@ -53,7 +55,8 @@ class _VideoPreviewState extends State<VideoPreview> {
   }
 
   Future<VideoPlayerController> _createController() async {
-    final local = widget.entry.local;
+    // Trashed device files are not readable: go straight to the stream.
+    final local = widget.entry.hasLocal ? widget.entry.local : null;
     if (local != null) {
       final controller = await videoControllerForLocal(local);
       if (controller != null) return controller;
@@ -81,6 +84,17 @@ class _VideoPreviewState extends State<VideoPreview> {
         controller.play();
       }
     });
+  }
+
+  void _seekBy(Duration delta) {
+    final controller = _controller;
+    if (controller == null) return;
+    final value = controller.value;
+    var target = value.position + delta;
+    if (target < Duration.zero) target = Duration.zero;
+    final duration = value.duration;
+    if (duration > Duration.zero && target > duration) target = duration;
+    controller.seekTo(target);
   }
 
   @override
@@ -141,11 +155,19 @@ class _VideoPreviewState extends State<VideoPreview> {
     return ValueListenableBuilder<VideoPlayerValue>(
       valueListenable: controller,
       builder: (context, value, _) {
+        final duration = value.duration;
+        final position = _scrubbing
+            ? (_scrubPosition ?? value.position)
+            : value.position;
+        final maxMs = duration.inMilliseconds;
+        final valueMs = position.inMilliseconds
+            .clamp(0, maxMs > 0 ? maxMs : 0)
+            .toDouble();
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
           decoration: BoxDecoration(
-            color: Colors.black45,
-            borderRadius: BorderRadius.circular(12),
+            color: Colors.black54,
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Row(
             children: [
@@ -154,20 +176,59 @@ class _VideoPreviewState extends State<VideoPreview> {
                 color: Colors.white,
                 icon: Icon(value.isPlaying ? Icons.pause : Icons.play_arrow),
               ),
+              IconButton(
+                tooltip: '-10s',
+                onPressed: () => _seekBy(const Duration(seconds: -10)),
+                color: Colors.white,
+                icon: const Icon(Icons.replay_10),
+              ),
+              IconButton(
+                tooltip: '+10s',
+                onPressed: () => _seekBy(const Duration(seconds: 10)),
+                color: Colors.white,
+                icon: const Icon(Icons.forward_10),
+              ),
               Expanded(
-                child: VideoProgressIndicator(
-                  controller,
-                  allowScrubbing: true,
-                  colors: const VideoProgressColors(
-                    playedColor: Colors.white,
-                    bufferedColor: Colors.white30,
-                    backgroundColor: Colors.white24,
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 3,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 7,
+                    ),
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 14,
+                    ),
+                    activeTrackColor: Colors.white,
+                    inactiveTrackColor: Colors.white30,
+                    thumbColor: Colors.white,
+                    overlayColor: Colors.white24,
+                  ),
+                  child: Slider(
+                    value: valueMs,
+                    max: maxMs > 0 ? maxMs.toDouble() : 1,
+                    onChanged: maxMs > 0
+                        ? (ms) => setState(() {
+                            _scrubbing = true;
+                            _scrubPosition = Duration(milliseconds: ms.round());
+                          })
+                        : null,
+                    onChangeEnd: maxMs > 0
+                        ? (ms) {
+                            controller.seekTo(
+                              Duration(milliseconds: ms.round()),
+                            );
+                            setState(() {
+                              _scrubbing = false;
+                              _scrubPosition = null;
+                            });
+                          }
+                        : null,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Text(
-                _timeLabel(value.position, value.duration),
+                _timeLabel(position, duration),
                 style: const TextStyle(color: Colors.white, fontSize: 11),
               ),
               const SizedBox(width: 8),

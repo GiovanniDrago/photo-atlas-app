@@ -262,13 +262,13 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   Future<void> _download() async {
     final l10n = AppLocalizations.of(context)!;
     final entry = _entry;
-    final url = entry.cloud?.downloadUrl;
-    if (url == null || url.isEmpty) {
-      _snack(l10n.downloadUnavailable);
-      return;
-    }
     if (entry.hasLocal) {
       _snack(l10n.restoreAlreadyLocal);
+      return;
+    }
+    final url = entry.cloud?.downloadUrl;
+    if (!entry.canDownloadToDevice) {
+      _snack(l10n.downloadUnavailable);
       return;
     }
     setState(() => _busy = true);
@@ -278,14 +278,20 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
           ref.read(apiClientProvider),
         ).restore([entry]);
         if (!mounted) return;
-        if (result.restored > 0 && result.destinations.isNotEmpty) {
-          _snack(l10n.restoreDone(result.destinations.first));
+        if (result.restored > 0) {
+          _snack(
+            result.destinations.isEmpty
+                ? l10n.restoreDoneGeneric
+                : l10n.restoreDone(result.destinations.first),
+          );
+        } else if (result.cancelled > 0 && result.failed == 0) {
+          _snack(l10n.restoreCancelled);
         } else {
           _snack(
             result.errors.isEmpty ? l10n.restoreFailed : result.errors.first,
           );
         }
-      } else {
+      } else if (url != null && url.isNotEmpty) {
         // Web: no device library, keep the browser download.
         var opened = false;
         try {
@@ -297,6 +303,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
           opened = false;
         }
         if (!opened && mounted) _snack(l10n.downloadUnavailable);
+      } else if (mounted) {
+        _snack(l10n.downloadUnavailable);
       }
     } catch (error) {
       if (mounted) _snack('$error');
@@ -322,8 +330,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     }
     final entry = _entry;
     final canUpload = entry.canUpload;
-    final canDownload =
-        !entry.hasLocal && (entry.cloud?.downloadUrl ?? '').isNotEmpty;
+    final canDownload = entry.canDownloadToDevice;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -461,11 +468,13 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                   fit: StackFit.expand,
                   children: [
                     _preview(entry),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 16,
-                      child: Center(
+                    // The hint would sit on top of the video controls.
+                    if (!entry.isVideo)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 16,
+                        child: Center(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
@@ -617,8 +626,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                   onOpen: _openInMaps,
                 ),
               ],
-              if (!entry.hasLocal &&
-                  (entry.cloud?.downloadUrl ?? '').isNotEmpty)
+              if (entry.canDownloadToDevice)
                 Padding(
                   padding: const EdgeInsets.only(top: 16),
                   child: FilledButton.icon(

@@ -1,6 +1,13 @@
+import '../models/gallery_entry.dart';
 import 'media_restore_service.dart';
 
 bool get canRestoreInApp => false;
+
+bool get canRestoreFromTrash => false;
+
+Future<TrashRestoreOutcome> restoreFromDeviceTrash(LocalMedia media) async {
+  return TrashRestoreOutcome.unsupported;
+}
 
 Future<MediaRestoreResult> restoreCloudMedia({
   required String url,

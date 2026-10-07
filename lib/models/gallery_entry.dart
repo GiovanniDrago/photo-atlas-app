@@ -21,6 +21,10 @@ class LocalMedia {
   final AssetEntity? asset;
   final String? sourceLabel;
 
+  /// True when the file is in the Android system trash: it still shows up in
+  /// the device queries of the app that trashed it, but it is not usable.
+  final bool trashed;
+
   const LocalMedia({
     required this.id,
     required this.name,
@@ -35,6 +39,7 @@ class LocalMedia {
     this.height,
     this.asset,
     this.sourceLabel,
+    this.trashed = false,
   });
 
   bool get isVideo => mediaType == 'video';
@@ -118,13 +123,23 @@ class GalleryEntry {
   bool get isIndexed => cloud != null;
   bool get isUploaded => cloud?.isBackedUp ?? false;
   bool get isBackupFailed => cloud?.isBackupFailed ?? false;
-  bool get hasLocal => local != null;
-  bool get isCloudOnly => cloud != null && local == null;
-  bool get isLocalOnly => cloud == null && local != null;
+
+  /// True when a usable device copy exists; files in the system trash do not
+  /// count, so they behave like cloud-only items (download, no device delete).
+  bool get hasLocal => local != null && !local!.trashed;
+  bool get hasTrashedLocal => local != null && local!.trashed;
+  bool get isCloudOnly => cloud != null && !hasLocal;
+  bool get isLocalOnly => cloud == null && hasLocal;
   bool get isKDriveSource => cloud?.sourceKind == 'kdrive';
   bool get canUpload => hasLocal && !isUploaded;
   bool get canDeleteCloud => isUploaded || isKDriveSource;
   bool get canDeleteLocal => hasLocal;
+
+  /// True when the file can come back to the device: a cloud copy to download
+  /// or a device file sitting in the system trash to restore.
+  bool get canDownloadToDevice =>
+      !hasLocal &&
+      ((cloud?.downloadUrl ?? '').isNotEmpty || hasTrashedLocal);
 
   bool get isMetadataMissing => cloud != null && !(cloud!.hasFullMetadata);
 }
@@ -166,16 +181,21 @@ List<GalleryEntry> mergeGalleryEntries({
     final existing = entries[key];
     entries[key] = GalleryEntry(cloud: existing?.cloud, local: media);
   }
-  final merged = entries.values.toList()
-    ..sort((a, b) {
-      final left = a.sortDate;
-      final right = b.sortDate;
-      if (left == null && right == null) return a.name.compareTo(b.name);
-      if (left == null) return 1;
-      if (right == null) return -1;
-      final byDate = right.compareTo(left);
-      return byDate != 0 ? byDate : a.name.compareTo(b.name);
-    });
+  final merged =
+      [
+        for (final entry in entries.values)
+          // A trashed device-only file is gone for the user: hide it. Trashed
+          // files with a cloud row stay, so they can be restored from the trash.
+          if (entry.cloud != null || !(entry.local?.trashed ?? false)) entry,
+      ]..sort((a, b) {
+        final left = a.sortDate;
+        final right = b.sortDate;
+        if (left == null && right == null) return a.name.compareTo(b.name);
+        if (left == null) return 1;
+        if (right == null) return -1;
+        final byDate = right.compareTo(left);
+        return byDate != 0 ? byDate : a.name.compareTo(b.name);
+      });
   return merged;
 }
 

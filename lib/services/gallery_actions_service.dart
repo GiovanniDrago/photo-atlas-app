@@ -87,12 +87,14 @@ class GalleryActionResult {
 class GalleryRestoreResult {
   final int restored;
   final int failed;
+  final int cancelled;
   final Set<String> destinations;
   final List<String> errors;
 
   const GalleryRestoreResult({
     this.restored = 0,
     this.failed = 0,
+    this.cancelled = 0,
     this.destinations = const {},
     this.errors = const [],
   });
@@ -170,26 +172,29 @@ class GalleryActionsService {
     );
   }
 
-  /// Downloads cloud-only files back to the device: the original folder when
-  /// available, the downloads folder otherwise. Entries with a device copy are
-  /// left alone; the merge by name and size keeps the gallery single-copy.
+  /// Brings files back to the device: device files in the system trash are
+  /// restored from it, cloud-only files are downloaded (original folder when
+  /// available, downloads folder otherwise). Entries with a usable device copy
+  /// are left alone; the merge by name and size keeps the gallery single-copy.
   Future<GalleryRestoreResult> restore(
     List<GalleryEntry> entries, {
     void Function(GalleryActionProgress progress)? onProgress,
   }) async {
     final targets = [
       for (final entry in entries)
-        if (!entry.hasLocal &&
-            (entry.cloud?.downloadUrl ?? '').isNotEmpty)
+        if (entry.hasTrashedLocal
+            ? canRestoreFromTrash
+            : (!entry.hasLocal &&
+                (entry.cloud?.downloadUrl ?? '').isNotEmpty))
           entry,
     ];
     var restored = 0;
     var failed = 0;
+    var cancelled = 0;
     final destinations = <String>{};
     final errors = <String>[];
     for (var index = 0; index < targets.length; index += 1) {
       final entry = targets[index];
-      final url = entry.cloud!.downloadUrl!;
       onProgress?.call(
         GalleryActionProgress(
           done: index,
@@ -198,6 +203,26 @@ class GalleryActionsService {
         ),
       );
       try {
+        if (entry.hasTrashedLocal) {
+          final outcome = await restoreFromDeviceTrash(entry.local!);
+          switch (outcome) {
+            case TrashRestoreOutcome.restored:
+              restored += 1;
+              final folder =
+                  entry.local?.relativePath ?? entry.cloud?.path ?? '';
+              if (folder.isNotEmpty) destinations.add(folder);
+              break;
+            case TrashRestoreOutcome.cancelled:
+              cancelled += 1;
+              break;
+            case TrashRestoreOutcome.unsupported:
+              failed += 1;
+              errors.add('${entry.name}: trash restore unavailable');
+              break;
+          }
+          continue;
+        }
+        final url = entry.cloud!.downloadUrl!;
         final result = await restoreCloudMedia(
           url: url,
           filename: entry.name,
@@ -237,6 +262,7 @@ class GalleryActionsService {
     return GalleryRestoreResult(
       restored: restored,
       failed: failed,
+      cancelled: cancelled,
       destinations: destinations,
       errors: errors,
     );
@@ -355,7 +381,8 @@ class GalleryActionsService {
     final errors = <String>[];
     for (final entry in entries) {
       try {
-        final local = entry.local;
+        // Trashed device files are not readable: share the cloud copy.
+        final local = entry.hasLocal ? entry.local : null;
         String? path;
         if (local != null) {
           final resolved = await LocalMediaService.localPath(local);

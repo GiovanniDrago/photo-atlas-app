@@ -108,7 +108,10 @@ Future<LocalMediaPage> loadFolderPage({
 Future<List<LocalMedia>> recent({int limit = 6}) async {
   if (!ScanService.isAlbumBased) return const [];
   final assets = await ScanService.recentAssets(limit: limit);
-  return _mapAssets(assets);
+  return [
+    for (final media in _mapAssets(assets))
+      if (!media.trashed) media,
+  ];
 }
 
 List<LocalMedia> _mapAssets(List<AssetEntity> assets) {
@@ -138,6 +141,7 @@ LocalMedia _mapAsset(AssetEntity asset, {String? sourceLabel}) {
     durationS: isVideo ? asset.duration.toDouble() : null,
     asset: asset,
     sourceLabel: sourceLabel,
+    trashed: asset.isTrashed,
   );
 }
 

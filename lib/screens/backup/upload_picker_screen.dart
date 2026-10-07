@@ -45,7 +45,8 @@ class _UploadPickerScreenState extends ConsumerState<UploadPickerScreen> {
       setState(() {
         _all
           ..clear()
-          ..addAll(page.items);
+          // Trashed files cannot be uploaded.
+          ..addAll(page.items.where((media) => !media.trashed));
         _error = null;
       });
     } on ScanPermissionException {

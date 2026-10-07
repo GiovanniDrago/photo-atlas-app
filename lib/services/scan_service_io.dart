@@ -177,6 +177,8 @@ Future<ScanResult> scanAlbum({
       if (asset.type == AssetType.audio || asset.type == AssetType.other) {
         continue;
       }
+      // Files in the system trash are not scannable.
+      if (asset.isTrashed) continue;
       seen++;
       try {
         final file = await asset.file;
