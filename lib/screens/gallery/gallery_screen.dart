@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,12 +9,10 @@ import '../../l10n/app_localizations.dart';
 import '../../models/album.dart';
 import '../../models/gallery_entry.dart';
 import '../../models/gallery_upload.dart';
-import '../../models/media_item.dart';
 import '../../providers/album_providers.dart';
 import '../../providers/collections_providers.dart';
 import '../../providers/gallery_providers.dart';
 import '../../providers/library_providers.dart';
-import '../../services/export_service.dart';
 import '../../services/gallery_actions_service.dart';
 import '../../services/local_media_service.dart';
 import '../../services/media_restore_service.dart';
@@ -67,7 +64,6 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _gridKey = GlobalKey();
   bool _selectionMode = false;
-  bool _exporting = false;
   bool _busy = false;
   String? _busyLabel;
   GalleryActionProgress? _progress;
@@ -488,61 +484,6 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     return box.localToGlobal(Offset.zero) & box.size;
   }
 
-  Future<void> _exportSelected() async {
-    final l10n = AppLocalizations.of(context)!;
-    final selected = _selectedEntries
-        .map((entry) => entry.cloud)
-        .whereType<MediaItem>()
-        .toList();
-    if (selected.isEmpty) return;
-    setState(() => _exporting = true);
-    try {
-      final payload = {
-        'exported_at': DateTime.now().toUtc().toIso8601String(),
-        'count': selected.length,
-        'items': [for (final item in selected) _exportItem(item)],
-      };
-      final content = const JsonEncoder.withIndent('  ').convert(payload);
-      final stamp = DateFormat('yyyyMMdd-HHmmss').format(DateTime.now());
-      final filename = 'photo-atlas-metadata-$stamp.json';
-      final result = await saveMetadataExport(
-        filename: filename,
-        content: content,
-      );
-      if (!mounted) return;
-      final savedToPath = result != null && result != filename;
-      _snack(savedToPath ? l10n.exportSavedTo(result) : l10n.exportStarted);
-      _clearSelection();
-    } catch (error) {
-      if (mounted) _snack('${l10n.exportFailed}: $error');
-    } finally {
-      if (mounted) setState(() => _exporting = false);
-    }
-  }
-
-  Map<String, dynamic> _exportItem(MediaItem item) => {
-    'id': item.id,
-    'name': item.name,
-    'media_type': item.mediaType,
-    'mime': item.mime,
-    'size_bytes': item.sizeBytes,
-    'taken_at': item.takenAt?.toUtc().toIso8601String(),
-    'file_created_at': item.fileCreatedAt?.toUtc().toIso8601String(),
-    'modified_at': item.modifiedAt?.toUtc().toIso8601String(),
-    'latitude': item.lat,
-    'longitude': item.lon,
-    'has_gps': item.hasGps,
-    'width': item.width,
-    'height': item.height,
-    'duration_s': item.durationS,
-    'metadata_status': item.metadataStatus,
-    'source': item.sourceLabel,
-    'source_kind': item.sourceKind,
-    'external_key': item.externalKey,
-    'path': item.path,
-    'backup_status': item.backupStatus,
-  };
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -566,17 +507,16 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                   icon: const Icon(Icons.select_all),
                 ),
                 IconButton(
-                  tooltip: l10n.exportMetadata,
-                  onPressed: _selectedKeys.isEmpty || _exporting || _busy
+                  tooltip: l10n.downloadOriginal,
+                  onPressed:
+                      _selectedKeys.isEmpty ||
+                          _busy ||
+                          !_selectedEntries.any(
+                            (entry) => entry.canDownloadToDevice,
+                          )
                       ? null
-                      : _exportSelected,
-                  icon: _exporting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.download),
+                      : _runDownload,
+                  icon: const Icon(Icons.download_outlined),
                 ),
               ],
             )

@@ -276,27 +276,6 @@
   "@selectAll": {
     "description": "Select all loaded items"
   },
-  "exportMetadata": "Export metadata",
-  "@exportMetadata": {
-    "description": "Export metadata of the selected items"
-  },
-  "exportStarted": "Export started",
-  "@exportStarted": {
-    "description": "Web download of the metadata export started"
-  },
-  "exportSavedTo": "Saved to {path}",
-  "@exportSavedTo": {
-    "description": "Metadata export saved on disk",
-    "placeholders": {
-      "path": {
-        "type": "String"
-      }
-    }
-  },
-  "exportFailed": "Export failed",
-  "@exportFailed": {
-    "description": "Metadata export error"
-  },
   "changePassword": "Change password",
   "@changePassword": {
     "description": "Change password dialog title and tooltip"

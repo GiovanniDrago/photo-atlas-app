@@ -30,42 +30,55 @@ class _VideoPreviewState extends State<VideoPreview> {
       _starting = true;
       _error = null;
     });
-    VideoPlayerController? controller;
-    try {
-      controller = await _createController();
-      await controller.initialize();
-      await controller.play();
-      if (!mounted) {
-        await controller.dispose();
-        return;
-      }
-      setState(() {
-        _controller = controller;
-        _starting = false;
-      });
-    } catch (error) {
-      await controller?.dispose();
-      if (mounted) {
+    Object? lastError;
+    for (final build in _sources()) {
+      VideoPlayerController? controller;
+      try {
+        controller = await build();
+        await controller.initialize();
+        await controller.play();
+        if (!mounted) {
+          await controller.dispose();
+          return;
+        }
         setState(() {
-          _error = '$error';
+          _controller = controller;
           _starting = false;
         });
+        return;
+      } catch (error) {
+        // A broken device file must not block the kDrive stream.
+        lastError = error;
+        await controller?.dispose();
       }
+    }
+    if (mounted) {
+      setState(() {
+        _error = lastError == null ? 'no video source' : '$lastError';
+        _starting = false;
+      });
     }
   }
 
-  Future<VideoPlayerController> _createController() async {
-    // Trashed device files are not readable: go straight to the stream.
+  /// Playback candidates in order: the device file (when usable) and then the
+  /// kDrive stream.
+  List<Future<VideoPlayerController> Function()> _sources() {
+    final candidates = <Future<VideoPlayerController> Function()>[];
     final local = widget.entry.hasLocal ? widget.entry.local : null;
     if (local != null) {
-      final controller = await videoControllerForLocal(local);
-      if (controller != null) return controller;
+      candidates.add(() async {
+        final controller = await videoControllerForLocal(local);
+        if (controller == null) throw StateError('no local file');
+        return controller;
+      });
     }
     final url = widget.entry.cloud?.streamUrl;
     if (url != null && url.isNotEmpty) {
-      return VideoPlayerController.networkUrl(Uri.parse(url));
+      candidates.add(
+        () async => VideoPlayerController.networkUrl(Uri.parse(url)),
+      );
     }
-    throw StateError('no video source');
+    return candidates;
   }
 
   @override

@@ -146,9 +146,10 @@ LocalMedia _mapAsset(AssetEntity asset, {String? sourceLabel}) {
 }
 
 /// Device files behind the indexed items of an album. Android media assets are
-/// resolved by their asset id (the external key); legacy path keys and desktop
-/// files fall back to the file system. Throws [ScanPermissionException] when
-/// the photo permission is denied.
+/// resolved by their asset id (the external key); when the file was downloaded
+/// again from the cloud the id changed, so the name|size index is used as a
+/// fallback. Legacy path keys and desktop files fall back to the file system.
+/// Throws [ScanPermissionException] when the photo permission is denied.
 Future<List<LocalMedia>> resolveForItems(List<MediaItem> items) async {
   final targets = [
     for (final item in items)
@@ -160,6 +161,8 @@ Future<List<LocalMedia>> resolveForItems(List<MediaItem> items) async {
   }
   final locals = <LocalMedia>[];
   final seen = <String>{};
+  final seenLocalIds = <String>{};
+  Map<String, LocalMedia>? byNameSize;
   for (final item in targets) {
     final key = item.externalKey;
     if (key.isEmpty || !seen.add(key)) continue;
@@ -172,8 +175,36 @@ Future<List<LocalMedia>> resolveForItems(List<MediaItem> items) async {
       }
     }
     if (asset != null) {
-      locals.add(_mapAsset(asset, sourceLabel: item.sourceLabel));
+      final media = _mapAsset(asset, sourceLabel: item.sourceLabel);
+      if (seenLocalIds.add(media.id)) locals.add(media);
       continue;
+    }
+    final size = item.sizeBytes;
+    if (ScanService.isAlbumBased &&
+        item.name.isNotEmpty &&
+        size != null &&
+        size > 0) {
+      byNameSize ??= _buildIndex(await _currentAssets());
+      final match = byNameSize['${item.name}|$size'];
+      if (match != null && seenLocalIds.add(match.id)) {
+        locals.add(
+          LocalMedia(
+            id: match.id,
+            name: match.name,
+            relativePath: match.relativePath,
+            mediaType: match.mediaType,
+            takenAt: match.takenAt,
+            modifiedAt: match.modifiedAt,
+            width: match.width,
+            height: match.height,
+            durationS: match.durationS,
+            asset: match.asset,
+            sourceLabel: item.sourceLabel,
+            trashed: match.trashed,
+          ),
+        );
+        continue;
+      }
     }
     final path = item.path ?? (ScanService.isAlbumBased ? '' : key);
     if (path.isEmpty) continue;
@@ -198,6 +229,24 @@ Future<List<LocalMedia>> resolveForItems(List<MediaItem> items) async {
     }
   }
   return locals;
+}
+
+/// The cached device list, refreshed when stale: used to match album items by
+/// name and size when their stored asset id no longer resolves.
+Future<List<LocalMedia>> _currentAssets() async {
+  final cached = _cachedAssets;
+  final cachedAt = _cachedAssetsAt;
+  if (cached != null &&
+      cachedAt != null &&
+      DateTime.now().difference(cachedAt) < _assetsCacheTtl) {
+    return cached;
+  }
+  final assets = await ScanService.listAllAssetsOnce();
+  final items = _mapAssets(assets);
+  items.sort(_newestFirst);
+  _cachedAssets = items;
+  _cachedAssetsAt = DateTime.now();
+  return items;
 }
 
 int _newestFirst(LocalMedia a, LocalMedia b) {

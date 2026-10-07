@@ -56,6 +56,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   bool _busy = false;
   bool _loadingNext = false;
   bool _loadingPrevious = false;
+  GalleryActionProgress? _downloadProgress;
 
   @override
   void initState() {
@@ -271,12 +272,19 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       _snack(l10n.downloadUnavailable);
       return;
     }
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _downloadProgress = null;
+    });
     try {
       if (canRestoreInApp) {
-        final result = await GalleryActionsService(
-          ref.read(apiClientProvider),
-        ).restore([entry]);
+        final result = await GalleryActionsService(ref.read(apiClientProvider))
+            .restore(
+              [entry],
+              onProgress: (progress) {
+                if (mounted) setState(() => _downloadProgress = progress);
+              },
+            );
         if (!mounted) return;
         if (result.restored > 0) {
           _snack(
@@ -309,7 +317,12 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     } catch (error) {
       if (mounted) _snack('$error');
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _downloadProgress = null;
+        });
+      }
       _invalidateLibrary();
     }
   }
@@ -626,7 +639,27 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                   onOpen: _openInMaps,
                 ),
               ],
-              if (entry.canDownloadToDevice)
+              if (_busy && _downloadProgress != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      LinearProgressIndicator(
+                        value: _downloadProgress!.fileFraction,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _downloadProgress!.fileFraction == null
+                            ? l10n.galleryDownloading
+                            : '${l10n.galleryDownloading} · '
+                                  '${(_downloadProgress!.fileFraction! * 100).floor()}%',
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                    ],
+                  ),
+                )
+              else if (entry.canDownloadToDevice)
                 Padding(
                   padding: const EdgeInsets.only(top: 16),
                   child: FilledButton.icon(
