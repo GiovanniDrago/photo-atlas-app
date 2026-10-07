@@ -16,10 +16,12 @@ import '../../providers/library_providers.dart';
 import '../../services/folder_launcher.dart';
 import '../../services/gallery_actions_service.dart';
 import '../../services/local_media_service.dart';
+import '../../services/media_restore_service.dart';
 import '../../services/scan_service.dart';
 import '../../widgets/delete_media_dialog.dart';
 import '../albums/album_picker_sheet.dart';
 import '../../widgets/local_file_image.dart';
+import '../../widgets/video_preview.dart';
 
 enum MediaViewerResult { select }
 
@@ -257,18 +259,51 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     if (!opened && mounted) _snack(l10n.viewerOpenMapsFailed);
   }
 
-  Future<void> _download(String url) async {
+  Future<void> _download() async {
     final l10n = AppLocalizations.of(context)!;
-    var opened = false;
-    try {
-      opened = await launchUrl(
-        Uri.parse(url),
-        mode: LaunchMode.externalApplication,
-      );
-    } catch (_) {
-      opened = false;
+    final entry = _entry;
+    final url = entry.cloud?.downloadUrl;
+    if (url == null || url.isEmpty) {
+      _snack(l10n.downloadUnavailable);
+      return;
     }
-    if (!opened && mounted) _snack(l10n.downloadUnavailable);
+    if (entry.hasLocal) {
+      _snack(l10n.restoreAlreadyLocal);
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      if (canRestoreInApp) {
+        final result = await GalleryActionsService(
+          ref.read(apiClientProvider),
+        ).restore([entry]);
+        if (!mounted) return;
+        if (result.restored > 0 && result.destinations.isNotEmpty) {
+          _snack(l10n.restoreDone(result.destinations.first));
+        } else {
+          _snack(
+            result.errors.isEmpty ? l10n.restoreFailed : result.errors.first,
+          );
+        }
+      } else {
+        // Web: no device library, keep the browser download.
+        var opened = false;
+        try {
+          opened = await launchUrl(
+            Uri.parse(url),
+            mode: LaunchMode.externalApplication,
+          );
+        } catch (_) {
+          opened = false;
+        }
+        if (!opened && mounted) _snack(l10n.downloadUnavailable);
+      }
+    } catch (error) {
+      if (mounted) _snack('$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+      _invalidateLibrary();
+    }
   }
 
   void _snack(String message) {
@@ -287,7 +322,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     }
     final entry = _entry;
     final canUpload = entry.canUpload;
-    final downloadUrl = entry.cloud?.downloadUrl;
+    final canDownload =
+        !entry.hasLocal && (entry.cloud?.downloadUrl ?? '').isNotEmpty;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -316,7 +352,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
               } else if (value == 'delete') {
                 _delete();
               } else if (value == 'download') {
-                _download(downloadUrl!);
+                _download();
               } else if (value == 'select') {
                 Navigator.of(context).pop(MediaViewerResult.select);
               } else if (value == 'maps') {
@@ -345,7 +381,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                     title: Text(l10n.galleryUpload),
                   ),
                 ),
-              if (downloadUrl != null && downloadUrl.isNotEmpty)
+              if (canDownload)
                 PopupMenuItem(
                   value: 'download',
                   enabled: !_busy,
@@ -471,6 +507,13 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   }
 
   Widget _preview(GalleryEntry entry) {
+    if (entry.isVideo) {
+      return VideoPreview(entry: entry, poster: _stillPreview(entry));
+    }
+    return _stillPreview(entry);
+  }
+
+  Widget _stillPreview(GalleryEntry entry) {
     final asset = entry.local?.asset;
     if (asset != null) {
       return AssetEntityImage(
@@ -574,11 +617,12 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                   onOpen: _openInMaps,
                 ),
               ],
-              if (entry.cloud?.downloadUrl case final url? when url.isNotEmpty)
+              if (!entry.hasLocal &&
+                  (entry.cloud?.downloadUrl ?? '').isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 16),
                   child: FilledButton.icon(
-                    onPressed: () => _download(url),
+                    onPressed: _busy ? null : _download,
                     icon: const Icon(Icons.download),
                     label: Text(l10n.downloadOriginal),
                   ),

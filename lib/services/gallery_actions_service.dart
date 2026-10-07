@@ -8,6 +8,7 @@ import 'api_client.dart';
 import 'device_service.dart';
 import 'download_service.dart';
 import 'local_media_service.dart';
+import 'media_restore_service.dart';
 import 'scan_models.dart';
 import 'scan_service.dart';
 
@@ -82,6 +83,21 @@ class GalleryActionResult {
   }
 }
 
+/// Outcome of restoring cloud-only files back to the device.
+class GalleryRestoreResult {
+  final int restored;
+  final int failed;
+  final Set<String> destinations;
+  final List<String> errors;
+
+  const GalleryRestoreResult({
+    this.restored = 0,
+    this.failed = 0,
+    this.destinations = const {},
+    this.errors = const [],
+  });
+}
+
 /// Upload, delete and share actions for the selected gallery entries.
 class GalleryActionsService {
   GalleryActionsService(this.client);
@@ -150,6 +166,78 @@ class GalleryActionsService {
     return GalleryActionResult(
       uploaded: uploaded,
       failed: failed,
+      errors: errors,
+    );
+  }
+
+  /// Downloads cloud-only files back to the device: the original folder when
+  /// available, the downloads folder otherwise. Entries with a device copy are
+  /// left alone; the merge by name and size keeps the gallery single-copy.
+  Future<GalleryRestoreResult> restore(
+    List<GalleryEntry> entries, {
+    void Function(GalleryActionProgress progress)? onProgress,
+  }) async {
+    final targets = [
+      for (final entry in entries)
+        if (!entry.hasLocal &&
+            (entry.cloud?.downloadUrl ?? '').isNotEmpty)
+          entry,
+    ];
+    var restored = 0;
+    var failed = 0;
+    final destinations = <String>{};
+    final errors = <String>[];
+    for (var index = 0; index < targets.length; index += 1) {
+      final entry = targets[index];
+      final url = entry.cloud!.downloadUrl!;
+      onProgress?.call(
+        GalleryActionProgress(
+          done: index,
+          total: targets.length,
+          currentName: entry.name,
+        ),
+      );
+      try {
+        final result = await restoreCloudMedia(
+          url: url,
+          filename: entry.name,
+          mediaType: entry.mediaType,
+          originalPath: entry.cloud?.path,
+          onProgress: (sent, total) => onProgress?.call(
+            GalleryActionProgress(
+              done: index,
+              total: targets.length,
+              currentName: entry.name,
+              fileSent: sent,
+              fileTotal: total,
+            ),
+          ),
+        );
+        restored += 1;
+        destinations.add(result.destination);
+      } catch (error) {
+        failed += 1;
+        errors.add('${entry.name}: $error');
+        onProgress?.call(
+          GalleryActionProgress(
+            done: index,
+            total: targets.length,
+            currentName: entry.name,
+            failedName: entry.name,
+            error: '$error',
+          ),
+        );
+      }
+    }
+    // The restored files must show up in the device scan right away.
+    LocalMediaService.invalidateCache();
+    onProgress?.call(
+      GalleryActionProgress(done: targets.length, total: targets.length),
+    );
+    return GalleryRestoreResult(
+      restored: restored,
+      failed: failed,
+      destinations: destinations,
       errors: errors,
     );
   }

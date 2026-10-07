@@ -18,6 +18,7 @@ import '../../providers/library_providers.dart';
 import '../../services/export_service.dart';
 import '../../services/gallery_actions_service.dart';
 import '../../services/local_media_service.dart';
+import '../../services/media_restore_service.dart';
 import '../../services/scan_models.dart';
 import '../../services/scan_service.dart';
 import '../../widgets/delete_media_dialog.dart';
@@ -893,27 +894,68 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
 
   Future<void> _runDownload() async {
     final l10n = AppLocalizations.of(context)!;
-    final entries = _selectedEntries;
-    if (entries.isEmpty) return;
-    var failed = 0;
-    for (final entry in entries) {
-      final url = entry.cloud?.downloadUrl;
-      if (url == null || url.isEmpty) {
-        failed += 1;
-        continue;
-      }
-      try {
-        final opened = await launchUrl(
-          Uri.parse(url),
-          mode: LaunchMode.externalApplication,
-        );
-        if (!opened) failed += 1;
-      } catch (_) {
-        failed += 1;
-      }
+    final entries = [
+      for (final entry in _selectedEntries)
+        if (!entry.hasLocal && (entry.cloud?.downloadUrl ?? '').isNotEmpty)
+          entry,
+    ];
+    if (entries.isEmpty) {
+      _snack(l10n.downloadUnavailable);
+      return;
     }
-    if (mounted && failed > 0) _snack(l10n.downloadUnavailable);
-    _clearSelection();
+    if (!canRestoreInApp) {
+      // Web: hand the signed urls to the browser.
+      var failed = 0;
+      for (final entry in entries) {
+        try {
+          final opened = await launchUrl(
+            Uri.parse(entry.cloud!.downloadUrl!),
+            mode: LaunchMode.externalApplication,
+          );
+          if (!opened) failed += 1;
+        } catch (_) {
+          failed += 1;
+        }
+      }
+      if (mounted && failed > 0) _snack(l10n.downloadUnavailable);
+      _clearSelection();
+      return;
+    }
+    _upload.value = null;
+    setState(() {
+      _busy = true;
+      _busyLabel = l10n.galleryDownloading;
+      _progress = null;
+    });
+    try {
+      final result = await GalleryActionsService(ref.read(apiClientProvider))
+          .restore(
+            entries,
+            onProgress: (progress) {
+              if (mounted) setState(() => _progress = progress);
+            },
+          );
+      if (!mounted) return;
+      if (result.restored > 0 && result.destinations.isNotEmpty) {
+        _snack(l10n.restoreDone(result.destinations.join(', ')));
+      } else {
+        _snack(
+          result.errors.isEmpty ? l10n.restoreFailed : result.errors.first,
+        );
+      }
+      _clearSelection();
+    } catch (error) {
+      if (mounted) _snack('$error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _busyLabel = null;
+          _progress = null;
+        });
+      }
+      await _refresh();
+    }
   }
 
   Future<void> _runRemoveFromAlbum() async {
@@ -1023,7 +1065,8 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
             entry.hasLocal || (entry.cloud?.downloadUrl ?? '').isNotEmpty,
       );
       final canDownload = entries.any(
-        (entry) => (entry.cloud?.downloadUrl ?? '').isNotEmpty,
+        (entry) =>
+            !entry.hasLocal && (entry.cloud?.downloadUrl ?? '').isNotEmpty,
       );
       final canRemove = entries.any((entry) => entry.cloud != null);
       final canDelete = entries.any(
@@ -1069,6 +1112,10 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     final canShare = entries.any(
       (entry) => entry.hasLocal || (entry.cloud?.downloadUrl ?? '').isNotEmpty,
     );
+    final canDownload = entries.any(
+      (entry) =>
+          !entry.hasLocal && (entry.cloud?.downloadUrl ?? '').isNotEmpty,
+    );
     final canDelete = entries.any(
       (entry) => entry.canDeleteCloud || entry.canDeleteLocal,
     );
@@ -1083,6 +1130,11 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
           icon: Icons.share_outlined,
           label: l10n.galleryShare,
           onPressed: canShare ? _runShare : null,
+        ),
+        MediaActionButton(
+          icon: Icons.download_outlined,
+          label: l10n.downloadOriginal,
+          onPressed: canDownload ? _runDownload : null,
         ),
         MediaActionButton(
           icon: Icons.delete_outline,
@@ -1104,7 +1156,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     final scheme = Theme.of(context).colorScheme;
     // Tapping the bar opens the per-file detail while an upload is running.
     final tappable = upload != null;
-    final fileFraction = upload?.fileFraction;
+    final fileFraction = upload?.fileFraction ?? progress?.fileFraction;
     final filePercent = fileFraction == null
         ? null
         : (fileFraction * 100).floor();
@@ -1140,6 +1192,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
           LinearProgressIndicator(
             value:
                 upload?.overallFraction ??
+                fileFraction ??
                 (progress == null || progress.total == 0
                     ? null
                     : (progress.done / progress.total).clamp(0.0, 1.0)),

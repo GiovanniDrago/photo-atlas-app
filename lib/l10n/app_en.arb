@@ -893,5 +893,15 @@
 "uploadNetworkError": "Network error while uploading. Check the connection and retry",
 "@uploadNetworkError": {"placeholders": {}},
 "uploadToKDrive": "Uploading to kDrive…",
-"@uploadToKDrive": {"placeholders": {}}
+"@uploadToKDrive": {"placeholders": {}},
+"galleryDownloading": "Downloading…",
+"@galleryDownloading": {"placeholders": {}},
+"restoreDone": "Restored to {destination}",
+"@restoreDone": {"placeholders": {"destination": {"type": "String"}}},
+"restoreAlreadyLocal": "Already on the device",
+"@restoreAlreadyLocal": {"placeholders": {}},
+"restoreFailed": "Download failed",
+"@restoreFailed": {"placeholders": {}},
+"videoPlaybackError": "Video playback failed",
+"@videoPlaybackError": {"placeholders": {}}
 }

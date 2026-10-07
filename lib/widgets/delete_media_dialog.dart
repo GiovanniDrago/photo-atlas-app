@@ -73,32 +73,28 @@ class _DeleteMediaDialogState extends State<DeleteMediaDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CheckboxListTile(
-            value: _cloud,
-            onChanged: _canCloud
-                ? (value) => setState(() => _cloud = value ?? false)
-                : null,
-            title: Text(l10n.galleryDeleteCloud),
-            subtitle: Text(l10n.galleryDeleteCloudHint),
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-          ),
-          CheckboxListTile(
-            value: _local,
-            onChanged: _canLocal
-                ? (value) => setState(() => _local = value ?? false)
-                : null,
-            title: Text(l10n.galleryDeleteLocal),
-            subtitle: Text(l10n.galleryDeleteLocalHint),
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-          ),
-          if (widget.allowAlbum)
+          if (_canCloud)
+            CheckboxListTile(
+              value: _cloud,
+              onChanged: (value) => setState(() => _cloud = value ?? false),
+              title: Text(l10n.galleryDeleteCloud),
+              subtitle: Text(l10n.galleryDeleteCloudHint),
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
+          if (_canLocal)
+            CheckboxListTile(
+              value: _local,
+              onChanged: (value) => setState(() => _local = value ?? false),
+              title: Text(l10n.galleryDeleteLocal),
+              subtitle: Text(l10n.galleryDeleteLocalHint),
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
+          if (widget.allowAlbum && _canAlbum)
             CheckboxListTile(
               value: _album,
-              onChanged: _canAlbum
-                  ? (value) => setState(() => _album = value ?? false)
-                  : null,
+              onChanged: (value) => setState(() => _album = value ?? false),
               title: Text(l10n.albumDeleteFromAlbum),
               subtitle: Text(l10n.albumDeleteFromAlbumHint),
               contentPadding: EdgeInsets.zero,

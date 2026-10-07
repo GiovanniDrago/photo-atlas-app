@@ -382,5 +382,10 @@
 "uploadStopping": "Interruzione…",
 "uploadStopped": "Interrotto",
 "uploadNetworkError": "Errore di rete durante il caricamento. Controlla la connessione e riprova",
-"uploadToKDrive": "Caricamento su kDrive…"
+"uploadToKDrive": "Caricamento su kDrive…",
+"galleryDownloading": "Download in corso…",
+"restoreDone": "Ripristinato in {destination}",
+"restoreAlreadyLocal": "Già presente sul dispositivo",
+"restoreFailed": "Download non riuscito",
+"videoPlaybackError": "Impossibile riprodurre il video"
 }

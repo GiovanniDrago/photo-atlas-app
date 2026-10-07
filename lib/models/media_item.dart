@@ -23,6 +23,7 @@ class MediaItem {
   final String? sourceLabel;
   final String? thumbnailUrl;
   final String? downloadUrl;
+  final String? streamUrl;
   final String backupStatus;
   final int? kdriveFileId;
   final DateTime? backedUpAt;
@@ -51,6 +52,7 @@ class MediaItem {
     this.sourceLabel,
     this.thumbnailUrl,
     this.downloadUrl,
+    this.streamUrl,
     this.backupStatus = 'none',
     this.kdriveFileId,
     this.backedUpAt,
@@ -88,6 +90,7 @@ class MediaItem {
       sourceLabel: json['source_label'] as String?,
       thumbnailUrl: json['thumbnail_url'] as String?,
       downloadUrl: json['download_url'] as String?,
+      streamUrl: json['stream_url'] as String?,
       backupStatus: (json['backup_status'] ?? 'none') as String,
       kdriveFileId: asInt(json['kdrive_file_id']),
       backedUpAt: _parseDate(json['backed_up_at']),
