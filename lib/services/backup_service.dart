@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../models/source.dart';
 import 'api_client.dart';
 import 'device_service.dart';
@@ -46,6 +48,16 @@ class BackupProgress {
 class BackupService {
   final ApiClient client;
 
+  /// Files claimed (and uploaded) per group: the group is the checkpoint unit.
+  static const int _groupSize = 5;
+
+  /// Parallel uploads. kDrive throttles requests, so 2 mainly overlaps the
+  /// client->API transfer with the API->kDrive one.
+  static const int _concurrency = 2;
+
+  /// Total tries (first attempt + retries) for transient failures.
+  static const int _maxAttempts = 3;
+
   BackupService(this.client);
 
   Future<void> runBackup({
@@ -74,43 +86,58 @@ class BackupService {
         }
         final pending = (await client.backupPending(
           sourceId: sourceId,
-          limit: 5,
+          limit: _groupSize,
         )).where((item) => !failedIds.contains(item.id)).toList();
         if (pending.isEmpty) break;
         claimed.addAll(pending.map((item) => item.id));
-        for (final item in pending) {
-          if (isCancelled?.call() ?? false) {
-            cancelled = true;
-            break;
-          }
-          onProgress(
-            BackupProgress(
-              currentName: item.name,
-              uploaded: uploaded,
-              failed: failed,
-              bytes: bytes,
-              total: uploaded + failed + pending.length,
-            ),
-          );
-          try {
-            final path = await ScanService.localFilePath(
-              externalKey: item.externalKey,
-              path: item.path,
-            );
-            if (path == null || path.isEmpty) {
-              throw ApiException(400, 'local file not found');
+
+        var cursor = 0;
+        Future<void> worker() async {
+          while (true) {
+            if (isCancelled?.call() ?? false) {
+              cancelled = true;
+              return;
             }
-            await client.uploadMedia(mediaId: item.id, filePath: path);
-            uploaded += 1;
-            bytes += item.sizeBytes;
-          } catch (error) {
-            failed += 1;
-            failedIds.add(item.id);
-            errors.add('${item.name}: $error');
-          } finally {
-            claimed.remove(item.id);
+            final index = cursor++;
+            if (index >= pending.length) return;
+            final item = pending[index];
+            onProgress(
+              BackupProgress(
+                currentName: item.name,
+                uploaded: uploaded,
+                failed: failed,
+                bytes: bytes,
+                total: uploaded + failed + (pending.length - index),
+              ),
+            );
+            try {
+              final path = await ScanService.localFilePath(
+                externalKey: item.externalKey,
+                path: item.path,
+              );
+              if (path == null || path.isEmpty) {
+                throw ApiException(400, 'local file not found');
+              }
+              await _uploadWithRetry(
+                mediaId: item.id,
+                filePath: path,
+                isCancelled: isCancelled,
+              );
+              uploaded += 1;
+              bytes += item.sizeBytes;
+            } catch (error) {
+              failed += 1;
+              failedIds.add(item.id);
+              errors.add('${item.name}: $error');
+            } finally {
+              claimed.remove(item.id);
+            }
           }
         }
+
+        await Future.wait([
+          for (var i = 0; i < _concurrency; i += 1) worker(),
+        ]);
         if (cancelled) break;
       }
     } finally {
@@ -136,6 +163,47 @@ class BackupService {
         ),
       );
     }
+  }
+
+  /// Uploads one file, retrying transient network/server failures with
+  /// exponential backoff (1s, 2s). A cancelled run is never retried.
+  Future<void> _uploadWithRetry({
+    required String mediaId,
+    required String filePath,
+    bool Function()? isCancelled,
+  }) async {
+    var attempt = 0;
+    while (true) {
+      try {
+        await client.uploadMedia(
+          mediaId: mediaId,
+          filePath: filePath,
+          isCancelled: isCancelled,
+        );
+        return;
+      } catch (error) {
+        if (isCancelled?.call() ?? false) rethrow;
+        if (!_isTransient(error) || attempt >= _maxAttempts - 1) rethrow;
+        attempt += 1;
+        await Future<void>.delayed(
+          Duration(milliseconds: 1000 * (1 << (attempt - 1))),
+        );
+      }
+    }
+  }
+
+  static bool _isTransient(Object error) {
+    if (error is ApiException) {
+      final code = error.statusCode;
+      return code == 0 || code == 408 || code == 429 || code >= 500;
+    }
+    if (error is TimeoutException) return true;
+    final text = error.toString();
+    if (text.contains('upload cancelled')) return false;
+    return text.contains('SocketException') ||
+        text.contains('ClientException') ||
+        text.contains('timed out') ||
+        text.contains('Connection');
   }
 
   Future<void> runVerify({

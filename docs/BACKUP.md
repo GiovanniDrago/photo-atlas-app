@@ -17,8 +17,14 @@ overwritten. Albums are database relations, never kDrive folders.
    `POST /api/media/batch`; the response returns the new ids so the app can upload immediately.
 2. **Upload**: the app streams the original (`asset.originFile` on Android, the file on Linux) to
    `POST /api/media/:id/upload`; the API writes it to a temporary file, computes the SHA-256 while
-   streaming, extracts EXIF server-side, uploads to kDrive (direct up to 1 GB, chunked session
-   above) and stores `backup_status`, `kdrive_file_id`, `content_hash` and `backed_up_at`.
+   streaming, extracts EXIF server-side, uploads to kDrive (direct up to `DIRECT_UPLOAD_LIMIT_BYTES`,
+   default 32 MiB, chunked session above) and stores `backup_status`, `kdrive_file_id`,
+   `content_hash` and `backed_up_at`. Files larger than 16 MiB use the **resumable chunked**
+   endpoints instead (`upload/init`, `upload/chunk`, `upload/finish`): the API forwards each chunk
+   to a kDrive session and records the progress in `upload_sessions`, so an interrupted upload
+   (killed job, app closed, long video) resumes from the last stored chunk instead of restarting.
+   While app-open backups run one file at a time; the in-app runner uploads up to 2 files in
+   parallel and retries transient failures with backoff (1s, 2s).
 3. **Verify** (*Verify backup*): the API checks each backed-up file on kDrive
    (`GET /3/drive/{drive}/files/{id}`); a missing file or a size mismatch puts the item back to
    `pending` so the next backup uploads it again.
@@ -44,9 +50,11 @@ notification) that scans the selected folders for new media and uploads everythi
   turning one on scans, indexes and uploads it right away, and the background job then keeps
   checking the same folders.
 - Enabling asks for the notification permission (Android 13+); the job runs even if it is denied.
-- Each run stops after ~8 minutes and the next run continues: the queue lives on the server
+- Each run stops after ~30 minutes and the next run continues: the queue lives on the server
   (`GET /api/backup/pending` claims items with `backup_status='uploading'`, so a foreground run and
-  the background job never upload the same file twice; claims older than 2 hours are released).
+  the background job never upload the same file twice; claims older than ~15 minutes are released).
+  When a run reaches the time budget and there is still work (and it uploaded something), the app
+  schedules the next run immediately instead of waiting for the periodic interval.
 - A completed backup run updates `sources.backup_last_run_at`, shown in the Backup screen.
 - While the app is open the runs happen **in the app process**: they start at once and the thin
   progress bar above every screen shows the phase and the counters. If the app goes to the
@@ -84,15 +92,19 @@ notification) that scans the selected folders for new media and uploads everythi
 - Long runs need the `dataSync` foreground service: `android/gradle.properties` sets
   `workmanager.enableDataSyncForegroundService=true` (the plugin then declares
   `FOREGROUND_SERVICE_DATA_SYNC`, required on Android 14+/targetSdk 34+). A stopped run releases its claims (`POST /api/backup/release`), so the
-  next run retries those files immediately instead of waiting for the 2 h sweep.
+  next run retries those files immediately instead of waiting for the stale sweep. The **Retry**
+  action in the sheet also calls `POST /api/backup/recover`, which releases this device's claims
+  that are not progressing.
 - Android may defer the job (Doze, battery optimization): whitelist the app if backups seem late.
 - Linux and the web build schedule nothing; on Linux backups run in the foreground only.
 
 ## Limits and notes
 
-- kDrive allows 60 requests per minute: uploads run one file at a time.
-- Files larger than 1 GB use a chunked upload session and need free space on the API host for the
-  temporary file (`MEDIA_UPLOAD_TMP_DIR`).
+- kDrive allows 60 requests per minute: uploads run one or two files at a time (the second slot
+  mainly overlaps the phone→API transfer with the API→kDrive one).
+- The single-request path uses a chunked upload session for files above the direct limit and needs
+  free space on the API host for the temporary file (`MEDIA_UPLOAD_TMP_DIR`); the resumable chunked
+  path (used above 16 MiB) does not keep the whole file on the server.
 - The verification of a large library takes time (one kDrive request per file); it can be stopped
   and resumed.
 - The web build cannot read device files, so backups are available on Android and Linux only.

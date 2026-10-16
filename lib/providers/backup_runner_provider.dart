@@ -302,6 +302,11 @@ class BackupRunner extends Notifier<BackupRunnerState> {
     final first = queue.first;
     final rootPaths = await _rootPaths();
     await cancel();
+    try {
+      await ref
+          .read(apiClientProvider)
+          .recoverBackupClaims(sourceId: first.sourceId);
+    } catch (_) {}
     await enqueue(
       sourceId: first.sourceId,
       label: first.label,

@@ -578,6 +578,17 @@ class ApiClient {
     return asInt(body['released']) ?? 0;
   }
 
+  /// Recovers claims of this device that are no longer progressing (used by
+  /// the manual Retry action).
+  Future<int> recoverBackupClaims({String? sourceId}) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/backup/recover'),
+      body: {'source_id': sourceId},
+    );
+    return asInt(body['released']) ?? 0;
+  }
+
   Future<List<VerifyQueueItem>> verifyQueue({
     String? sourceId,
     int limit = 100,

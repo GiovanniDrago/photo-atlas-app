@@ -118,6 +118,7 @@ Future<void> runAutoBackup({
   final backup = BackupService(client);
   final deadline = DateTime.now().add(budget);
   var cancelled = false;
+  var totalUploaded = 0;
   await BackupProgressStore.clearCancel();
   final watcher = Timer.periodic(const Duration(seconds: 2), (_) async {
     if (await BackupProgressStore.cancelRequested()) cancelled = true;
@@ -181,6 +182,7 @@ Future<void> runAutoBackup({
         );
         final uploaded = progress.uploaded;
         final failed = progress.failed;
+        totalUploaded += uploaded;
         await BackupRunLog.add(
           uploaded + failed == 0
               ? 'niente da caricare: ${source.label}'
@@ -190,6 +192,37 @@ Future<void> runAutoBackup({
       } catch (error) {
         debugPrint('auto backup: uploads failed for ${source.label}: $error');
         await BackupRunLog.add('upload fallito: $error');
+      }
+    }
+
+    // The run stopped because the time budget ran out while there was still
+    // work (and it made progress): schedule the next run right away instead of
+    // waiting for the periodic interval.
+    if (!cancelled && DateTime.now().isAfter(deadline) && totalUploaded > 0) {
+      try {
+        final snapshot = await client.backupStatus();
+        var chained = 0;
+        for (final source in snapshot.sources) {
+          if (source.pending <= 0) continue;
+          if (manual) {
+            if (sourceId != null && source.id != sourceId) continue;
+          } else if (!source.autoBackup) {
+            continue;
+          }
+          await AutoBackupService.registerManualRun(
+            sourceId: source.id,
+            label: source.label,
+          );
+          chained += 1;
+          await BackupRunLog.add(
+            'riprendo ${source.label}: ${source.pending} file in coda',
+          );
+        }
+        if (chained > 0) {
+          await BackupRunLog.add('nuovo run pianificato per il tempo rimasto');
+        }
+      } catch (error) {
+        debugPrint('auto backup: chaining failed: $error');
       }
     }
   } finally {
