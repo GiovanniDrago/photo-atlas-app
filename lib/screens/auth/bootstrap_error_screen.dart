@@ -37,28 +37,50 @@ class _BootstrapErrorScreenState extends ConsumerState<BootstrapErrorScreen> {
     super.dispose();
   }
 
-  Future<void> _saveAndRetry() async {
-    await ref
-        .read(apiBaseUrlProvider.notifier)
-        .setBaseUrl(_serverController.text);
+  Future<void> _applyBaseUrl(String value) async {
+    final normalized = value.trim();
+    if (normalized.isEmpty) return;
+    await ref.read(apiBaseUrlProvider.notifier).setBaseUrl(normalized);
     ref.invalidate(apiConfigProvider);
     ref.invalidate(supabaseReadyProvider);
   }
 
+  Future<void> _saveAndRetry() async {
+    await _applyBaseUrl(_serverController.text);
+  }
+
+  /// Verifies the typed server and, when it answers, saves it and lets the
+  /// bootstrap continue (the listener in build closes this screen once the app
+  /// is ready).
   Future<void> _testConnection() async {
     final l10n = AppLocalizations.of(context)!;
     setState(() {
       _testing = true;
       _resultMessage = null;
     });
-    final online = await ApiClient(_serverController.text.trim())
-        .health(timeout: const Duration(seconds: 4));
+    final target = _serverController.text.trim().replaceAll(
+      RegExp(r'/+$'),
+      '',
+    );
+    final online = await ApiClient(
+      target,
+    ).health(timeout: const Duration(seconds: 4));
     if (!mounted) return;
+    if (!online) {
+      setState(() {
+        _testing = false;
+        _resultOk = false;
+        _resultMessage = l10n.serverTestFailed;
+      });
+      return;
+    }
     setState(() {
-      _testing = false;
-      _resultOk = online;
-      _resultMessage = online ? l10n.serverTestOk : l10n.serverTestFailed;
+      _resultOk = true;
+      _resultMessage = l10n.serverTestOk;
     });
+    // Keep the buttons disabled while the bootstrap runs; the listener below
+    // re-enables them on error or dismisses the screen on success.
+    await _applyBaseUrl(target);
   }
 
   Future<void> _detect() async {
@@ -93,6 +115,28 @@ class _BootstrapErrorScreenState extends ConsumerState<BootstrapErrorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // When the saved server works the app becomes ready: close this screen if
+    // it was pushed (e.g. from the splash), otherwise the home swaps itself.
+    ref.listen(supabaseReadyProvider, (previous, next) {
+      if (next.isLoading) return;
+      if (next.hasError) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            _testing = false;
+            _detecting = false;
+            _resultOk = false;
+            _resultMessage = '${next.error}';
+          });
+        });
+      } else if (next.hasValue) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final navigator = Navigator.of(context);
+          if (navigator.canPop()) navigator.pop();
+        });
+      }
+    });
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final candidates = apiBaseUrlCandidates(
