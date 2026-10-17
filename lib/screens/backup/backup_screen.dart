@@ -9,6 +9,7 @@ import '../../providers/library_providers.dart';
 import '../../services/api_client.dart';
 import '../../services/auto_backup_service.dart';
 import '../../services/backup_service.dart';
+import 'backup_issues_screen.dart';
 import 'upload_picker_screen.dart';
 
 class BackupScreen extends ConsumerStatefulWidget {
@@ -239,6 +240,15 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     if (uploaded == true) await _loadStatus();
   }
 
+  Future<void> _openIssues({String? sourceId}) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => BackupIssuesScreen(initialSourceId: sourceId),
+      ),
+    );
+    if (mounted) await _loadStatus();
+  }
+
   String _formatBytes(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
@@ -246,6 +256,40 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+  }
+
+  Widget _issuesCard(AppLocalizations l10n, BackupStatusSnapshot? status) {
+    final open = (status?.failed ?? 0) + (status?.pending ?? 0);
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: ListTile(
+        leading: Icon(
+          Icons.report_gmailerrorred_outlined,
+          color: open > 0 ? scheme.error : null,
+        ),
+        title: Text(l10n.backupIssuesTitle),
+        subtitle: Text(l10n.backupIssuesOpenHint),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (open > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: scheme.errorContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$open',
+                  style: TextStyle(color: scheme.onErrorContainer),
+                ),
+              ),
+            const Icon(Icons.chevron_right),
+          ],
+        ),
+        onTap: _running ? null : () => _openIssues(),
+      ),
+    );
   }
 
   @override
@@ -298,6 +342,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               icon: const Icon(Icons.fact_check_outlined),
               label: Text(l10n.backupVerifyAll),
             ),
+            const SizedBox(height: 12),
+            _issuesCard(l10n, status),
           ],
           if (AutoBackupService.isSupported) ...[
             const SizedBox(height: 16),
@@ -401,6 +447,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                     '${source.backupFolderPath != null ? '\n${source.backupFolderPath}' : ''}',
                   ),
                   isThreeLine: source.backupFolderPath != null,
+                  onTap: _running ? null : () => _openIssues(sourceId: source.id),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

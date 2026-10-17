@@ -26,6 +26,7 @@ class BackupSourceStatus {
   final int uploaded;
   final int pending;
   final int failed;
+  final int skipped;
   final int bytesUploaded;
   final int bytesTotal;
   final String? backupFolderPath;
@@ -39,6 +40,7 @@ class BackupSourceStatus {
     required this.uploaded,
     required this.pending,
     required this.failed,
+    this.skipped = 0,
     required this.bytesUploaded,
     required this.bytesTotal,
     this.backupFolderPath,
@@ -54,6 +56,7 @@ class BackupSourceStatus {
       uploaded: _int(json['uploaded']),
       pending: _int(json['pending']),
       failed: _int(json['failed']),
+      skipped: _int(json['skipped']),
       bytesUploaded: _int(json['bytes_uploaded']),
       bytesTotal: _int(json['bytes_total']),
       backupFolderPath: json['backup_folder_path'] as String?,
@@ -71,6 +74,7 @@ class BackupStatusSnapshot {
   final int uploaded;
   final int pending;
   final int failed;
+  final int skipped;
   final int bytesUploaded;
   final int bytesTotal;
 
@@ -80,6 +84,7 @@ class BackupStatusSnapshot {
     required this.uploaded,
     required this.pending,
     required this.failed,
+    this.skipped = 0,
     required this.bytesUploaded,
     required this.bytesTotal,
   });
@@ -98,6 +103,7 @@ class BackupStatusSnapshot {
       uploaded: _int(totals['uploaded']),
       pending: _int(totals['pending']),
       failed: _int(totals['failed']),
+      skipped: _int(totals['skipped']),
       bytesUploaded: _int(totals['bytes_uploaded']),
       bytesTotal: _int(totals['bytes_total']),
     );

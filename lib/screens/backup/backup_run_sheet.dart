@@ -10,6 +10,7 @@ import '../../providers/backup_runner_provider.dart';
 import '../../providers/collections_providers.dart';
 import '../../services/auto_backup_service.dart';
 import '../../services/scan_service.dart';
+import 'backup_issues_screen.dart';
 import 'backup_screen.dart';
 
 Future<void> showBackupRunSheet(BuildContext context) {
@@ -354,14 +355,31 @@ class _BackupRunSheetState extends ConsumerState<_BackupRunSheet> {
               ),
               Align(
                 alignment: Alignment.centerLeft,
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const BackupScreen()),
-                    );
-                  },
-                  child: Text(l10n.backupOpenScreen),
+                child: Wrap(
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const BackupScreen(),
+                          ),
+                        );
+                      },
+                      child: Text(l10n.backupOpenScreen),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const BackupIssuesScreen(),
+                          ),
+                        );
+                      },
+                      child: Text(l10n.backupIssuesTitle),
+                    ),
+                  ],
                 ),
               ),
             ],

@@ -589,6 +589,36 @@ class ApiClient {
     return asInt(body['released']) ?? 0;
   }
 
+  /// Requeues items for upload: an explicit id list, or a whole source
+  /// ([failedOnly] limits it to the failed ones). Returns how many were queued.
+  Future<int> retryBackup({
+    List<String>? ids,
+    String? sourceId,
+    bool failedOnly = false,
+  }) async {
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/backup/retry'),
+      body: {
+        if (ids != null) 'ids': ids,
+        'source_id': sourceId,
+        'failed_only': failedOnly,
+      },
+    );
+    return asInt(body['queued']) ?? 0;
+  }
+
+  /// Marks items as skipped so runs stop retrying them.
+  Future<int> skipBackup(List<String> ids) async {
+    if (ids.isEmpty) return 0;
+    final body = await _sendJson(
+      'POST',
+      _uri('/api/backup/skip'),
+      body: {'ids': ids},
+    );
+    return asInt(body['skipped']) ?? 0;
+  }
+
   Future<List<VerifyQueueItem>> verifyQueue({
     String? sourceId,
     int limit = 100,

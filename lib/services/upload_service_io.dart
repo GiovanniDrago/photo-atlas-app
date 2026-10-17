@@ -23,6 +23,12 @@ class UploadCancelled implements Exception {
   String toString() => 'upload cancelled';
 }
 
+/// Thrown when the API does not expose the resumable chunked endpoints; the
+/// caller falls back to the single-request upload.
+class _ChunkedUnsupported implements Exception {
+  const _ChunkedUnsupported();
+}
+
 Future<void> uploadFileToApi({
   required String baseUrl,
   required String? token,
@@ -142,24 +148,68 @@ Future<bool> _chunkedUpload({
   bool Function()? isCancelled,
 }) async {
   final query = destination == null ? '' : '?destination=$destination';
-  Map<String, dynamic> init;
-  try {
-    init = await _postJson(
-      baseUrl,
-      token,
-      '/api/media/$mediaId/upload/init$query',
-      {'size': length, 'chunk_size': preferredChunkBytes},
-    );
-  } on ApiException catch (error) {
-    if (error.statusCode == 404 || error.statusCode == 405) return false;
-    rethrow;
+
+  Future<Map<String, dynamic>> openSession() async {
+    try {
+      return await _postJson(
+        baseUrl,
+        token,
+        '/api/media/$mediaId/upload/init$query',
+        {'size': length, 'chunk_size': preferredChunkBytes},
+      );
+    } on ApiException catch (error) {
+      if (error.statusCode == 404 || error.statusCode == 405) {
+        throw const _ChunkedUnsupported();
+      }
+      rethrow;
+    }
   }
 
-  final session = (init['session'] ?? const <String, dynamic>{})
+  // A kDrive upload session lasts at most 4 hours: if the server answers 410
+  // (session_expired) the run restarts with a fresh session instead of failing
+  // the whole file. Capped to avoid an endless loop on a broken backend.
+  var restarts = 0;
+  while (true) {
+    final Map<String, dynamic> session;
+    try {
+      session = await openSession();
+    } on _ChunkedUnsupported {
+      return false;
+    }
+    try {
+      await _runChunkedSession(
+        session: session,
+        baseUrl: baseUrl,
+        token: token,
+        mediaId: mediaId,
+        file: file,
+        length: length,
+        onProgress: onProgress,
+        isCancelled: isCancelled,
+      );
+      return true;
+    } on ApiException catch (error) {
+      if (error.statusCode != 410 || restarts >= 2) rethrow;
+      restarts += 1;
+    }
+  }
+}
+
+Future<void> _runChunkedSession({
+  required Map<String, dynamic> session,
+  required String baseUrl,
+  required String? token,
+  required String mediaId,
+  required File file,
+  required int length,
+  void Function(int sent, int total)? onProgress,
+  bool Function()? isCancelled,
+}) async {
+  final info = (session['session'] ?? const <String, dynamic>{})
       as Map<String, dynamic>;
-  final chunkSize = _asInt(session['chunk_size'], fallback: preferredChunkBytes);
-  final totalChunks = _asInt(session['total_chunks'], fallback: 1);
-  var uploadedChunks = _asInt(session['uploaded_chunks']);
+  final chunkSize = _asInt(info['chunk_size'], fallback: preferredChunkBytes);
+  final totalChunks = _asInt(info['total_chunks'], fallback: 1);
+  var uploadedChunks = _asInt(info['uploaded_chunks']);
 
   if (uploadedChunks > 0) {
     onProgress?.call(math.min(length, uploadedChunks * chunkSize), length);
@@ -192,7 +242,6 @@ Future<bool> _chunkedUpload({
   await _postJson(baseUrl, token, '/api/media/$mediaId/upload/finish', {
     'size': length,
   });
-  return true;
 }
 
 Future<void> _sendChunkWithRetry({
