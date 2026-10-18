@@ -39,6 +39,13 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
 
+dependency_overrides:
+  # shared_preferences_android 2.5.0 (Pigeon JNI) fails at runtime in this
+  # build (NoSuchMethodError on SharedPreferencesApiRegistrar) and breaks all
+  # preferences, including the backup URL. 2.4.29 was retracted; 2.4.28 is the
+  # last working release. Remove this once a fixed 2.5.x is published.
+  shared_preferences_android: 2.4.28
+
 flutter:
   uses-material-design: true
   generate: true
