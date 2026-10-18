@@ -1,0 +1,37 @@
+name: Generate lockfile
+
+# One-off helper: `flutter pub get` pins every dependency in pubspec.lock so
+# CI builds stop resolving different plugin versions. Run from the Actions tab
+# (or `gh workflow run lockfile.yml`); it commits pubspec.lock to main.
+on:
+  workflow_dispatch:
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.4'
+          channel: stable
+      - run: flutter pub get
+      - name: Commit pubspec.lock
+        run: |
+          if [ ! -f pubspec.lock ]; then
+            echo "::error::pubspec.lock was not generated"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f pubspec.lock
+          if git diff --cached --quiet; then
+            echo "pubspec.lock unchanged"
+          else
+            git commit -m "Add pubspec.lock"
+            git push
+          fi

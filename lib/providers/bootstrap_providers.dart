@@ -9,10 +9,7 @@ final apiConfigProvider = FutureProvider<ApiConfig>((ref) async {
   await ref.read(apiBaseUrlProvider.notifier).ready;
   final baseUrl = ref.watch(apiBaseUrlProvider);
   try {
-    final config = await ApiClient(baseUrl).apiConfig();
-    // Remember the address that actually worked (it may come from detection).
-    await ref.read(apiBaseUrlProvider.notifier).setBaseUrl(baseUrl);
-    return config;
+    return await ApiClient(baseUrl).apiConfig();
   } on ApiException {
     final found = await ref
         .read(apiBaseUrlProvider.notifier)
