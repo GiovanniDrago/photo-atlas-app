@@ -95,8 +95,21 @@ class _BackupIssuesScreenState extends ConsumerState<BackupIssuesScreen> {
         );
         queued += await client.retryBackup(ids: chunk);
       }
-      await _enqueueSources(items.map((item) => item.sourceId).toSet());
-      if (mounted) _snack(l10n.backupIssuesQueued(queued));
+      // Starting the run is a separate step: a failure here must not hide the
+      // fact that the items were requeued, nor skip the refresh below.
+      String? startError;
+      try {
+        await _enqueueSources(items.map((item) => item.sourceId).toSet());
+      } catch (error) {
+        startError = '$error';
+      }
+      if (mounted) {
+        _snack(
+          startError == null
+              ? l10n.backupIssuesQueued(queued)
+              : '${l10n.backupIssuesQueued(queued)} · $startError',
+        );
+      }
       await _load();
     } catch (error) {
       if (mounted) _snack('$error');

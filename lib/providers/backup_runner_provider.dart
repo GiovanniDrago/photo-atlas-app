@@ -113,7 +113,7 @@ class BackupRunner extends Notifier<BackupRunnerState> {
       await BackupRunLog.add('permesso foto mancante: il run non parte');
       return false;
     }
-    final queue = await BackupProgressStore.readQueue();
+    final queue = (await BackupProgressStore.readQueue()).toList();
     if (queue.any((item) => item.sourceId == sourceId) ||
         state.progress?.sourceId == sourceId) {
       return true;

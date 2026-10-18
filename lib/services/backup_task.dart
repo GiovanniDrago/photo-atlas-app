@@ -78,9 +78,16 @@ Future<void> runAutoBackup({
     return;
   }
 
-  final prefs = await SharedPreferences.getInstance();
-  final baseUrl =
-      prefs.getString('api_base_url') ?? platformDefaultApiBaseUrl();
+  final asyncPrefs = SharedPreferencesAsync();
+  var baseUrl = await asyncPrefs.getString('api_base_url');
+  if (baseUrl == null || baseUrl.isEmpty) {
+    // Fallback to the legacy store for installs that have not migrated yet.
+    final prefs = await SharedPreferences.getInstance();
+    baseUrl = prefs.getString('api_base_url');
+  }
+  if (baseUrl == null || baseUrl.isEmpty) {
+    baseUrl = platformDefaultApiBaseUrl();
+  }
   await BackupRunLog.add('server: $baseUrl');
   final config = await ApiClient(baseUrl).apiConfig();
   await SupabaseBootstrap.ensure(config);

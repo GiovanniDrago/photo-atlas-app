@@ -406,5 +406,6 @@
 "backupReasonNetwork": "Errore di rete o timeout",
 "backupReasonTooLarge": "File troppo grande",
 "backupReasonMissing": "File locale mancante",
-"backupReasonUnknown": "Errore di caricamento"
+"backupReasonUnknown": "Errore di caricamento",
+"serverSearching": "Ricerca del server…"
 }

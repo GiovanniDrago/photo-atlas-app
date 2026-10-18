@@ -29,6 +29,11 @@ class _BootstrapErrorScreenState extends ConsumerState<BootstrapErrorScreen> {
     _serverController = TextEditingController(
       text: ref.read(apiBaseUrlProvider),
     );
+    // The VM address changes with the hotspot: try to find the server right
+    // away instead of making the user type it every time.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _detect();
+    });
   }
 
   @override
@@ -84,16 +89,17 @@ class _BootstrapErrorScreenState extends ConsumerState<BootstrapErrorScreen> {
   }
 
   Future<void> _detect() async {
+    if (_detecting || _testing) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _detecting = true;
-      _resultMessage = null;
+      _resultMessage = l10n.serverSearching;
     });
     try {
       final found = await ref
           .read(apiBaseUrlProvider.notifier)
           .detectAndSave(prefer: _serverController.text, scanLan: true);
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
       if (found != null) {
         _serverController.text = found;
         setState(() {

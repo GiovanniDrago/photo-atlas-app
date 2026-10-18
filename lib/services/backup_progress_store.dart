@@ -219,16 +219,24 @@ class BackupProgressStore {
   }
 
   static Future<List<BackupQueueItem>> readQueue() async {
+    final items = <BackupQueueItem>[];
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getStringList(_queueKey) ?? const [];
-      return [
-        for (final value in raw)
-          BackupQueueItem.fromJson(jsonDecode(value) as Map<String, dynamic>),
-      ];
+      final raw = prefs.getStringList(_queueKey) ?? const <String>[];
+      for (final value in raw) {
+        // Skip a single corrupt entry instead of dropping the whole queue and
+        // returning an immutable list (which made enqueue crash on add).
+        try {
+          final decoded = jsonDecode(value);
+          if (decoded is Map<String, dynamic>) {
+            items.add(BackupQueueItem.fromJson(decoded));
+          }
+        } catch (_) {}
+      }
     } catch (_) {
-      return const [];
+      return items;
     }
+    return items;
   }
 
   static Future<void> writeQueue(List<BackupQueueItem> queue) async {

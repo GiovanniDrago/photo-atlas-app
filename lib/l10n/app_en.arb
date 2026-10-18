@@ -910,5 +910,6 @@
 "backupReasonNetwork": "Network error or timeout",
 "backupReasonTooLarge": "File too large",
 "backupReasonMissing": "Local file missing",
-"backupReasonUnknown": "Upload error"
+"backupReasonUnknown": "Upload error",
+"serverSearching": "Searching for the server…"
 }

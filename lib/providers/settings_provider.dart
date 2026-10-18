@@ -70,8 +70,22 @@ class ApiBaseUrlNotifier extends Notifier<String> {
 
   Future<void> _load() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final value = prefs.getString(_key);
+      // The API address is shared with the background backup isolate: use the
+      // async store (no per-isolate cache) so a value written by the UI is
+      // always visible to the worker and vice versa.
+      final asyncPrefs = SharedPreferencesAsync();
+      var value = await asyncPrefs.getString(_key);
+      if (value == null || value.isEmpty) {
+        // One-time migration from the legacy SharedPreferences store.
+        try {
+          final legacy = await SharedPreferences.getInstance();
+          final legacyValue = legacy.getString(_key);
+          if (legacyValue != null && legacyValue.isNotEmpty) {
+            value = legacyValue;
+            await asyncPrefs.setString(_key, legacyValue);
+          }
+        } catch (_) {}
+      }
       if (value == null || value.isEmpty) return;
       if (kIsWeb && isLoopbackBaseUrl(value)) {
         state = platformDefaultApiBaseUrl();
@@ -83,11 +97,19 @@ class ApiBaseUrlNotifier extends Notifier<String> {
     }
   }
 
-  Future<void> setBaseUrl(String value) async {
+  /// Saves the address and returns whether it was actually persisted.
+  Future<bool> setBaseUrl(String value) async {
     final normalized = value.trim().replaceAll(RegExp(r'/+$'), '');
+    if (normalized.isEmpty) return false;
     state = normalized;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, normalized);
+    try {
+      final prefs = SharedPreferencesAsync();
+      await prefs.setString(_key, normalized);
+      final stored = await prefs.getString(_key);
+      return stored == normalized;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<String?> detectAndSave({String? prefer, bool scanLan = false}) async {
